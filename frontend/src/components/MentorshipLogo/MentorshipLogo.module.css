@@ -1,0 +1,8 @@
+.animateWidth {
+    width: 10rem;
+    transition: width 500ms ease-in-out;
+}
+
+.animateWidth.active {
+    width: 0px;
+}
