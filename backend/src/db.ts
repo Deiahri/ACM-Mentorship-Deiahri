@@ -2,7 +2,7 @@
 // Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
 
-import { collection, getDocs, getFirestore, query as firebaseQuery, where, orderBy, updateDoc, doc, setDoc, addDoc, getDoc, deleteDoc, QueryConstraint, or, QueryFieldFilterConstraint, QueryCompositeFilterConstraint } from 'firebase/firestore';
+import { collection, getDocs, getFirestore, query as firebaseQuery, where, orderBy, updateDoc, doc, setDoc, addDoc, getDoc, deleteDoc, or, QueryFieldFilterConstraint } from 'firebase/firestore';
 
 import dotenv from 'dotenv';
 dotenv.config();

@@ -111,8 +111,8 @@ describe('db', async () => {
         // expect certain number of test objects
         await testObjectsExistTest(Object.keys(testObjects).length * 2);
     });
-
-    let currentTestObjects: object;
+    
+    let currentTestObjects = {};
     /**
      * The test objects created in the previous test should result in 2 test objects for each collection
      * of the 2 objects, 1 property: _test_property
