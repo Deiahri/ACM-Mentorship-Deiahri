@@ -57,7 +57,7 @@ export function StartSocketServer() {
     const httpServer = http.createServer();
     const io = new SocketIOServer(httpServer, {
       cors: {
-        origin: process.env.SOCKET_SERVER_PORT,
+        origin: [process.env.CLIENT_ADDRESS],
         methods: ['GET', 'POST'],
       }
     });
@@ -144,7 +144,7 @@ function _addInitialListenersToSocketIOServer() {
 
     // make request to our server to verify token.
     try {
-      console.log(`Veriyfing "${tokenWithBearer}" from http://localhost:${process.env.EXPRESS_SERVER_PORT}/verifyJWT`);
+      // console.log(`Veriyfing "${tokenWithBearer}" from http://localhost:${process.env.EXPRESS_SERVER_PORT}/verifyJWT`);
       // request fails if token is invalid.
       const resRaw = (await fetch(`http://localhost:${process.env.EXPRESS_SERVER_PORT}/verifyJWT`, {
           method: 'POST',
@@ -152,7 +152,6 @@ function _addInitialListenersToSocketIOServer() {
               authorization: tokenWithBearer
           }
       }));
-      console.log('verify res', resRaw);
       const res = await resRaw.json();
       new AuthenticatedSocket(socket, res.payload.sub);
       next();

@@ -1,5 +1,6 @@
-import { expect, it, describe } from 'vitest';
+import { expect, it, describe, afterAll } from 'vitest';
 import { collectionName, DBCreate, DBDelete, DBDeleteWithID, DBGet, DBSet, DBSetWithID } from '../src/db';
+import { sleep } from '../src/scripts/tools';
 
 const testObjects = {
     'user': {
@@ -186,5 +187,9 @@ describe('db', async () => {
             await DBDelete(collection, [['_test_property', '!=', null]]);
         }
         await testObjectsExistTest(0);
+    });
+
+    afterAll(async () => {
+        await sleep(1000);
     });
 });

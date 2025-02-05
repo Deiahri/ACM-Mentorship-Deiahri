@@ -22,11 +22,11 @@ initializeApp(firebaseConfig);
 const db = getFirestore();
 
 // list of all collection names
-export type collectionName = 'user' | 'chat' | 'message' | 'friendship';
-export const collectionsNames = ['user', 'chat', 'message', 'friendship'];
+export type collectionName = 'user' | 'assessment' | 'mentorshipRequest';
+export const collectionsNames = ['user', 'assessment', 'mentorshipRequest'];
 
 type comparisonOperator = '<' | '>' | '<=' | '>=' | '==' | '!=' | "array-contains";
-type queryTuple = [string, comparisonOperator, string|null|number];
+type queryTuple = [string, comparisonOperator, string|null|number|boolean];
 type queryStyle = 'or' | 'and';
 type orderDirection = 'asc' | 'desc';
 type orderTuple = [string, orderDirection];

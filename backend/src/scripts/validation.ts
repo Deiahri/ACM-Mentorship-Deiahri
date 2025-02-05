@@ -1,5 +1,5 @@
 import { DBGet } from "../db";
-import { ObjectAny, SocialTypes } from "../types";
+import { AssessmentAction, AssessmentActions, MentorshipRequestAction, MentorshipRequestActions, ObjectAny, SocialTypes } from "../types";
 
 export const MAX_NAME_LENGTH = 36;
 /**
@@ -233,4 +233,64 @@ export function isValidCertification(certification: ObjectAny) {
   } else if (!issuingOrg || typeof(issuingOrg) != 'string' || issuingOrg.length < 1) {
     throw new Error('"Issuing Organization format was unexpected');
   }
+}
+
+const AssessmentInputTypes = ['text', 'number', 'boolean'];
+export type AssessmentInputType = 'text' | 'number' | 'boolean';
+export type AssessmentQuestionObj = {
+  question?: string,
+  inputType?: AssessmentInputType
+}
+export function isValidAssessmentQuestion(AQO: ObjectAny): AQO is AssessmentQuestionObj {
+  if (!AQO || typeof(AQO) != 'object') {
+    return false;
+  }
+  const { question, inputType } = AQO;
+  if (typeof(question) != 'string') {
+    return false;
+  } else if (!AssessmentInputTypes.includes(inputType)) {
+    return false;
+  }
+  return true;
+}
+
+export type AnsweredAssessmentQuestionObj = AssessmentQuestionObj & {
+  answer?: unknown
+}
+export function isValidAnsweredAssessmentQuestion(AAQO: ObjectAny): AAQO is AnsweredAssessmentQuestionObj {
+  if (!isValidAssessmentQuestion(AAQO)) {
+    return false;
+  }
+
+  const { answer, inputType } = AAQO as ObjectAny;
+  switch (inputType) {
+    case 'text':
+      return typeof answer === 'string';
+    case 'boolean':
+      return typeof answer === 'boolean';
+    case 'number':
+      return typeof answer === 'number';
+    default:
+      return false;
+  }
+}
+
+export function isValidAnsweredAssessmentQuestions(AAQO: ObjectAny[]): AAQO is AnsweredAssessmentQuestionObj[] {
+  if (!(AAQO instanceof Array)) {
+    return false;
+  }
+  for (let obj of AAQO) {
+    if (!isValidAnsweredAssessmentQuestion(obj)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+export function isValidAssessmentAction(s: string): s is AssessmentAction {
+  return AssessmentActions.includes(s);
+}
+
+export function isValidMentorshipRequestAction(s: string): s is MentorshipRequestAction {
+  return MentorshipRequestActions.includes(s);
 }

@@ -5,6 +5,8 @@ import { Provider } from "react-redux";
 import { store } from "./store";
 import Dialog from "./features/Dialog/Dialog";
 import App from "./components/App";
+import HomePage from "./pages/HomePage/HomePage";
+import NewUserPage from "./pages/NewUserPage/NewUserPage";
 
 const router = createBrowserRouter([
   {
@@ -13,7 +15,17 @@ const router = createBrowserRouter([
   },
   {
     path: '/app',
-    element: <App/>
+    element: <App/>,
+    children: [
+      {
+        path: 'home',
+        element: <HomePage/>
+      },
+      {
+        path: 'new-user',
+        element: <NewUserPage/>
+      }
+    ]
   },
 ]);
 

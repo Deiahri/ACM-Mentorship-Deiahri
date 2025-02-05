@@ -1,5 +1,6 @@
 import { expect, describe, it } from "vitest";
 import {
+  isValidAssessmentQuestion,
   isValidCertification,
   isValidEducation,
   isValidExperience,
@@ -11,7 +12,12 @@ import {
   MAX_NAME_LENGTH,
   MAX_USERNAME_LENGTH,
   MIN_USERNAME_LENGTH,
+  AssessmentQuestionObj,
+  AnsweredAssessmentQuestionObj,
+  isValidAnsweredAssessmentQuestion,
+  isValidAnsweredAssessmentQuestions
 } from "../../src/scripts/validation";
+import { ObjectAny } from "../../src/types";
 
 describe("Tests validation script", () => {
   describe("isValidNames", () => {
@@ -261,4 +267,198 @@ describe("Tests validation script", () => {
       expect(() => isValidProject(invalidProject2)).toThrowError();
     });
   });
+
+  describe("isValidAssessmentQuestion", () => {
+    it("should return true for valid assessment question objects", () => {
+      const validQuestion: ObjectAny = {
+        question: "What is your name?",
+        inputType: "text",
+      };
+      expect(isValidAssessmentQuestion(validQuestion)).toBe(true);
+    });
+  
+    it("should return false if question is missing or not a string", () => {
+      const invalidQuestion1: ObjectAny = {
+        inputType: "text",
+      };
+      const invalidQuestion2: ObjectAny = {
+        question: 123,
+        inputType: "text",
+      };
+      expect(isValidAssessmentQuestion(invalidQuestion1)).toBe(false);
+      expect(isValidAssessmentQuestion(invalidQuestion2)).toBe(false);
+    });
+  
+    it("should return false if inputType is missing or invalid", () => {
+      const invalidQuestion1 = {
+        question: "What is your age?",
+      };
+      const invalidQuestion2 = {
+        question: "What is your age?",
+        inputType: "invalidType",
+      };
+      expect(isValidAssessmentQuestion(invalidQuestion1)).toBe(false);
+      expect(isValidAssessmentQuestion(invalidQuestion2)).toBe(false);
+    });
+  });
+  
+  describe("isValidAnsweredAssessmentQuestion", () => {
+    it("should return true for valid answered assessment questions", () => {
+      const validTextAnswer: ObjectAny = {
+        question: "What is your name?",
+        inputType: "text",
+        answer: "John Doe",
+      };
+      const validNumberAnswer: ObjectAny = {
+        question: "What is your age?",
+        inputType: "number",
+        answer: 25,
+      };
+      const validBooleanAnswer: ObjectAny = {
+        question: "Do you agree?",
+        inputType: "boolean",
+        answer: true,
+      };
+  
+      expect(isValidAnsweredAssessmentQuestion(validTextAnswer)).toBe(true);
+      expect(isValidAnsweredAssessmentQuestion(validNumberAnswer)).toBe(true);
+      expect(isValidAnsweredAssessmentQuestion(validBooleanAnswer)).toBe(true);
+    });
+  
+    it("should return false if answer does not match inputType", () => {
+      const invalidTextAnswer: ObjectAny = {
+        question: "What is your name?",
+        inputType: "text",
+        answer: 123, // Should be a string
+      };
+      const invalidNumberAnswer: ObjectAny = {
+        question: "What is your age?",
+        inputType: "number",
+        answer: "twenty-five", // Should be a number
+      };
+      const invalidBooleanAnswer: ObjectAny = {
+        question: "Do you agree?",
+        inputType: "boolean",
+        answer: "yes", // Should be a boolean
+      };
+  
+      expect(isValidAnsweredAssessmentQuestion(invalidTextAnswer)).toBe(false);
+      expect(isValidAnsweredAssessmentQuestion(invalidNumberAnswer)).toBe(false);
+      expect(isValidAnsweredAssessmentQuestion(invalidBooleanAnswer)).toBe(false);
+    });
+  
+    it("should return false if the object is missing required properties", () => {
+      const missingAnswer: AnsweredAssessmentQuestionObj = {
+        question: "What is your name?",
+        inputType: "text",
+      };
+      const missingQuestion: AnsweredAssessmentQuestionObj = {
+        inputType: "text",
+        answer: "John Doe",
+      };
+      const missingInputType: AnsweredAssessmentQuestionObj = {
+        question: "What is your name?",
+        answer: "John Doe",
+      };
+  
+      expect(isValidAnsweredAssessmentQuestion(missingAnswer)).toBe(false);
+      expect(isValidAnsweredAssessmentQuestion(missingQuestion)).toBe(false);
+      expect(isValidAnsweredAssessmentQuestion(missingInputType)).toBe(false);
+    });
+  });
+
+  describe("isValidAnsweredAssessmentQuestions", () => {
+    it("should return true for an array of valid answered assessment questions", () => {
+      const validQuestions: ObjectAny[] = [
+        {
+          question: "What is your name?",
+          inputType: "text",
+          answer: "John Doe",
+        },
+        {
+          question: "What is your age?",
+          inputType: "number",
+          answer: 25,
+        },
+        {
+          question: "Do you agree?",
+          inputType: "boolean",
+          answer: true,
+        },
+      ];
+  
+      expect(isValidAnsweredAssessmentQuestions(validQuestions)).toBe(true);
+    });
+  
+    it("should return false if at least one object has an invalid answer type", () => {
+      const invalidQuestions: ObjectAny[] = [
+        {
+          question: "What is your name?",
+          inputType: "text",
+          answer: "John Doe",
+        },
+        {
+          question: "What is your age?",
+          inputType: "number",
+          answer: "twenty-five", // Invalid type, should be a number
+        },
+        {
+          question: "Do you agree?",
+          inputType: "boolean",
+          answer: true,
+        },
+      ];
+  
+      expect(isValidAnsweredAssessmentQuestions(invalidQuestions)).toBe(false);
+    });
+  
+    it("should return false if at least one object is missing required properties", () => {
+      const missingProperties: ObjectAny[] = [
+        {
+          question: "What is your name?",
+          inputType: "text",
+          answer: "John Doe",
+        },
+        {
+          question: "What is your age?",
+          answer: 25, // Missing inputType
+        },
+        {
+          question: "Do you agree?",
+          inputType: "boolean",
+          answer: true,
+        },
+      ];
+  
+      expect(isValidAnsweredAssessmentQuestions(missingProperties)).toBe(false);
+    });
+  
+    it("should return true for an empty array", () => {
+      expect(isValidAnsweredAssessmentQuestions([])).toBe(true);
+    });
+  
+    it("should return false if the input is not an array", () => {
+      const notAnArray: any = {
+        question: "What is your name?",
+        inputType: "text",
+        answer: "John Doe",
+      };
+  
+      expect(isValidAnsweredAssessmentQuestions(notAnArray)).toBe(false);
+    });
+  
+    it("should return false if the array contains a non-object element", () => {
+      const mixedArray: any[] = [
+        {
+          question: "What is your name?",
+          inputType: "text",
+          answer: "John Doe",
+        },
+        "invalid string",
+      ];
+  
+      expect(isValidAnsweredAssessmentQuestions(mixedArray)).toBe(false);
+    });
+  });
+  
 });

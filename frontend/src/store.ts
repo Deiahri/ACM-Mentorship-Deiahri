@@ -1,9 +1,11 @@
 import { configureStore } from "@reduxjs/toolkit";
 import DialogSlice from './features/Dialog/DialogSlice';
+import ClientSocketSlice from './features/ClientSocket/ClientSocketSlice';
 
 export const store = configureStore({
   reducer: {
-    Dialog: DialogSlice
+    Dialog: DialogSlice,
+    ClientSocket: ClientSocketSlice
   },
   middleware: (getDefaultMiddleware) => {
     return getDefaultMiddleware({
@@ -13,4 +15,4 @@ export const store = configureStore({
 });
 
 export type AppDispatch = typeof store.dispatch;
-export type RootState = ReturnType<typeof store.getState>;
+export type ReduxRootState = ReturnType<typeof store.getState>;
