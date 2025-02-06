@@ -9,6 +9,7 @@ import HomePage from "./pages/HomePage/HomePage";
 import NewUserPage from "./pages/NewUserPage/NewUserPage";
 import UserPage from "./pages/UserPage/UserPage";
 import P404Page from "./pages/404Page/P404Page";
+import Alert from "./features/Alert/Alert";
 
 const router = createBrowserRouter([
   {
@@ -42,6 +43,7 @@ const router = createBrowserRouter([
 export default function ApRouting() {
   return <>
     <Provider store={store}>
+      <Alert/>
       <Dialog/>
       <IntroOverlay/>
       <RouterProvider router={router}/>

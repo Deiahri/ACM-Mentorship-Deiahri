@@ -61,6 +61,8 @@ type ClientSocketUser = {
   fName?: string,
   mName?: string,
   lName?: string,
+  username?: string,
+  id?: string,
   socials?: string[],
   experience?: ObjectAny[],
   education?: ObjectAny[],
@@ -136,13 +138,29 @@ class ClientSocket {
 
   updateProfile(params: ClientSocketUser, callback?: Function) {
     if (this.submitting) {
+      callback && callback(false);
       return;
     }
-    
+    console.log('updatingProfile', params);
     this.submitting = true;
-    this.socket.emit('updateProfile', params, () => {
-      callback && callback();
+    this.socket.emit('updateProfile', params, (v: boolean) => {
+      callback && callback(v);
       this.submitting = false;
+
+      // if successful, requests a self update
+      v && this.requestUpdateSelf();
+    });
+  }
+
+  requestUpdateSelf(callback?: Function) {
+    if (this.submitting) {
+      return;
+    }
+    this.submitting = true;
+    this.socket.emit('getUser', this.user.id, (v: ObjectAny) => {
+      this.submitting = false;
+      callback && callback(v);
+      this.dispatch(setClientUser(v));
     });
   }
 

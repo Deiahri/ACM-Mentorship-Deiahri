@@ -339,8 +339,9 @@ export default class AuthenticatedSocket {
       // process username
       if (username) {
         try {
-          isValidUsername(username);
-          newUserObj.username = username;
+          await isValidUsername(username);
+          newUserObj.username = username.trim();
+          newUserObj.usernameLower = username.trim().toLowerCase();
         } catch (err) {
           if (err instanceof Error) {
             this.sendClientMessage(

@@ -5,6 +5,7 @@ export type DialogInputType = 'number' | 'text' | 'email' | 'select';
 export type DialogInput = {
   label: string,
   type: DialogInputType,
+  name?: string,
   selectOptions?: string[] | boolean[] | number[],
   inputStyle?: React.CSSProperties,
   labelStyle?: React.CSSProperties,

@@ -9,12 +9,12 @@ type ClientSocketUserData = {
   fName?: string;
   mName?: string;
   lName?: string;
-  socials: string[];
-  experience: ObjectAny[];
-  education: ObjectAny[];
-  certifications: ObjectAny[];
-  projects: ObjectAny[];
-  softSkills: string[];
+  socials?: string[];
+  experience?: ObjectAny[];
+  education?: ObjectAny[];
+  certifications?: ObjectAny[];
+  projects?: ObjectAny[];
+  softSkills?: string[];
 };
 
 type ClientSocketMentorshipRequest = {

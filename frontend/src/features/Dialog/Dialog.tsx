@@ -42,7 +42,12 @@ export default function Dialog() {
       if (!input.initialValue) {
         continue;
       }
-      initialInputVals[input.label] = input.initialValue;
+      const { label, name } = input;
+      const key = name || label;
+      if (!key) {
+        return;
+      }
+      initialInputVals[key] = input.initialValue;
     }
     setInputVals(initialInputVals);
   }, [inputs]);
@@ -71,6 +76,7 @@ export default function Dialog() {
 
   // const { title, body } = message;
 
+  console.log('IV', inputVals);
   return (
     <DialogRadix.Root open={true}>
       {/* <DialogRadix.Trigger asChild>
@@ -108,10 +114,11 @@ export default function Dialog() {
           </DialogRadix.Description>
 
           {inputs?.map((DialogInput: DialogInput, index: number) => {
-            const { inputStyle, containerStyle, labelStyle, placeholder, disabled } = DialogInput;
+            const { inputStyle, containerStyle, labelStyle, placeholder, disabled, name, label } = DialogInput;
             const typeIsSelect = DialogInput.type == "select";
             const OVRALL_Key = `DialogInput_${index}`;
-            const DI_Key = DialogInput.label;
+            const DI_Key = name || label;
+            console.log('DI_KEY', DI_Key);
             const DI_Type = DialogInput.type;
             return (
               <div
@@ -130,7 +137,7 @@ export default function Dialog() {
                   }}
                 >
                   <p style={{ margin: 0, marginRight: 20, ...labelStyle }}>
-                    {DialogInput.label}
+                    {label}
                   </p>
                   {!typeIsSelect && (
                     <input
