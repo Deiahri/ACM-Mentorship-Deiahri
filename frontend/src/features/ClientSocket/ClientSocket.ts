@@ -2,8 +2,8 @@ import { io, Socket } from "socket.io-client";
 import { Dispatch } from "@reduxjs/toolkit";
 import { isClientDataPayloadType, isClientSocketState } from "../../scripts/validation";
 import { setClientAssessments, setClientState, setClientUser, setMentorshipRequests } from "./ClientSocketSlice";
-import { setDialog } from "../Dialog/DialogSlice";
 import { AnyFunction, ObjectAny } from "../../scripts/types";
+import { setAlert } from "../Alert/AlertSlice";
 
 export let MyClientSocket: ClientSocket | undefined = undefined;
 
@@ -57,6 +57,24 @@ type ClientCreateUserPayload = {
   username: string
 };
 
+type ClientSocketUser = {
+  fName?: string,
+  mName?: string,
+  lName?: string,
+  socials?: string[],
+  experience?: ObjectAny[],
+  education?: ObjectAny[],
+  certifications?: ObjectAny[],
+  projects?: ObjectAny[],
+  softSkills?: string[],
+  isMentor?: boolean,
+  isMentee?: boolean,
+  acceptingMentees?: boolean,
+  assessments?: string[],
+  menteeIDs?: string[],
+  mentorID?: string
+}
+
 export type ClientDataPayloadType = 'initialData' | 'mentorshipRequest';
 export const ClientDataPayloadTypes = ['initialData', 'mentorshipRequest'];
 
@@ -71,9 +89,12 @@ class ClientSocket {
   dispatch: Dispatch;
   socket: Socket;
   state: ClientSocketState = 'connecting';
-  userID: string | undefined;
+  user: ClientSocketUser = {};
+  assessments: string[] = [];
+  mentorshipRequests: ObjectAny[] = [];
   currentSocketStateEvents: { [key: string]: (...args: any[]) => void } = {};
-  users: Map<string, object> = new Map();
+  submitting: boolean = false; // this is used to prevent this socket from emitting more than one event at a time.
+
   constructor(socket: Socket, dispatch: Dispatch) {
     this.socket = socket;
     this.dispatch = dispatch;
@@ -82,6 +103,10 @@ class ClientSocket {
   }
 
   createAccount(params: ClientCreateUserPayload, callback?: AnyFunction) {
+    // don't submit if already submitting some information.
+    if (this.submitting) {
+      return;
+    }
     const CreateAccountErrorHeader = 'Create Account Error';
     if (this.state != 'authed_nouser') {
       this.showDialog(CreateAccountErrorHeader, 'You already have an account');
@@ -101,8 +126,23 @@ class ClientSocket {
     } else if (!username) {
       this.showDialog(CreateAccountErrorHeader, "You're missing a username.");
     }
+
+    this.submitting = true;
     this.socket.emit('createUser', { fName, mName, lName, username }, (v: boolean) => {
       callback && callback(v);
+      this.submitting = false;
+    });
+  }
+
+  updateProfile(params: ClientSocketUser, callback?: Function) {
+    if (this.submitting) {
+      return;
+    }
+    
+    this.submitting = true;
+    this.socket.emit('updateProfile', params, () => {
+      callback && callback();
+      this.submitting = false;
     });
   }
 
@@ -170,7 +210,7 @@ class ClientSocket {
   }
 
   private showDialog(title?: string, body?: string) {
-    this.dispatch(setDialog({ title: title, subtitle: body }));
+    this.dispatch(setAlert({ title, body }));
   }
 
   private _cleanupSocketEvents() {
@@ -190,8 +230,11 @@ class ClientSocket {
       return;
     }
     this.dispatch(setClientUser(user));
+    this.user = user;
     this.dispatch(setClientAssessments(assessments));
+    this.assessments = assessments;
     this.dispatch(setMentorshipRequests(mentorshipRequests));
+    this.mentorshipRequests = mentorshipRequests;
   }
 
   private _handleMentorshipRequests() {

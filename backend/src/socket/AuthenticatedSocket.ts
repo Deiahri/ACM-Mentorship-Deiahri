@@ -321,6 +321,7 @@ export default class AuthenticatedSocket {
       const data: ObjectAny = dataRaw;
       // extract all possible updates
       const {
+        username,
         fName,
         mName,
         lName,
@@ -334,6 +335,28 @@ export default class AuthenticatedSocket {
         acceptingMentees,
       } = data;
       const newUserObj = { ...JSON.parse(JSON.stringify(this.user)) };
+
+      // process username
+      if (username) {
+        try {
+          isValidUsername(username);
+          newUserObj.username = username;
+        } catch (err) {
+          if (err instanceof Error) {
+            this.sendClientMessage(
+              "Error",
+              handleUpdateProfileSubject + err.message
+            );
+            callback(false);
+            return;
+          }
+          this.sendClientMessage(
+            "Error",
+            handleUpdateProfileSubject + 'Something went wrong while validating new username.'
+          );
+          callback(false);
+        }
+      }
 
       // process fName, mName, and lName
       try {

@@ -16,7 +16,7 @@ export type DialogInput = {
 
 export type DialogButton = {
   text?: string,
-  onClick?: (...args: any[]) => any,
+  onClick?: (DialogFormParams: Object, enableCallback?: Function) => any,
   style?: React.CSSProperties,
 
   /**

@@ -1,5 +1,5 @@
 import { useDispatch, useSelector } from "react-redux";
-import { RootState } from '../../store';
+import { ReduxRootState } from '../../store';
 import * as DialogRadix from "@radix-ui/react-dialog";
 import { closeDialog, DialogButton, DialogInput } from "./DialogSlice";
 import { useEffect, useState } from "react";
@@ -27,7 +27,7 @@ export default function Dialog() {
     active,
     containerStyle,
     overlayStyle
-  } = useSelector((store: RootState) => store.Dialog);
+  } = useSelector((store: ReduxRootState) => store.Dialog);
   const [inputVals, setInputVals] = useState<AnyObject>({});
   const [disabledButtons, setDisabledButtons] = useState(Array.from({ length: buttons?.length || 0 }, () => false));
   const dispatch = useDispatch();
@@ -107,7 +107,7 @@ export default function Dialog() {
             {subtitle}
           </DialogRadix.Description>
 
-          {inputs?.map((DialogInput: DialogInput, index) => {
+          {inputs?.map((DialogInput: DialogInput, index: number) => {
             const { inputStyle, containerStyle, labelStyle, placeholder, disabled } = DialogInput;
             const typeIsSelect = DialogInput.type == "select";
             const OVRALL_Key = `DialogInput_${index}`;
@@ -177,7 +177,7 @@ export default function Dialog() {
               ...buttonContainerStyle,
             }}
           >
-            {buttons?.map((DialogButton: DialogButton, btnIndex) => {
+            {buttons?.map((DialogButton: DialogButton, btnIndex: number) => {
               if (Object.keys(DialogButton).length == 0) {
                 return null;
               }

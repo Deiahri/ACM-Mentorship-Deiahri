@@ -905,6 +905,7 @@ describe("Tests authenticated Socket", () => {
   describe("handleUpdateProfile", () => {
     it("should successfully update the profile with valid data", async () => {
       const validProfileData = {
+        username: '_test_newUsername_LaoGui',
         fName: "John",
         mName: "A",
         lName: "Doe",

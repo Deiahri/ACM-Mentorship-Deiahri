@@ -1,25 +1,72 @@
 import { useAuth0 } from "@auth0/auth0-react";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { ReduxRootState } from "../../store";
 import { useState } from "react";
 import { MyClientSocket } from "../../features/ClientSocket/ClientSocket";
+import { Pencil } from "lucide-react";
+import { setDialog } from "../../features/Dialog/DialogSlice";
+import { ObjectAny } from "../../scripts/types";
 
 type HomeSubPage = "view_mentor" | "view_mentees";
 export default function HomePage() {
+  const dispatch = useDispatch();
   const { logout } = useAuth0();
   const { user } = useSelector((store: ReduxRootState) => store.ClientSocket);
-
   const [subPage, setSubPage] = useState<HomeSubPage>("view_mentor");
-
-  function handleChangeSubpage(newSubPage: HomeSubPage) {
-    setSubPage(newSubPage);
-  }
 
   if (!user || !MyClientSocket) {
     return <p>Loading...</p>;
   }
 
-  const { username, fName, mName, lName, id: userID, socials, experience, education, certifications, projects, softSkills } = user;
+  function handleChangeSubpage(newSubPage: HomeSubPage) {
+    setSubPage(newSubPage);
+  }
+
+  function handleUpdateUsername() {
+    dispatch(setDialog({
+      title: 'Change Username',
+      subtitle: 'Change your username to whatever you want (assuming it\'s available)',
+      inputs: [
+        {
+          'label': 'New Username',
+          'type': 'text',
+          placeholder: 'KingSlayer550'
+        }
+      ],
+      buttons: [
+        {
+          useDisableTill: true,
+          text: 'Change username',
+          onClick: handleUpdateUsernameSubmit
+        }
+      ],
+      buttonContainerStyle: {
+        justifyContent: 'end'
+      }
+    }));
+  }
+
+  function handleUpdateUsernameSubmit(formParams: ObjectAny, enableCallback?: Function) {
+    const { username } = formParams;
+    if (!username) {
+      return;
+    }
+    MyClientSocket?.updateProfile({ username })
+  }
+
+  const {
+    username,
+    fName,
+    mName,
+    lName,
+    id: userID,
+    socials,
+    experience,
+    education,
+    certifications,
+    projects,
+    softSkills,
+  } = user;
   return (
     <div
       style={{
@@ -32,6 +79,7 @@ export default function HomePage() {
         padding: 15,
         backgroundColor: "#111",
         flexDirection: "column",
+        boxSizing: 'border-box'
       }}
     >
       <div
@@ -41,7 +89,7 @@ export default function HomePage() {
           paddingLeft: 10,
           alignItems: "center",
           paddingTop: 30,
-          paddingBottom: 30
+          paddingBottom: 30,
         }}
       >
         <div
@@ -51,9 +99,12 @@ export default function HomePage() {
             alignItems: "start",
           }}
         >
-          <p style={{ color: "white", fontSize: "2rem", margin: 0 }}>
-            Welcome {username}
-          </p>
+          <div style={{ display: "flex", alignItems: 'center' }}>
+            <p style={{ color: "white", fontSize: "2rem", margin: 0 }}>
+              Welcome {username}
+            </p>
+            <Pencil onClick={handleUpdateUsername} style={{ marginLeft: 10, cursor: 'pointer' }} color='white'/>
+          </div>
 
           <button
             onClick={() =>
@@ -65,7 +116,7 @@ export default function HomePage() {
               color: "white",
               borderRadius: 30,
               marginTop: 5,
-              fontSize: '0.8rem'
+              fontSize: "0.8rem",
             }}
           >
             Logout
@@ -86,6 +137,7 @@ export default function HomePage() {
             backgroundColor: subPage == "view_mentor" ? "white" : "transparent",
             color: subPage == "view_mentor" ? "#222" : "white",
             borderRadius: 30,
+            transition: "all 300ms ease-in-out",
           }}
           onClick={() => handleChangeSubpage("view_mentor")}
         >
