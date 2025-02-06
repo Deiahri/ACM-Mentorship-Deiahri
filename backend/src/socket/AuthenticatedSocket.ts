@@ -126,9 +126,8 @@ export default class AuthenticatedSocket {
       this.socket.disconnect();
       return;
     }
-
     // userData has been retreived at this point.
-    this._enter_authed_user_state(userData);
+    this._enter_authed_user_state(userData.id);
   }
 
   /**
@@ -143,19 +142,23 @@ export default class AuthenticatedSocket {
     this._addStateSocketEvent("createUser", this.handleCreateUser.bind(this));
   }
 
-  private async _enter_authed_user_state(userData: DBObj) {
-    this.user = { ...this.user, ...userData };
+  private async _enter_authed_user_state(userID: string) {
+    this.user = await GetUserData(userID);
+
     this.addSelfToSocketMap();
     this._cleanupSocketEvents();
     this._setState("authed_user");
-
+    
     // send user its own data, userID, and assessment data.
     const assessments = await GetUserAssessments(this.user.id);
+    const mentorshipRequests = await GetUserMentorshipRequests(this.user.id);
 
-    this.sendClientData("users", [userData]);
-    this.sendClientData("userID", userData.id);
-    this.sendClientData("assessments", assessments);
-
+    this.sendClientData("initialData", {
+      user: this.user,
+      assessments: assessments,
+      mentorshipRequests: mentorshipRequests
+    });
+    
     this._addStateSocketEvent(
       "updateProfile",
       this.handleUpdateProfile.bind(this)
@@ -175,6 +178,11 @@ export default class AuthenticatedSocket {
       "mentorshipRequest",
       this.handleMentorshipRequest.bind(this)
     );
+
+    this._addStateSocketEvent(
+      'getUser',
+      this._getUser.bind(this)
+    )
 
     // this._addStateSocketEvent(
     //   "getMyMentor",
@@ -278,7 +286,7 @@ export default class AuthenticatedSocket {
       }
 
       callback(true);
-      this._enter_authed_user_state({ ...userData, id: userID });
+      this._enter_authed_user_state(userID);
     } catch (err) {
       if (err instanceof Error) {
         this.sendClientMessage("Error", createUserSubject + err.message);
@@ -288,6 +296,7 @@ export default class AuthenticatedSocket {
   }
 
   async handleUpdateProfile(dataRaw: unknown, callback: unknown) {
+    await this._updateSelf();
     const handleUpdateProfileSubject = "Error while updating profile: ";
     try {
       if (!callback || typeof callback != "function") {
@@ -575,6 +584,7 @@ export default class AuthenticatedSocket {
    * @returns nada
    */
   async handleGetAllMentors(callback: unknown) {
+    await this._updateSelf();
     const handleGetAllMentorsSubject = "Error while fetching all mentors: ";
     try {
       if (!callback || typeof callback != "function") {
@@ -633,6 +643,8 @@ export default class AuthenticatedSocket {
    * @param callback
    */
   async handleSubmitAssessment(dataRaw: unknown, callback: unknown) {
+    await this._updateSelf();
+    console.log('this.user.assessments', this.user.assessments);
     if (!this.user.assessments) {
       this.user.assessments = [];
     }
@@ -690,10 +702,6 @@ export default class AuthenticatedSocket {
             published: false,
           };
           createdAssessmentID = await DBCreate("assessment", assessmentObj);
-          // send assessment to user
-          this.sendClientData("assessments", [
-            { ...assessmentObj, id: createdAssessmentID },
-          ]);
         } catch (err: unknown) {
           if (err instanceof Error) {
             ErrorCallback(err.message);
@@ -713,7 +721,6 @@ export default class AuthenticatedSocket {
             { isMentee: true, assessments: this.user.assessments },
             true
           );
-          this.sendClientData("users", [this.user]);
         } catch (err) {
           if (err instanceof Error) {
             ErrorCallback(err.message);
@@ -722,7 +729,15 @@ export default class AuthenticatedSocket {
           ErrorCallback("Something went wrong while creating assessment");
           return;
         }
+
+        // send back id of newly created assessment
+        callback(createdAssessmentID);
+        console.log('created assessment', createdAssessmentID);
       } else if (action == "edit") {
+        if (!id) {
+          ErrorCallback("ID was not provided");
+          return;
+        }
         // ensure assessment is valid
         if (!isValidAnsweredAssessmentQuestions(questions)) {
           ErrorCallback("Questions are not valid");
@@ -742,8 +757,6 @@ export default class AuthenticatedSocket {
         // update the assessment
         try {
           await DBSetWithID("assessment", id, { questions }, true);
-          // send assessment to user
-          this.sendClientData("assessments", [{ ...assessmentRes, questions }]);
         } catch (err) {
           if (err instanceof Error) {
             ErrorCallback(err.message);
@@ -753,6 +766,10 @@ export default class AuthenticatedSocket {
           return;
         }
       } else if (action == "delete") {
+        if (!id) {
+          ErrorCallback("ID was not provided");
+          return;
+        }
         // ensure assessment id belongs to current user.
         const assessmentRes = await DBGetWithID("assessment", id);
         if (!assessmentRes || assessmentRes["userID"] != this.user.id) {
@@ -765,7 +782,6 @@ export default class AuthenticatedSocket {
         // delete the assessment
         try {
           await DBDeleteWithID("assessment", id);
-          this.sendClientData("assessments", [{ id, deleted: true }]);
         } catch (err) {
           if (err instanceof Error) {
             ErrorCallback(err.message);
@@ -778,7 +794,6 @@ export default class AuthenticatedSocket {
         // remove assessment from account
         try {
           this.user.assessments.splice(this.user.assessments.indexOf(id), 1);
-          this.sendClientData("users", [this.user]);
         } catch (err) {
           if (err instanceof Error) {
             ErrorCallback(err.message);
@@ -788,6 +803,10 @@ export default class AuthenticatedSocket {
           return;
         }
       } else if (action == "publish" || action == "unpublish") {
+        if (!id) {
+          ErrorCallback("ID was not provided");
+          return;
+        }
         const targetPublishState = action == "publish" ? true : false;
         // ensure assessment id belongs to current user.
         const assessmentRes = await DBGetWithID("assessment", id);
@@ -818,10 +837,6 @@ export default class AuthenticatedSocket {
             { published: targetPublishState },
             true
           );
-          // send assessment to user
-          this.sendClientData("assessments", [
-            { ...assessmentRes, published: targetPublishState },
-          ]);
         } catch (err) {
           if (err instanceof Error) {
             ErrorCallback(err.message);
@@ -850,6 +865,7 @@ export default class AuthenticatedSocket {
   }
 
   async handleMentorshipRequest(dataRaw: unknown, callback: unknown) {
+    await this._updateSelf();
     const handleMentorshipRequestErrorHeader =
       "Error handling mentorship request action: ";
     try {
@@ -874,7 +890,7 @@ export default class AuthenticatedSocket {
       }
 
       const data: ObjectAny = dataRaw;
-      const { action, mentorID, mentorshipRequestID, targetMenteeID } = data;
+      const { action, mentorID, mentorshipRequestID, menteeID: targetMenteeID } = data;
 
       // ensure parameters are valid if they are given
       if (!action || !isValidMentorshipRequestAction(action)) {
@@ -1100,7 +1116,7 @@ export default class AuthenticatedSocket {
           ErrorCallback('Something went wrong while removing mentorship');
           return;
         }
-      }else if (action == 'removeMentee') {
+      } else if (action == 'removeMentee') {
         // determine if current user has a mentor
         if (!this.user.menteeIDs) {
           ErrorCallback("You do not have mentees");
@@ -1109,10 +1125,11 @@ export default class AuthenticatedSocket {
           ErrorCallback("That is not one of your mentees.");
           return;
         }
+        console.log('removingMentee!!', this.user.id, targetMenteeID, this.user.menteeIDs);
         
         // remove mentor from current, and remove mentee from mentor, send data update alert.
         try {
-          await AuthenticatedSocket.removeMentorship(this.user.id, this.user.mentorID);
+          await AuthenticatedSocket.removeMentorship(this.user.id, targetMenteeID);
         } catch (err) {
           if (err instanceof Error) {
             ErrorCallback('Encountered error while removing mentorship '+err.message);
@@ -1156,7 +1173,6 @@ export default class AuthenticatedSocket {
     try {
       // update mentee list in database
       await DBSetWithID('user', this.user.id, { menteeIDs: this.user.menteeIDs });
-      this.sendClientData('users', [this.user]);
     } catch (err) {
       console.error('[xOSs02] something went wrong while adding mentee to mentee list', err);
     }
@@ -1177,10 +1193,7 @@ export default class AuthenticatedSocket {
 
     // update and send both
     await DBSetWithID('user', menteeID, { mentorID: null }, true);
-    AuthenticatedSocket.SendClientsDataWithUserID([mentorID, menteeID], 'user', [menteeObj]);
-    
     await DBSetWithID('user', mentorID, { menteeIDs: mentorMenteeList }, true);
-    AuthenticatedSocket.SendClientsDataWithUserID([mentorID, menteeID], 'user', [mentorID]);
   }
 
   sendClientData(type: string, data: any) {
@@ -1219,6 +1232,53 @@ export default class AuthenticatedSocket {
   }
 
   /**
+   * This function fetches the target user data if the current user is allowed to.
+   * 
+   * Depending on their relation, some data may not be available. If they are not related at all (mentee to mentee), 
+   * then they cannot see each other's data.
+   * @param userID 
+   */
+  private async _getUser(userID: unknown, callback: unknown) {
+    console.log('_getUser', userID);
+    await this._updateSelf();
+    const GetUserErrorHeader = 'Error while getting user: ';
+    const SendErrorMessage = (msg: string) => {
+      this.sendClientMessage('Error', GetUserErrorHeader+msg);
+    }
+    try {
+      if (!callback || typeof(callback) != 'function') {
+        SendErrorMessage('No callback was provided');
+        return;
+      }
+
+      const ErrorCallback = (msg: string) => {
+        SendErrorMessage(msg);
+        callback(false);
+      };
+
+      if (!userID || typeof(userID) != 'string') {
+        ErrorCallback('Invalid userID');
+        return;
+      }
+
+      try {
+        const data = await GetUserData(userID, this.user.id);
+        callback(data);
+        return;
+      } catch (err) {
+        ErrorCallback(err.message);
+      }
+    } catch (err) {
+      if (err instanceof Error) {
+        SendErrorMessage(err.message);
+        return;
+      }
+      SendErrorMessage('Something went wrong while getting user');
+      return;
+    }
+  }
+
+  /**
    * adds event function pair to socket.
    * also adds it to `currentSocketStateEvents` to keep track of current socket events (used by ``_cleanupSocketEvents``).
    * @param event
@@ -1228,7 +1288,6 @@ export default class AuthenticatedSocket {
     this.currentSocketStateEvents[event] = func;
     this.socket.on(event, func);
   }
-
   /**
    * Remove all socket events listed in ```this.currentSocketStateEvents``` from the socket.
    */
@@ -1268,6 +1327,7 @@ export default class AuthenticatedSocket {
   private addSelfToSocketMap() {
     if (this.inAllSockets || !this.user || !this.user.id) {
       // do not add socket if already in map, or if no userID is present
+      console.error('Could not add socket to socket map', this.inAllSockets, this.user, this.user?.id);
       return;
     }
 
@@ -1304,6 +1364,23 @@ export default class AuthenticatedSocket {
       socketList.splice(socketList.indexOf(this), 1);
     } catch {}
   }
+
+  private async _updateSelf() {
+    try {
+      const self = await DBGetWithID('user', this.user.id);
+      if (!self) {
+        this.sendClientMessage('Error', 'Your account does not exist');
+        this.socket.disconnect();
+        return;
+      }
+      this.user = self;
+    } catch {
+      console.error('Fatal error, could not update self.');
+      this.sendClientMessage('Error', 'There was a problem syncing your data.');
+      this.socket.disconnect();
+      return;
+    }
+  }
 }
 
 /**
@@ -1323,4 +1400,64 @@ async function GetUserAssessments(userID: string) {
   } catch {
     return [];
   }
+}
+
+async function GetUserMentorshipRequests(userID: string) {
+  try {
+    return await DBGet('mentorshipRequest', [["mentorID", "==", userID], ['menteeID', '==', userID]], 'or');
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * This function returns the target userData with the information that is visible to the requestingUser.
+ * 
+ * if no requestingUserID is provided, then the targetUser data is returned as it is.
+ * 
+ * Otherwise, depending on relationship between requesting user and targetUser, some information will be removed before being returned.
+ * @param targetUserID 
+ * @param requestingUserID 
+ * @returns 
+ */
+async function GetUserData(targetUserID: string, requestingUserID?: string) {
+  let userData: DBObj;
+  let selfData: DBObj;
+
+  userData = await DBGetWithID('user', targetUserID);
+  if (!userData) {
+    throw new Error('Requested user does not exist');
+  }
+  if (!requestingUserID) {
+    return userData;
+  }
+
+  selfData = await DBGetWithID('user', requestingUserID);
+  if (!selfData) {
+    throw new Error('Self user doesn\'t exist');
+  }
+
+  const { mentorID: userMentorID } = userData;
+
+  // check if this is ourself
+  if (userData.id == selfData.id) {
+    // if so, send userData.
+    return userData;
+  }
+
+  // no users should have access to our mentee list except for ourselves.
+  // no use knowing we are a mentee either.
+  delete userData.menteeIDs;
+  delete userData.isMentee;
+
+  // check if target user is our mentee
+  if (userMentorID == userData.id) {
+    return userData;
+  }
+
+  // target user is not a mentee. Delete mentee data
+  delete userData.assessments;
+  delete userData.mentorID;
+
+  return userData;
 }

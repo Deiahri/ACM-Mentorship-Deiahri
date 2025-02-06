@@ -15,8 +15,18 @@ import { DBDeleteWithID, DBGet, DBGetWithID } from "../src/db";
 import { ObjectAny } from "../src/types";
 import AuthenticatedSocket from "../src/socket/AuthenticatedSocket";
 
-async function ExpectNoUsersWithTestingToken(token: string) {
-  const dat = await DBGet("user", [["OAuthSubID", "==", token]]);
+async function ExpectNoUsersWithTestingTokenOrUsername(
+  token: string,
+  username: string
+) {
+  const dat = await DBGet(
+    "user",
+    [
+      ["OAuthSubID", "==", token],
+      ["usernameLower", "==", username.toLowerCase()],
+    ],
+    "or"
+  );
   if (dat.length > 0) {
     for (let user of dat) {
       await DBDeleteWithID("user", user.id);
@@ -30,14 +40,14 @@ describe("Tests authenticated Socket", () => {
   let socket1: Socket;
   let socket1TestToken = "theGuy";
   let socket1Data: ObjectAny = {};
-  const socket1Username = "LaoGui";
+  const socket1Username = "_testingUsername_LaoGui";
   const socket1FName = "Tester";
   const socket1LName = "Tester";
 
   let socket2: Socket;
   let socket2TestToken = "herobrine";
   let socket2Data: ObjectAny = {};
-  const socket2Username = "JudgementKazzy";
+  const socket2Username = "_testingUsername_JudgementKazzy";
   const socket2FName = "Kiryu";
   const socket2LName = "Kazuma";
 
@@ -57,7 +67,7 @@ describe("Tests authenticated Socket", () => {
     discriminator: string
   ) {
     console.log("DATA!", targetSocketData.id, discriminator, payload);
-    function printDataError(msg: unknown) {
+    function printDataError(...msg: any[]) {
       console.error(HANDLE_DATA_ERROR_HEADER + msg, payload);
     }
     if (!payload || typeof payload != "object") {
@@ -70,49 +80,20 @@ describe("Tests authenticated Socket", () => {
     if (!type || !data) {
       printDataError("Undefined type or data for payload");
       return;
-    } else if (type == "userID") {
-      if (typeof data != "string") {
-        printDataError("Expected userID to be a string");
+    } else if (type == "initialData") {
+      if (typeof data != "object") {
+        printDataError("Expected initial data to be object");
         return;
       }
-      targetSocketData.id = data;
-    } else if (type == "users") {
-      // ensure userData paylaod is an array of objects, where each object is of type string
-      if (!(data instanceof Array)) {
-        printDataError("Expected user data to be in array");
+      const { user, assessments, mentorshipRequests } = data;
+      if (!user) {
+        printDataError("User or assessments is missing", user, assessments);
         return;
       }
-
-      for (let user of data) {
-        if (typeof data != "object") {
-          printDataError("Expected user data in array to be objects");
-          return;
-        }
-        const id = user.id;
-        if (!id || typeof id != "string") {
-          printDataError(
-            "Expected user data object to have id or type string."
-          );
-          return;
-        }
-
-        // if user data meets specs, add it to users object.
-        if (typeof targetSocketData.user == "object") {
-          targetSocketData.users[id] = user;
-        } else {
-          targetSocketData.users = {
-            [id]: user,
-          };
-        }
-      }
-    } else if (type == "assessments") {
-      if (!targetSocketData.assessments) {
-        targetSocketData.assessments = {};
-      }
-      for (let assessment of data) {
-        targetSocketData.assessments[assessment.id] = assessment;
-      }
-      // targetSocketData.assessments = targetSocketData.assessments ? [...targetSocketData.assessments, ...assessments] : [assessments];
+      targetSocketData.id = user.id;
+      targetSocketData.user = user;
+      targetSocketData.assessments = assessments;
+      targetSocketData.mentorshipRequests = mentorshipRequests;
     } else if (type == "mentorshipRequest") {
       if (!(data instanceof Array)) {
         printDataError("Expected mentorshipRequest data to come in array");
@@ -124,26 +105,36 @@ describe("Tests authenticated Socket", () => {
       }
 
       for (let mentorshipRequest of data) {
-        if (typeof(mentorshipRequest) != 'object') {
+        if (typeof mentorshipRequest != "object") {
           printDataError("Expected mentorshipRequest data to be objects");
           continue;
         }
         const { mentorID, menteeID, id, status } = mentorshipRequest;
         if (status) {
-          console.log('removing mentorship request for', targetSocketData.id, id, status);
+          console.log(
+            "removing mentorship request for",
+            targetSocketData.id,
+            id,
+            status
+          );
           delete targetSocketData.mentorshipRequests[id];
           continue;
         }
 
         if (!mentorID || !menteeID) {
-          printDataError("Missing some parameters for mentorshipRequest object");
+          printDataError(
+            "Missing some parameters for mentorshipRequest object"
+          );
           continue;
         }
 
         targetSocketData.mentorshipRequests[id] = {
-          mentorID, menteeID
+          mentorID,
+          menteeID,
         };
       }
+    } else {
+      printDataError("Unexpected type", type, data);
     }
   }
 
@@ -158,7 +149,7 @@ describe("Tests authenticated Socket", () => {
   ) {
     // deletes any pre-existing data the socket received.
     delete targetSocketData.id;
-    delete targetSocketData.users;
+    delete targetSocketData.user;
     delete targetSocketData.state;
     delete targetSocketData.assessments;
 
@@ -178,7 +169,7 @@ describe("Tests authenticated Socket", () => {
         if (
           targetSocketData.state == "authed_user" &&
           targetSocketData.id &&
-          targetSocketData.users
+          targetSocketData.user
         ) {
           break;
         } else if (targetSocketData.state == "authed_nouser") {
@@ -249,6 +240,27 @@ describe("Tests authenticated Socket", () => {
     }
   }
 
+  // this function should not be used until after handleGetUser test has been validated.
+  async function updateSelf(socket: Socket, targetSocketData: ObjectAny, errorMessage: string) {
+      if (!targetSocketData||!targetSocketData.id) {
+        throw new Error('Expected targetSocketData to be defined, '+errorMessage+' '+JSON.stringify(targetSocketData));
+      }
+      const data = await GetUser(socket, targetSocketData.id, errorMessage);
+      targetSocketData.user = data;
+  }
+
+  async function GetUser(socket: Socket, targetUserID: string, errorMessage: string): Promise<Object> {
+    return await new Promise((res, rej) => {
+      socket.emit('getUser', targetUserID, (data: boolean | Object) => {
+        if (typeof(data) != 'object') {
+          rej('Expected to get user data successfully '+errorMessage);
+          return;
+        }
+        res(data);
+      });
+    });
+  }
+
   it("Should activate server correctly", async () => {
     if (!isExpressServerOnline()) {
       try {
@@ -274,7 +286,12 @@ describe("Tests authenticated Socket", () => {
   });
 
   it("Should have no users with testing tokens", async () => {
-    if (!(await ExpectNoUsersWithTestingToken(socket1TestToken))) {
+    if (
+      !(await ExpectNoUsersWithTestingTokenOrUsername(
+        socket1TestToken,
+        socket1Username
+      ))
+    ) {
       throw new Error(
         "Expected no users with testing token " +
           socket1TestToken +
@@ -282,7 +299,12 @@ describe("Tests authenticated Socket", () => {
       );
     }
 
-    if (!(await ExpectNoUsersWithTestingToken(socket2TestToken))) {
+    if (
+      !(await ExpectNoUsersWithTestingTokenOrUsername(
+        socket2TestToken,
+        socket2Username
+      ))
+    ) {
       throw new Error(
         "Expected no users with testing token " +
           socket2TestToken +
@@ -622,6 +644,242 @@ describe("Tests authenticated Socket", () => {
     });
   });
 
+  describe("Connecting and Creating socket2 user should be successful", () => {
+    it("should connect socket2 successfully", async () => {
+      socket2 = await ConnectWithParams(true, "socket2 connect", {
+        auth: {
+          token: `testing ${socket2TestToken}`,
+          deleteAccountAfterDisconnect: true,
+        },
+      });
+      await sleep(1000);
+    });
+
+    it("should fail to create user2 if they use an existing username", async () => {
+      // send valid fName and lName, with already used username
+      await CreateUser(
+        socket2,
+        { fName: socket2FName, lName: socket2LName, username: socket1Username },
+        false,
+        "sxSae3"
+      );
+    });
+
+    it("should create a user account given correct parameters. Should observe state change and socket map change correctly", async () => {
+      // send valid fName and lName, with valid username
+      await CreateUser(
+        socket2,
+        { fName: socket2FName, lName: socket2LName, username: socket2Username },
+        true,
+        "fovo0DJV("
+      );
+
+      socket2.on("state", (state) => updateState(socket2Data, state, "hamba"));
+      socket2.on("message", (msg) => console.log("received message, s2", msg));
+      socket2.on("data", (payload) =>
+        handleData(payload, socket2Data, "Csac32")
+      );
+      await sleep(2000);
+    });
+
+    it(
+      "should have only one socket in socketList with current socket2's ID",
+      { timeout: 10000 },
+      async () => {
+        // give server time to add user to update socket map.
+        let found = false;
+        setTimeout(() => {
+          if (!found) {
+            throw new Error(
+              "socket2 did not appear in socket map in time xxzsc"
+            );
+          }
+        }, 5000);
+
+        // keep checking socket map to see if socket2 appears
+        while (true) {
+          const userID = socket2Data.id;
+          // console.log("socketMap5", userID, AuthenticatedSocket.AllSockets);
+          const users = AuthenticatedSocket.AllSockets.get(userID);
+          if (users) {
+            expect(users).toBeDefined();
+            expect(users!.length).toBe(1);
+            expect(users![0].user.username).toBe(socket2Username);
+            found = true;
+            break;
+          }
+          await sleep(300);
+        }
+      }
+    );
+
+    it("Should be able to successfully logout of socket2's account without deleting it.", async () => {
+      const userID = socket2Data.id;
+      const userRes = await DBGetWithID("user", userID);
+      expect(userRes).toBeDefined();
+      // tell it not to delete account after disconnect.
+      await new Promise((res, rej) => {
+        socket2.emit(
+          "setTestingVariable",
+          "deleteAccountAfterDisconnect",
+          false,
+          (v: boolean) => {
+            v
+              ? res(true)
+              : rej("Expected to change testing variable successfully");
+          }
+        );
+      });
+
+      await sleep(500);
+
+      socket2.disconnect();
+    });
+
+    it("socket2 should no longer be in AllSockets list", async () => {
+      // give server time to add user to update socket map.
+      await sleep(1000);
+      const userID = socket2Data.id;
+      const users = AuthenticatedSocket.AllSockets.get(userID);
+      expect(users).toBeUndefined();
+    });
+
+    it("Should be able to log back into socket2 account", async () => {
+      // connect to server
+      socket2 = await ConnectWithParams(true, "xdv53", {
+        auth: {
+          token: `testing ${socket2TestToken}`,
+          deleteAccountAfterDisconnect: true,
+        },
+      });
+      socket2.on("state", (state) =>
+        updateState(socket2Data, state, "ssa3x0ks")
+      );
+      socket2.on("message", (msg) => console.log("received message, s2", msg));
+      socket2.on("data", (payload) =>
+        handleData(payload, socket2Data, "0s0325kc")
+      );
+
+      socket2Data = {};
+
+      // expect state to be authed user, and to receive data for users and userID.
+      await ExpectCorrectDataOnConnect(socket2Data, "X_-sckj))");
+    });
+
+    it(
+      "Should find socket2 back in socket map",
+      { timeout: 10000 },
+      async () => {
+        // give server time to add user to update socket map.
+        let found = false;
+        setTimeout(() => {
+          if (!found) {
+            throw new Error(
+              "socket2 did not appear in socket map in time CD43"
+            );
+          }
+        }, 5000);
+
+        // keep checking socket map to see if socket1 appears
+        while (true) {
+          const userID = socket2Data.id;
+          console.log("socketMap6", userID, AuthenticatedSocket.AllSockets);
+          const users = AuthenticatedSocket.AllSockets.get(userID);
+          if (users) {
+            expect(users).toBeDefined();
+            expect(users!.length).toBe(1);
+            expect(users![0].user.username).toBe(socket2Username);
+            found = true;
+            break;
+          }
+          await sleep(300);
+        }
+      }
+    );
+
+    it("Another socket should be able to connect using socket2's credentials while socket2 is connected, observer correct socket map changes, and disconnect", async () => {
+      const anotherSocket2 = await ConnectWithParams(true, "barmitsfa", {
+        auth: {
+          token: `testing ${socket2TestToken}`,
+          deleteAccountAfterDisconnect: false,
+        },
+      });
+
+      // give server time to send state and stuff.
+      const AnotherSocket2Data = {};
+      anotherSocket2.on("state", (state) =>
+        updateState(AnotherSocket2Data, state, "V)(sdvsa")
+      );
+      anotherSocket2.on("message", (msg) =>
+        console.log("received message, aS2", msg)
+      );
+      anotherSocket2.on("data", (payload) =>
+        handleData(payload, AnotherSocket2Data, "13513dss")
+      );
+
+      // expect state to be authed user, and to receive data for users and userID.
+      await ExpectCorrectDataOnConnect(AnotherSocket2Data, "asXasf");
+
+      // give server time to add user to update socket map.
+      let found = false;
+      setTimeout(() => {
+        if (!found) {
+          throw new Error(
+            "anotherSocket2 did not appear in socket map in time xsa023"
+          );
+        }
+      }, 5000);
+
+      // give server some time to respond
+      await sleep(1000);
+
+      // keep checking socket map to see if socket1 appears
+      while (true) {
+        const userID = socket2Data.id;
+        console.log("socketMap214", userID, AuthenticatedSocket.AllSockets);
+        const users = AuthenticatedSocket.AllSockets.get(userID);
+        if (users) {
+          expect(users).toBeDefined();
+          expect(users!.length).toBe(2);
+          expect(users![0].user.username).toBe(socket2Username);
+          expect(users![1].user.username).toBe(socket2Username);
+          found = true;
+          break;
+        }
+        await sleep(300);
+      }
+
+      // disconnect and give server time to update socket map.
+      anotherSocket2.disconnect();
+      await sleep(1000);
+
+      let found2 = false;
+      setTimeout(() => {
+        if (!found2) {
+          throw new Error(
+            "anotherSocket2 did not appear in socket map in time Xdvr53"
+          );
+        }
+      }, 5000);
+
+      // keep checking socket map to see if socket2 appears.
+      // only 1 socket2 should appear this time.
+      while (true) {
+        const userID = socket2Data.id;
+        console.log("socketMap53", userID, AuthenticatedSocket.AllSockets);
+        const users = AuthenticatedSocket.AllSockets.get(userID);
+        if (users) {
+          expect(users).toBeDefined();
+          expect(users!.length).toBe(1);
+          expect(users![0].user.username).toBe(socket2Username);
+          found2 = true;
+          break;
+        }
+        await sleep(300);
+      }
+    });
+  });
+
   describe("handleUpdateProfile", () => {
     it("should successfully update the profile with valid data", async () => {
       const validProfileData = {
@@ -911,7 +1169,285 @@ describe("Tests authenticated Socket", () => {
     });
   });
 
+  describe("handleMentorshipRequest", () => {
+    function GetOrWaitForMentorshipRequest(targetSocketData: ObjectAny, errorMessage: string) {
+      return new Promise(async (res) => {
+        let mentorshipRequestID: string | undefined;
+        setTimeout(() => {
+          if (mentorshipRequestID) {
+            return;
+          }
+          throw new Error(
+            "Did not get mentorship request in time [" + errorMessage + "]"
+          );
+        }, 2000);
+        while (true) {
+          mentorshipRequestID = GetMentorshipRequestFromData(targetSocketData);
+          if (mentorshipRequestID) {
+            res(mentorshipRequestID);
+            break;
+          }
+          await sleep(200);
+        }
+      });
+    }
+    it("should send a mentorship request successfully", async () => {
+      // Ensure socket1 is a mentor accepting mentees
+      await new Promise((res, rej) => {
+        socket1.emit(
+          "updateProfile",
+          { isMentor: true, acceptingMentees: true },
+          (success: boolean) => {
+            success ? res(true) : rej("Failed to update mentor profile. [ER1]");
+          }
+        );
+      });
+
+      // Ensure socket2 is a mentee
+      await new Promise((res, rej) => {
+        socket1.emit(
+          "updateProfile",
+          { isMentee: true },
+          (success: boolean) => {
+            success ? res(true) : rej("Failed to update mentor profile. [ER2]");
+          }
+        );
+      });
+
+      // Send mentorship request
+      await new Promise((res, rej) => {
+        socket2.emit(
+          "mentorshipRequest",
+          { action: "send", mentorID: socket1Data.id },
+          (success: boolean) => {
+            success
+              ? res(true)
+              : rej("Failed to send mentorship request. [ER3]");
+          }
+        );
+      });
+    });
+
+    it("should allow the mentor to decline a mentorship request", async () => {
+      let mentorshipRequestID = await GetOrWaitForMentorshipRequest(socket1Data, "CJs0as");
+
+      // Decline the mentorship request
+      await new Promise((res, rej) => {
+        socket1.emit(
+          "mentorshipRequest",
+          { action: "decline", mentorshipRequestID },
+          (success: boolean) => {
+            success
+              ? res(true)
+              : rej("Failed to decline mentorship request. [ER7]");
+          }
+        );
+      });
+    });
+
+    it("should allow the mentee to cancel a mentorship request", async () => {
+      // Send another mentorship request
+      await new Promise((res, rej) => {
+        socket2.emit(
+          "mentorshipRequest",
+          { action: "send", mentorID: socket1Data.id },
+          (success: boolean) => {
+            success
+              ? res(true)
+              : rej("Failed to send mentorship request. [ER8]");
+          }
+        );
+      });
+
+      let mentorshipRequestID = await GetOrWaitForMentorshipRequest(socket1Data, "Xoak0A");
+
+      // Cancel the mentorship request
+      await new Promise((res, rej) => {
+        socket2.emit(
+          "mentorshipRequest",
+          { action: "cancel", mentorshipRequestID },
+          (success: boolean) => {
+            success
+              ? res(true)
+              : rej("Failed to cancel mentorship request. [ER10]");
+          }
+        );
+      });
+    });
+
+    it("should allow the mentor to accept the mentorship request", async () => {
+      await new Promise((res, rej) => {
+        socket2.emit(
+          "mentorshipRequest",
+          { action: "send", mentorID: socket1Data.id },
+          (success: boolean) => {
+            success
+              ? res(true)
+              : rej("Failed to send mentorship request. [ER9]");
+          }
+        );
+      });
+
+      let mentorshipRequestID = await GetOrWaitForMentorshipRequest(socket1Data, "ixNS0o");
+      // Accept the mentorship request
+      await new Promise((res, rej) => {
+        socket1.emit(
+          "mentorshipRequest",
+          { action: "accept", mentorshipRequestID },
+          (success: boolean) => {
+            success
+              ? res(true)
+              : rej("Failed to accept mentorship request. [ER44]");
+          }
+        );
+      });
+
+      // give server time to send both users acceptance message
+      await sleep(1000);
+    });
+
+    it("it should allow the mentor to remove a mentee", async () => {
+      // Expect it to fail if they tried to remove themselves
+      await new Promise((res, rej) => {
+        socket1.emit(
+          "mentorshipRequest",
+          { action: "removeMentee", menteeID: socket1Data.id },
+          (success: boolean) => {
+            success ? rej("Expected failure. 0Csac32") : res(true);
+          }
+        );
+      });
+
+      // Should pass if they try to remove their mentee
+      await new Promise((res, rej) => {
+        socket1.emit(
+          "mentorshipRequest",
+          { action: "removeMentee", menteeID: socket2Data.id },
+          (success: boolean) => {
+            success ? res(true) : rej("Failed to remove mentee. [ERxs9]");
+          }
+        );
+      });
+    });
+
+    it("it should allow the mentee to remove the mentor", async () => {
+      // first reestablish a mentorship relationship
+      // mentor: socket2, mentee: socket1
+
+      // make sure socket2 is a mentor
+      await new Promise((res, rej) => {
+        socket2.emit(
+          "updateProfile",
+          { isMentor: true, acceptingMentees: true },
+          (success: boolean) => {
+            success ? res(true) : rej("Failed to update mentor profile. [ERax9sj921]");
+          }
+        );
+      });
+      
+      await new Promise((res, rej) => {
+        socket1.emit(
+          "mentorshipRequest",
+          { action: "send", mentorID: socket2Data.id },
+          (success: boolean) => {
+            success
+              ? res(true)
+              : rej("Failed to send mentorship request. [ER2124d]");
+          }
+        );
+      });
+
+      let mentorshipRequestID = await GetOrWaitForMentorshipRequest(socket2Data, "Xs3151");
+      // Accept the mentorship request
+      await new Promise((res, rej) => {
+        socket2.emit(
+          "mentorshipRequest",
+          { action: "accept", mentorshipRequestID },
+          (success: boolean) => {
+            success
+              ? res(true)
+              : rej("Failed to accept mentorship request. [ERxSa2]");
+          }
+        );
+      });
+
+      // Should pass if they try to remove their mentor
+      await new Promise((res, rej) => {
+        socket1.emit(
+          "mentorshipRequest",
+          { action: "removeMentor" },
+          (success: boolean) => {
+            success ? res(true) : rej("Failed to remove mentee. [ERxs9]");
+          }
+        );
+      });
+    });
+  });
+
+  describe("handleGetUser", () => {
+    it("should return user data when provided with a valid userID and callback", async () => {
+      await new Promise((res, rej) => {
+        socket1.emit("getUser", socket1Data.id, (data: unknown) => {
+          if (!data || typeof data !== "object") {
+            rej("Expected user data but got: " + JSON.stringify(data));
+            return;
+          }
+          res(true);
+        });
+      });
+    });
+
+    it("should return an error when no callback is provided", async () => {
+      await new Promise((res, rej) => {
+        socket1.emit("getUser", socket1Data.id, undefined); // No callback function
+        // give server time to not send anything back.
+        setTimeout(() => {
+          res(true);
+        }, 1000);
+      })
+    });
+
+    it("should return an error when userID is missing", async () => {
+      await new Promise((res, rej) => {
+        socket1.emit("getUser", null, (success: boolean) => {
+          if (success !== false) {
+            rej("Expected failure due to missing userID, but got success.");
+            return;
+          }
+          res(true);
+        });
+      });
+    });
+
+    it("should return an error when userID is not a string", async () => {
+      await new Promise((res, rej) => {
+        socket1.emit("getUser", 12345, (success: boolean) => {
+          if (success !== false) {
+            rej(
+              "Expected failure due to invalid userID type, but got success."
+            );
+            return;
+          }
+          res(true);
+        });
+      });
+    });
+
+    it("should return an error when GetUserData throws an error", async () => {
+      await new Promise((res, rej) => {
+        socket1.emit("getUser", "nonExistentUserID", (success: boolean) => {
+          if (success !== false) {
+            rej("Expected failure due to GetUserData error, but got success.");
+            return;
+          }
+          res(true);
+        });
+      });
+    });
+  });
+
   describe("handleSubmitAssessment", () => {
+    // by this point, we can freely use the getUser event (and thus updateSelf).
     it("should successfully create an assessment when given valid data", async () => {
       const validAssessmentData = {
         action: "create",
@@ -930,7 +1466,7 @@ describe("Tests authenticated Socket", () => {
         socket1.emit(
           "submitAssessment",
           validAssessmentData,
-          (success: boolean) => {
+          (success: string | boolean) => {
             success
               ? res(true)
               : rej("Expected assessment creation to be successful.");
@@ -967,9 +1503,11 @@ describe("Tests authenticated Socket", () => {
     });
 
     it("should successfully edit an existing assessment", async () => {
-      const existingAssessmentID =
-        socket1Data.users[socket1Data.id].assessments[0];
-      // assessment should have been received.
+      // first, get an updated copy of socket1 user data.
+      await updateSelf(socket1, socket1Data, '0sadjs0aid');
+
+      // then retrieve socket1 assessmentID from there.
+      const existingAssessmentID = socket1Data.user.assessments[0];
       const existingAssessment = {
         id: existingAssessmentID,
         action: "edit",
@@ -1027,8 +1565,7 @@ describe("Tests authenticated Socket", () => {
 
     it("should successfully publish an assessment", async () => {
       // at this point, this assessment was just created, and initially all assessments are unpublished
-      const existingAssessmentID =
-        socket1Data.users[socket1Data.id].assessments[0];
+      const existingAssessmentID = socket1Data.user.assessments[0];
       const publishRequest = {
         id: existingAssessmentID,
         action: "publish",
@@ -1045,8 +1582,7 @@ describe("Tests authenticated Socket", () => {
 
     it("should fail to publish an assessment that is already published", async () => {
       // in the previous test, the assessment was just published.
-      const existingAssessmentID =
-        socket1Data.users[socket1Data.id].assessments[0];
+      const existingAssessmentID = socket1Data.user.assessments[0];
       const alreadyPublishedRequest = {
         id: existingAssessmentID,
         action: "publish",
@@ -1093,8 +1629,7 @@ describe("Tests authenticated Socket", () => {
     });
 
     it("should successfully delete an existing assessment", async () => {
-      const existingAssessmentID =
-        socket1Data.users[socket1Data.id].assessments[0];
+      const existingAssessmentID = socket1Data.user.assessments[0];
       const deleteRequest = {
         id: existingAssessmentID,
         action: "delete",
@@ -1158,379 +1693,10 @@ describe("Tests authenticated Socket", () => {
     });
   });
 
-  describe("Connecting and Creating socket2 user should be successful", () => {
-    it("should connect socket2 successfully", async () => {
-      socket2 = await ConnectWithParams(true, "socket2 connect", {
-        auth: {
-          token: `testing ${socket2TestToken}`,
-          deleteAccountAfterDisconnect: true,
-        },
-      });
-      await sleep(1000);
-    });
-
-    it("should fail to create user2 if they use an existing username", async () => {
-      // send valid fName and lName, with already used username
-      await CreateUser(
-        socket2,
-        { fName: socket2FName, lName: socket2LName, username: socket1Username },
-        false,
-        "sxSae3"
-      );
-    });
-
-    it("should create a user account given correct parameters. Should observe state change and socket map change correctly", async () => {
-      // send valid fName and lName, with valid username
-      await CreateUser(
-        socket2,
-        { fName: socket2FName, lName: socket2LName, username: socket2Username },
-        true,
-        "fovo0DJV("
-      );
-
-      socket2.on("state", (state) => updateState(socket2Data, state, "hamba"));
-      socket2.on("message", (msg) => console.log("received message, s2", msg));
-      socket2.on("data", (payload) =>
-        handleData(payload, socket2Data, "Csac32")
-      );
-      await sleep(2000);
-    });
-
-    it(
-      "should have only one socket in socketList with current socket2's ID",
-      { timeout: 10000 },
-      async () => {
-        // give server time to add user to update socket map.
-        let found = false;
-        setTimeout(() => {
-          if (!found) {
-            throw new Error(
-              "socket2 did not appear in socket map in time xxzsc"
-            );
-          }
-        }, 5000);
-
-        // keep checking socket map to see if socket2 appears
-        while (true) {
-          const userID = socket2Data.id;
-          // console.log("socketMap5", userID, AuthenticatedSocket.AllSockets);
-          const users = AuthenticatedSocket.AllSockets.get(userID);
-          if (users) {
-            expect(users).toBeDefined();
-            expect(users!.length).toBe(1);
-            expect(users![0].user.username).toBe(socket2Username);
-            found = true;
-            break;
-          }
-          await sleep(300);
-        }
-      }
-    );
-
-    it("Should be able to successfully logout of socket2's account without deleting it.", async () => {
-      const userID = socket2Data.id;
-      const userRes = await DBGetWithID("user", userID);
-      expect(userRes).toBeDefined();
-      // tell it not to delete account after disconnect.
-      await new Promise((res, rej) => {
-        socket2.emit(
-          "setTestingVariable",
-          "deleteAccountAfterDisconnect",
-          false,
-          (v: boolean) => {
-            v
-              ? res(true)
-              : rej("Expected to change testing variable successfully");
-          }
-        );
-      });
-
-      await sleep(500);
-
-      socket2.disconnect();
-    });
-
-    it("socket2 should no longer be in AllSockets list", async () => {
-      // give server time to add user to update socket map.
-      await sleep(1000);
-      const userID = socket2Data.id;
-      const users = AuthenticatedSocket.AllSockets.get(userID);
-      expect(users).toBeUndefined();
-    });
-
-    it("Should be able to log back into socket2 account", async () => {
-      // connect to server
-      socket2 = await ConnectWithParams(true, "xdv53", {
-        auth: {
-          token: `testing ${socket2TestToken}`,
-          deleteAccountAfterDisconnect: true,
-        },
-      });
-      socket2.on("state", (state) =>
-        updateState(socket2Data, state, "ssa3x0ks")
-      );
-      socket2.on("message", (msg) => console.log("received message, s2", msg));
-      socket2.on("data", (payload) =>
-        handleData(payload, socket2Data, "0s0325kc")
-      );
-
-      socket2Data = {};
-
-      // expect state to be authed user, and to receive data for users and userID.
-      await ExpectCorrectDataOnConnect(socket2Data, "X_-sckj))");
-    });
-
-    it(
-      "Should find socket2 back in socket map",
-      { timeout: 10000 },
-      async () => {
-        // give server time to add user to update socket map.
-        let found = false;
-        setTimeout(() => {
-          if (!found) {
-            throw new Error(
-              "socket2 did not appear in socket map in time CD43"
-            );
-          }
-        }, 5000);
-
-        // keep checking socket map to see if socket1 appears
-        while (true) {
-          const userID = socket2Data.id;
-          console.log("socketMap6", userID, AuthenticatedSocket.AllSockets);
-          const users = AuthenticatedSocket.AllSockets.get(userID);
-          if (users) {
-            expect(users).toBeDefined();
-            expect(users!.length).toBe(1);
-            expect(users![0].user.username).toBe(socket2Username);
-            found = true;
-            break;
-          }
-          await sleep(300);
-        }
-      }
-    );
-
-    it("Another socket should be able to connect using socket1's credentials while socket1 is connected, observer correct socket map changes, and disconnect", async () => {
-      const anotherSocket1 = await ConnectWithParams(true, "barmitsfa", {
-        auth: {
-          token: `testing ${socket1TestToken}`,
-          deleteAccountAfterDisconnect: true,
-        },
-      });
-
-      // give server time to send state and stuff.
-      const AnotherSocket1Data = {};
-      anotherSocket1.on("state", (state) =>
-        updateState(AnotherSocket1Data, state, "scs0as")
-      );
-      anotherSocket1.on("message", (msg) =>
-        console.log("received message, aS1", msg)
-      );
-      anotherSocket1.on("data", (payload) =>
-        handleData(payload, AnotherSocket1Data, "shsisis")
-      );
-
-      // expect state to be authed user, and to receive data for users and userID.
-      await ExpectCorrectDataOnConnect(AnotherSocket1Data, "asocjspa/?");
-
-      // give server time to add user to update socket map.
-      let found = false;
-      setTimeout(() => {
-        if (!found) {
-          throw new Error(
-            "anotherSocket1 did not appear in socket map in time Xdc43"
-          );
-        }
-      }, 5000);
-
-      // give server some time to respond
-      await sleep(500);
-
-      // keep checking socket map to see if socket1 appears
-      while (true) {
-        const userID = socket1Data.id;
-        console.log("socketMap8", userID, AuthenticatedSocket.AllSockets);
-        const users = AuthenticatedSocket.AllSockets.get(userID);
-        if (users) {
-          expect(users).toBeDefined();
-          expect(users!.length).toBe(2);
-          expect(users![0].user.username).toBe(socket1Username);
-          expect(users![1].user.username).toBe(socket1Username);
-          found = true;
-          break;
-        }
-        await sleep(300);
-      }
-
-      // disconnect and give server time to update socket map.
-      anotherSocket1.disconnect();
-      await sleep(1000);
-
-      let found2 = false;
-      setTimeout(() => {
-        if (!found2) {
-          throw new Error(
-            "anotherSocket1 did not appear in socket map in time X)cj-s"
-          );
-        }
-      }, 5000);
-
-      // keep checking socket map to see if socket1 appears.
-      // only 1 socket1 should appear this time.
-      while (true) {
-        const userID = socket1Data.id;
-        console.log("socketMap9", userID, AuthenticatedSocket.AllSockets);
-        const users = AuthenticatedSocket.AllSockets.get(userID);
-        if (users) {
-          expect(users).toBeDefined();
-          expect(users!.length).toBe(1);
-          expect(users![0].user.username).toBe(socket1Username);
-          found2 = true;
-          break;
-        }
-        await sleep(300);
-      }
-    });
-  });
-
-  describe("handleMentorshipRequest", () => {
-    function GetOrWaitForMentorshipRequest(errorMessage: string) {
-      return new Promise(async (res) => {
-        let mentorshipRequestID: string|undefined;
-        setTimeout(() => {
-          if (mentorshipRequestID) {
-            return;
-          }
-          throw new Error("Did not get mentorship request in time ["+errorMessage+"]");
-        }, 2000);
-        while (true) {
-          mentorshipRequestID = GetMentorshipRequestFromData(socket1Data);
-          if (mentorshipRequestID) {
-            res(mentorshipRequestID);
-            break;
-          }
-          await sleep(200);
-        }
-      });
-    }
-    it("should send a mentorship request successfully", async () => {
-      // Ensure socket1 is a mentor accepting mentees
-      await new Promise((res, rej) => {
-        socket1.emit(
-          "updateProfile",
-          { isMentor: true, acceptingMentees: true },
-          (success: boolean) => {
-            success ? res(true) : rej("Failed to update mentor profile. [ER1]");
-          }
-        );
-      });
-
-      // Ensure socket2 is a mentee
-      await new Promise((res, rej) => {
-        socket1.emit(
-          "updateProfile",
-          { isMentee: true },
-          (success: boolean) => {
-            success ? res(true) : rej("Failed to update mentor profile. [ER2]");
-          }
-        );
-      });
-
-      // Send mentorship request
-      await new Promise((res, rej) => {
-        socket2.emit(
-          "mentorshipRequest",
-          { action: "send", mentorID: socket1Data.id },
-          (success: boolean) => {
-            success
-              ? res(true)
-              : rej("Failed to send mentorship request. [ER3]");
-          }
-        );
-      });
-    });
-
-    it("should allow the mentor to decline a mentorship request", async () => {
-      let mentorshipRequestID = await GetOrWaitForMentorshipRequest('CJs0as');
-
-      // Decline the mentorship request
-      await new Promise((res, rej) => {
-        socket1.emit(
-          "mentorshipRequest",
-          { action: "decline", mentorshipRequestID },
-          (success: boolean) => {
-            success
-              ? res(true)
-              : rej("Failed to decline mentorship request. [ER7]");
-          }
-        );
-      });
-    });
-
-    it("should allow the mentee to cancel a mentorship request", async () => {
-      // Send another mentorship request
-      await new Promise((res, rej) => {
-        socket2.emit(
-          "mentorshipRequest",
-          { action: "send", mentorID: socket1Data.id },
-          (success: boolean) => {
-            success
-              ? res(true)
-              : rej("Failed to send mentorship request. [ER8]");
-          }
-        );
-      });
-
-      let mentorshipRequestID = await GetOrWaitForMentorshipRequest('Xoak0A');
-
-      // Cancel the mentorship request
-      await new Promise((res, rej) => {
-        socket2.emit(
-          "mentorshipRequest",
-          { action: "cancel", mentorshipRequestID },
-          (success: boolean) => {
-            success
-              ? res(true)
-              : rej("Failed to cancel mentorship request. [ER10]");
-          }
-        );
-      });
-    });
-
-    it("should allow the mentor to accept the mentorship request", async () => {
-      await new Promise((res, rej) => {
-        socket2.emit(
-          "mentorshipRequest",
-          { action: "send", mentorID: socket1Data.id },
-          (success: boolean) => {
-            success
-              ? res(true)
-              : rej("Failed to send mentorship request. [ER9]");
-          }
-        );
-      });
-
-      let mentorshipRequestID = await GetOrWaitForMentorshipRequest('_ck9o');
-      // Accept the mentorship request
-      await new Promise((res, rej) => {
-        socket1.emit(
-          "mentorshipRequest",
-          { action: "accept", mentorshipRequestID },
-          (success: boolean) => {
-            success
-              ? res(true)
-              : rej("Failed to accept mentorship request. [ER44]");
-          }
-        );
-      });
-
-      // give server time to send both users acceptance message
-      await sleep(1000);
-    });
-  });
-
   afterAll(async () => {
+    // give server time to finalize actions
+    await sleep(1500);
+
     // give server time to do any post disconnect processing.
     try {
       socket1.disconnect();
@@ -1547,8 +1713,8 @@ describe("Tests authenticated Socket", () => {
         JSON.stringify(socket2Data, null, 2),
         "\n======================"
       );
-      // socket2.disconnect();
     } catch {}
-    await sleep(3000);
+    // give server time to handle disconnections
+    await sleep(2000);
   });
 });

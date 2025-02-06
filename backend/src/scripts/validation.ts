@@ -117,9 +117,12 @@ export async function isValidUsername(usernameRaw: string) {
     if (res.length > 0) {
       throw new Error("This username is not available");
     }
-  } catch {
+  } catch (err) {
+    if (err instanceof Error) {
+      throw err;
+    }
     throw new Error(
-      "There was a problem checking if this username is available."
+      "There was a problem checking if this username is available. "
     );
   }
   return true;

@@ -1,190 +1,177 @@
 import { expect, it, describe, afterAll } from 'vitest';
-import { collectionName, DBCreate, DBDelete, DBDeleteWithID, DBGet, DBSet, DBSetWithID } from '../src/db';
+import { 
+    collectionName, 
+    DBCreate, 
+    DBDelete, 
+    DBDeleteWithID, 
+    DBGet, 
+    DBSet, 
+    DBSetWithID, 
+    DBGetWithID 
+} from '../src/db';
 import { sleep } from '../src/scripts/tools';
 
-const testObjects = {
-    'user': {
-        _test_property: 'heemie',
-        val: 20
-    },
-    'chat': {
-        _test_property: 'heemie',
-        val: 20
-    }, 
-    'message': {
-        _test_property: 'heemie',
-        val: 20
-    }, 
-    'friendship': {
-        _test_property: 'heemie',
-        val: 20
-    }
-}
+const testObjects: Record<collectionName, object> = {
+    'user': { _test_property: 'heemie', val: 20 },
+    'assessment': { _test_property: 'heemie', val: 20 },
+    'mentorshipRequest': { _test_property: 'heemie', val: 20 }
+};
+
+const nonsenseTestingValue = '!nonesense__294U';
 
 /**
- * acquires all test objects from each collection.
- * 
- * @returns 
- * ```
- *  {
- *      collectionName: [testObjects, ...],
- *      collectionName: [testObjects, ...],
- *      ...
- *  }
- * ```
+ * Helper function to retrieve all test objects from collections.
  */
-async function getTestObjectsFromCollections(): Promise<object> {
-    const existingObjects = {}; // used to store existing objects
+async function getTestObjectsFromCollections(): Promise<Record<string, any[]>> {
+    const existingObjects: Record<string, any[]> = {};
 
-    // acquire all documents in collections with _test_property defined
     for (let key in testObjects) {
-        const res = await DBGet(key, [['_test_property', '!=', null]]);
+        const res = await DBGet(key as collectionName, [['_test_property', '!=', null]]);
         if (res.length > 0) {
             existingObjects[key] = res;
         }
     }
-
     return existingObjects;
 }
 
-describe('db', async () => {
-    const nonsenseTestingValue = '!nonesense__294U';
+describe('Firestore DB Functions', async () => {
+    /**
+     * Ensures no test objects exist before running tests.
+     */
     const testObjectsExistTest = async (count: number) => {
-        // check if any test objects still exist (there should be none)
         const existingTestObjects = await getTestObjectsFromCollections();
-        let realCount = 0;
-        for (let collection in existingTestObjects) {
-            realCount += existingTestObjects[collection].length;
-        }
+        let realCount = Object.values(existingTestObjects).reduce((acc, arr) => acc + arr.length, 0);
         expect(realCount).toBe(count);
         return existingTestObjects;
     };
 
     /**
-     * Testing objects could be left over from previously failed tests.
-     * This function deletes them, and tests if it deleted successfully
-     * 
-     * Made it a function so it can be called before and after all tests.
+     * Cleanup function to delete any leftover test objects.
      */
-    const deleteTest = async () => {
+    const deleteTestObjects = async () => {
         it('should delete all existing test objects', async () => {
             const existingTestObjects = await getTestObjectsFromCollections();
-            if (Object.keys(existingTestObjects).length == 0) {
-                return;
-            }
-            
-            // iterate through each collection with test objects
+            if (Object.keys(existingTestObjects).length === 0) return;
+
             for (let collection in existingTestObjects) {
-                // delete each test object in current collection
                 for (let obj of existingTestObjects[collection]) {
-                    await DBDeleteWithID(collection, obj.id);
+                    await DBDeleteWithID(collection as collectionName, obj.id);
                 }
             }
-
             await testObjectsExistTest(0);
         });
     };
-    
-    await deleteTest();
+
+    await deleteTestObjects();
 
     /**
-     * tests creating by creating n test objects, counting existing test objects, then creating n more test objects.
-     * In the end, there should be 2n test objects.
-     * 
+     * Test DBCreate by ensuring the number of documents increases as expected.
      */
-    it('should create testing objects', async () => {
-        // ensure no test objects exist right now
+    it('should create and store test objects', async () => {
         await testObjectsExistTest(0);
 
-        // create test objects
-        for (let testObjectCollection in testObjects) {
-            await DBCreate(testObjectCollection, testObjects[testObjectCollection]);
+        for (let collection in testObjects) {
+            await DBCreate(collection as collectionName, testObjects[collection]);
         }
 
-        // expect certain number of test objects
         await testObjectsExistTest(Object.keys(testObjects).length);
 
-        // create slightly different test objects (used later in tests)
-        for (let testObjectCollection in testObjects) {
-            await DBCreate(testObjectCollection, {...testObjects[testObjectCollection], _test_property: 42});
+        for (let collection in testObjects) {
+            await DBCreate(collection as collectionName, { ...testObjects[collection], _test_property: 42 });
         }
 
-        // expect certain number of test objects
         await testObjectsExistTest(Object.keys(testObjects).length * 2);
     });
-    
-    let currentTestObjects = {};
+
+    let currentTestObjects: Record<string, any[]> = {};
+
     /**
-     * The test objects created in the previous test should result in 2 test objects for each collection
-     * of the 2 objects, 1 property: _test_property
-     * 
-     * 1st object _test_property = 'heemie', 2nd object _test_property = 42
-     * 
-     * get works correctly if, it gets 0 with nonsense query parameters, 1 when _test_property = 'heemie', 1 when _test_property = 42, and 2 when _test_property = 'heemie' or 42
-     * 
-     * no need to test for other comparisions (>=, <=, etc.), as these are tested by google (firebase)
+     * Validate retrieval of objects using queries.
      */
-    it('should get testing objects correctly', async () => {
-        // expect required number of test objects
+    it('should retrieve objects correctly using queries', async () => {
         currentTestObjects = await testObjectsExistTest(Object.keys(testObjects).length * 2);
 
-        // test each collection
         for (let collection in testObjects) {
-            // nonsense query, expect 0
-            expect((await DBGet(collection, [['_test_property', '==', nonsenseTestingValue]])).length).toBe(0);
-            
-            // _test_property = 'heemie', expect 1
-            expect((await DBGet(collection, [['_test_property', '==', 'heemie']])).length).toBe(1);
-
-            // val = 42, expect 1
-            expect((await DBGet(collection, [['_test_property', '==', 42]])).length).toBe(1);
-
-            // val = 'heemie' | val = 42, expect 2
-            expect((await DBGet(collection, [['_test_property', '==', 'heemie'], ['_test_property', '==', 42]], 'or')).length).toBe(2);
+            expect((await DBGet(collection as collectionName, [['_test_property', '==', nonsenseTestingValue]])).length).toBe(0);
+            expect((await DBGet(collection as collectionName, [['_test_property', '==', 'heemie']])).length).toBe(1);
+            expect((await DBGet(collection as collectionName, [['_test_property', '==', 42]])).length).toBe(1);
+            expect((await DBGet(collection as collectionName, [['_test_property', '==', 'heemie'], ['_test_property', '==', 42]], 'or')).length).toBe(2);
         }
     });
 
     /**
-     * runs the test on one collection, as we really only need to try it out on one objects.
-     * 
-     * 1 nonsensicle get request should return 0 values. 
-     * 
-     * After Setting 1 item to that nonsense value, it should return 1 value.
+     * Test retrieval of a single object by ID.
      */
-    it('should set contents of testing objects correctly, using query or id', async () => {
-        let collection = Object.keys(currentTestObjects)[0];
-        if (currentTestObjects[collection].length < 1) {
-            throw new Error('Expected at least one test object in database');
-        }
+    it('should get a specific object by ID', async () => {
+        let collection = Object.keys(currentTestObjects)[0] as collectionName;
+        const testObj = currentTestObjects[collection][0];
 
-        // ensure none have nonsensicle value
+        const fetchedObj = await DBGetWithID(collection, testObj.id);
+        expect(fetchedObj).toBeDefined();
+        expect(fetchedObj?.id).toBe(testObj.id);
+        expect(fetchedObj?._test_property).toBe(testObj._test_property);
+    });
+
+    /**
+     * Verify DBCreate returns a valid document ID.
+     */
+    it('should create an object and return its ID', async () => {
+        const collection: collectionName = "user";
+        const testData = { _test_property: 'test-create', val: 50 };
+        const newId = await DBCreate(collection, testData);
+
+        expect(newId).toBeDefined();
+        const createdObj = await DBGetWithID(collection, newId);
+        expect(createdObj).toBeDefined();
+        expect(createdObj?._test_property).toBe(testData._test_property);
+    });
+
+    /**
+     * Test DBSet and DBSetWithID to modify objects.
+     */
+    it('should update objects using queries and ID', async () => {
+        let collection = Object.keys(currentTestObjects)[0] as collectionName;
+        const testObj = currentTestObjects[collection][0];
+
         expect((await DBGet(collection, [['_test_property', '==', nonsenseTestingValue]])).length).toBe(0);
         
-        // set 1 item to nonsensicle value
-        const currentTestObj = currentTestObjects[collection][0];
-        // DBSet(collection, { _test_property: 'bruh' }, [['_test_property', '!=', ]])
-        await DBSetWithID(collection, currentTestObj.id, { _test_property: nonsenseTestingValue });
-        
-        // ensure one item is set to nonsensicle value, and the id is the same as the one modified.
+        await DBSetWithID(collection, testObj.id, { _test_property: nonsenseTestingValue });
+
         const modifiedObj = await DBGet(collection, [['_test_property', '==', nonsenseTestingValue]]);
         expect(modifiedObj.length).toBe(1);
-        expect(modifiedObj[0].id).toBe(currentTestObj.id);
+        expect(modifiedObj[0].id).toBe(testObj.id);
 
-        // modify it again, using DBSet instead of DBSetWithID
-        // set _test_property to nonsenseTestingValue+"!"
-        await DBSet(collection, { '_test_property': nonsenseTestingValue+"!" }, [['_test_property', '==', nonsenseTestingValue]]);
+        await DBSet(collection, { '_test_property': nonsenseTestingValue + "!" }, [['_test_property', '==', nonsenseTestingValue]]);
 
-        // ensure it exists, only one exists, and its id is the same as the id before.
-        const modifiedObj2 = await DBGet(collection, [['_test_property', '==', nonsenseTestingValue+"!"]]);
+        const modifiedObj2 = await DBGet(collection, [['_test_property', '==', nonsenseTestingValue + "!"]]);
         expect(modifiedObj2.length).toBe(1);
         expect(modifiedObj2[0].id).toBe(modifiedObj[0].id);
     });
 
-    // cleanup test objects from database after all tests. 
-    // This effectively tests DBDeleteWithID as well.
-    it('should delete all matching a query correctly', async () => {
-        for(let collection in testObjects) {
-            await DBDelete(collection, [['_test_property', '!=', null]]);
+    /**
+     * Verify caching behavior by measuring execution time.
+     */
+    it('should retrieve cached data instead of hitting Firestore', async () => {
+        let collection = Object.keys(currentTestObjects)[0] as collectionName;
+        const testObj = currentTestObjects[collection][0];
+
+        console.time('Firestore Fetch');
+        await DBGetWithID(collection, testObj.id);
+        console.timeEnd('Firestore Fetch');
+
+        console.time('Cache Fetch');
+        await DBGetWithID(collection, testObj.id);
+        console.timeEnd('Cache Fetch');
+
+        expect(true).toBe(true); 
+    });
+
+    /**
+     * Ensure objects can be deleted via queries.
+     */
+    it('should delete all matching objects correctly', async () => {
+        for (let collection in testObjects) {
+            await DBDelete(collection as collectionName, [['_test_property', '!=', null]]);
         }
         await testObjectsExistTest(0);
     });

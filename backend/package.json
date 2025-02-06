@@ -16,10 +16,14 @@
     "express": "^4.21.2",
     "express-oauth2-jwt-bearer": "^1.6.0",
     "firebase": "^11.2.0",
+    "lru-cache": "^11.0.2",
     "nodemon": "^3.1.9",
     "socket.io": "^4.8.1",
     "socket.io-client": "^4.8.1",
     "typescript": "^5.7.3",
     "vitest": "^3.0.4"
+  },
+  "devDependencies": {
+    "wait-on": "^8.0.2"
   }
 }
