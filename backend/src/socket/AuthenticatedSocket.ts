@@ -96,10 +96,10 @@ export default class AuthenticatedSocket {
         }
         console.log('deleting user', this.user.id);
         try {
-          await DBDelete("user", [["OAuthSubID", "==", this.user.OAuthSubID]]);
-        } catch {
+          await DBDeleteWithID("user", this.user.id);
+        } catch (err) {
           console.error(
-            "_processAdditionalSettings | problem deleting user after disconnect"
+            "_processAdditionalSettings | problem deleting user after disconnect "+err.message
           );
         }
       });
@@ -149,13 +149,12 @@ export default class AuthenticatedSocket {
     this._cleanupSocketEvents();
     this._setState("authed_user");
     
-    // send user its own data, userID, and assessment data.
-    const assessments = await GetUserAssessments(this.user.id);
+    // // send user its own data, userID, and assessment data.
+    // const assessments = await GetUserAssessments(this.user.id);
     const mentorshipRequests = await GetUserMentorshipRequests(this.user.id);
 
     this.sendClientData("initialData", {
       user: this.user,
-      assessments: assessments,
       mentorshipRequests: mentorshipRequests
     });
     
@@ -182,6 +181,11 @@ export default class AuthenticatedSocket {
     this._addStateSocketEvent(
       'getUser',
       this._getUser.bind(this)
+    )
+
+    this._addStateSocketEvent(
+      'getAssessment',
+      this._getAssessment.bind(this)
     )
 
     // this._addStateSocketEvent(
@@ -554,7 +558,8 @@ export default class AuthenticatedSocket {
 
       // everything valid, write to profile
       try {
-        await DBSetWithID("user", this.user.id, newUserObj, false);
+        await DBSetWithID("user", this.user.id, newUserObj, true);
+        console.log('_!-_Updating profile', this.user.id, newUserObj);
       } catch (err) {
         if (err instanceof Error) {
           this.sendClientMessage(
@@ -598,8 +603,9 @@ export default class AuthenticatedSocket {
       let allMentors: Array<ObjectAny>;
       try {
         allMentors = await DBGet("user", [["isMentor", "==", true]], "and");
-        for (let mentor of allMentors) {
-          ModifyUserForPublic(mentor);
+        for (let mentorIndex in allMentors) {
+          const mentor = allMentors[mentorIndex];
+          allMentors[mentorIndex] = ModifyUserForPublic(mentor);
         }
       } catch (err) {
         if (err instanceof Error) {
@@ -919,7 +925,7 @@ export default class AuthenticatedSocket {
             ErrorCallback("That user does not exist");
             return;
           } else if (!userRes['isMentor']) {
-            ErrorCallback("That user is not a mentor");
+            ErrorCallback("That user is not a mentor ");
             return;
           } else if (!userRes['acceptingMentees']) {
             ErrorCallback("That user is not currently accepting mentees.");
@@ -990,9 +996,7 @@ export default class AuthenticatedSocket {
         // delete request, send alert that it was accepted, 
         // set mentee mentorID to this user's ID, and add mentee to this user's mentee list
         try {
-          await DBSetWithID('user', menteeID, { mentorID: menteeID }, true);
-          await this.addMenteeIDToMenteeIDs(menteeID);
-          await DBDeleteWithID('mentorshipRequest', mentorshipRequestID);
+          await AuthenticatedSocket.addMentorship(mentorID, menteeID);
           AuthenticatedSocket.SendClientsDataWithUserID([mentorID, menteeID], 'mentorshipRequest', [{ ...mentorshipRequestObj, id: mentorshipRequestID, status: 'accepted' }]);
         } catch (err) {
           if (err instanceof Error) {
@@ -1172,28 +1176,67 @@ export default class AuthenticatedSocket {
     
     try {
       // update mentee list in database
-      await DBSetWithID('user', this.user.id, { menteeIDs: this.user.menteeIDs });
+      await DBSetWithID('user', this.user.id, { menteeIDs: this.user.menteeIDs }, true);
     } catch (err) {
       console.error('[xOSs02] something went wrong while adding mentee to mentee list', err);
     }
   }
 
+  private static async addMentorship(mentorID: string, menteeID: string) {// get both mentor and mentee
+    // get both mentor and mentee
+    const mentorObj = await DBGetWithID('user', mentorID);
+    if (!mentorObj) {
+      throw new Error('Mentor does not exist');
+    }
+    const menteeObj = await DBGetWithID('user', menteeID);
+    if (!menteeObj) {
+      throw new Error('Mentee does not exist');
+    }
+    
+    // add mentee to mentor's mentee list
+    let mentorMenteeList: Array<string> = mentorObj.menteeIDs;
+    if (!mentorMenteeList) {
+      mentorMenteeList = [];
+    }
+    mentorMenteeList.push(menteeID);
+    
+    // update and send both
+    await DBSetWithID('user', menteeID, { mentorID: mentorID }, true);
+    await DBSetWithID('user', mentorID, { menteeIDs: mentorMenteeList }, true);
+    console.log('added mentorship relation', menteeObj, mentorObj);
+  }
+
   private static async removeMentorship(mentorID: string, menteeID: string) {
     // get both mentor and mentee
     const mentorObj = await DBGetWithID('user', mentorID);
+    if (!mentorObj) {
+      throw new Error('Mentor does not exist');
+    }
+
     const menteeObj = await DBGetWithID('user', menteeID);
+    if (!menteeObj) {
+      throw new Error('Mentee does not exist');
+    }
 
     // remove mentor from mentee
     menteeObj.mentorID = null;
+    await DBSetWithID('user', menteeID, { mentorID: null }, true);
 
     // remove mentee from mentor's mentee list
     const mentorMenteeList: Array<string> = mentorObj.menteeIDs;
-    mentorMenteeList.splice(mentorMenteeList.indexOf(menteeID), 1);
-    menteeObj.menteeIDs = mentorMenteeList;
+    if (!mentorMenteeList) {
+      throw new Error('Mentor does not have any mentees');
+    }
 
-    // update and send both
-    await DBSetWithID('user', menteeID, { mentorID: null }, true);
+    try {
+      mentorMenteeList.splice(mentorMenteeList.indexOf(menteeID), 1);
+    } catch {
+      throw new Error('Cannot remove mentee. They are not one of the mentor\'s mentees.');
+    }
+
+    menteeObj.menteeIDs = mentorMenteeList;
     await DBSetWithID('user', mentorID, { menteeIDs: mentorMenteeList }, true);
+    console.log('removed mentorship relation', menteeObj, mentorObj);
   }
 
   sendClientData(type: string, data: any) {
@@ -1263,6 +1306,45 @@ export default class AuthenticatedSocket {
 
       try {
         const data = await GetUserData(userID, this.user.id);
+        callback(data);
+        return;
+      } catch (err) {
+        ErrorCallback(err.message);
+      }
+    } catch (err) {
+      if (err instanceof Error) {
+        SendErrorMessage(err.message);
+        return;
+      }
+      SendErrorMessage('Something went wrong while getting user');
+      return;
+    }
+  }
+
+  private async _getAssessment(assessmentID: unknown, callback: unknown) {
+    await this._updateSelf();
+    const GetUserErrorHeader = 'Error while getting assessment: ';
+    const SendErrorMessage = (msg: string) => {
+      this.sendClientMessage('Error', GetUserErrorHeader+msg);
+    }
+    try {
+      if (!callback || typeof(callback) != 'function') {
+        SendErrorMessage('No callback was provided');
+        return;
+      }
+
+      const ErrorCallback = (msg: string) => {
+        SendErrorMessage(msg);
+        callback(false);
+      };
+
+      if (!assessmentID || typeof(assessmentID) != 'string') {
+        ErrorCallback('Invalid assessmentID: '+assessmentID);
+        return;
+      }
+
+      try {
+        const data = await GetAssessmentData(assessmentID, this.user.id);
         callback(data);
         return;
       } catch (err) {
@@ -1388,10 +1470,12 @@ export default class AuthenticatedSocket {
  * @param user
  */
 function ModifyUserForPublic(user: ObjectAny) {
+  const userCopy = JSON.parse(JSON.stringify(user)) as Object;
   delete user.isMentee;
   delete user.MentorID;
   delete user.assessments;
   delete user.OAuthSubID;
+  return userCopy;
 }
 
 async function GetUserAssessments(userID: string) {
@@ -1460,4 +1544,50 @@ async function GetUserData(targetUserID: string, requestingUserID?: string) {
   delete userData.mentorID;
 
   return userData;
+}
+
+
+/**
+ * This function returns the target assessmentData if the requesting party is allowed to see it (mentor).
+ * 
+ * if no requestingUserID is provided, then the targetUser data is returned automatically.
+ * 
+ * Otherwise, the assessment is returned depending on if the 
+ * assessment taker and the requester are mentor and mentee (or self)
+ * @param targetUserID 
+ * @param requestingUserID 
+ * @returns 
+ */
+async function GetAssessmentData(assessmentID: string, requestingUserID?: string) {
+  let assessmentData = await DBGetWithID('assessment', assessmentID);
+  if (!assessmentData) {
+    throw new Error('The requested assessment does not exist.');
+  }
+  if (!requestingUserID) {
+    // if no requesting userID was passed, then return auto.
+    return assessmentData;
+  }
+
+  const { userID: assessmentUserID } = assessmentData;
+  if (!assessmentUserID) {
+    throw new Error('There\'s something wrong with the assessment you requested.');
+  }
+
+  // taker is the requesting user.
+  if (requestingUserID == assessmentUserID) {
+    return assessmentData;
+  }
+
+  // check if requesting user is mentor of assessment taker
+  let requestingUserData = await DBGetWithID('user', requestingUserID);
+  if (!requestingUserData) {
+    throw new Error('The requesting user does not exist.');
+  }
+
+  const { menteeIDs } = requestingUserData;
+  if (menteeIDs && (menteeIDs instanceof Array) && menteeIDs.includes(assessmentUserID)) {
+    return assessmentData;
+  }
+  
+  throw new Error('You do not have permission to view this assessment');
 }

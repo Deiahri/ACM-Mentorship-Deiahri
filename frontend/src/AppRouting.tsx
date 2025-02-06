@@ -7,6 +7,8 @@ import Dialog from "./features/Dialog/Dialog";
 import App from "./components/App";
 import HomePage from "./pages/HomePage/HomePage";
 import NewUserPage from "./pages/NewUserPage/NewUserPage";
+import UserPage from "./pages/UserPage/UserPage";
+import P404Page from "./pages/404Page/P404Page";
 
 const router = createBrowserRouter([
   {
@@ -22,8 +24,16 @@ const router = createBrowserRouter([
         element: <HomePage/>
       },
       {
+        path: 'user',
+        element: <UserPage/>
+      },
+      {
         path: 'new-user',
         element: <NewUserPage/>
+      },
+      {
+        path: '*',
+        element: <P404Page/>
       }
     ]
   },

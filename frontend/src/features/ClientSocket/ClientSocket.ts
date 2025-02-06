@@ -1,9 +1,9 @@
 import { io, Socket } from "socket.io-client";
 import { Dispatch } from "@reduxjs/toolkit";
 import { isClientDataPayloadType, isClientSocketState } from "../../scripts/validation";
-import { setClientState, setClientUserID, setClientUsers } from "./ClientSocketSlice";
+import { setClientAssessments, setClientState, setClientUser, setMentorshipRequests } from "./ClientSocketSlice";
 import { setDialog } from "../Dialog/DialogSlice";
-import { AnyFunction } from "../../scripts/types";
+import { AnyFunction, ObjectAny } from "../../scripts/types";
 
 export let MyClientSocket: ClientSocket | undefined = undefined;
 
@@ -57,8 +57,8 @@ type ClientCreateUserPayload = {
   username: string
 };
 
-export type ClientDataPayloadType = 'users' | 'userID' | 'assessments';
-export const ClientDataPayloadTypes = ['users', 'userID', 'assessments'];
+export type ClientDataPayloadType = 'initialData' | 'mentorshipRequest';
+export const ClientDataPayloadTypes = ['initialData', 'mentorshipRequest'];
 
 type ClientDataPayload = {
   type: ClientDataPayloadType,
@@ -141,17 +141,15 @@ class ClientSocket {
       }
 
       if (!isClientDataPayloadType(type)) {
-        console.error('Payload type is invalid.');
+        console.error('Payload type is invalid.', type);
         return;
       }
 
       let processFunc: Function;
-      if (type == 'users') {
-        processFunc = this._handleUserData.bind(this);
-      } else if (type == 'userID') {
-        processFunc = this._handleUserIDData.bind(this);
-      } else if (type == 'assessments') {
-        processFunc = this._handleAssessmentsData.bind(this);
+      if (type == 'initialData') {
+        processFunc = this._handleInitialData.bind(this);
+      } else if (type == 'mentorshipRequest') {
+        processFunc = this._handleMentorshipRequests.bind(this);
       } else {
         console.error('Unhandled data type:', type);
         return;
@@ -181,38 +179,22 @@ class ClientSocket {
     }
   }
 
-  private _handleUserData(usersData: unknown) {
-    if (!(usersData instanceof Array)) {
-      console.error('Invalid user data');
+  private _handleInitialData(initialData: unknown) {
+    if (!initialData || typeof(initialData) != 'object') {
+      console.error('Expected initial data to be object', initialData);
       return;
     }
-    for (let user of usersData) {
-      if (typeof(user) != 'object') {
-        console.error('Invalid user object');
-        continue;
-      }
-
-      const { id } = user;
-      if (!id || typeof(id) != 'string') {
-        console.error('Invalid user object: invalid id');
-        continue;
-      }
-      this.users.set(id, user);
-    }
-    const userMap = Object.fromEntries(this.users.entries());
-    this.dispatch(setClientUsers(userMap));
-  }
-
-  private _handleUserIDData(userID: unknown) {
-    if (typeof(userID) != 'string') {
-      console.error('Invalid userID data', userID);
+    const { user, assessments, mentorshipRequests } = initialData as ObjectAny;
+    if (!user) {
+      console.error('initialData is missing user payload', initialData);
       return;
     }
-    this.userID = userID;
-    this.dispatch(setClientUserID(userID));
+    this.dispatch(setClientUser(user));
+    this.dispatch(setClientAssessments(assessments));
+    this.dispatch(setMentorshipRequests(mentorshipRequests));
   }
 
-  private _handleAssessmentsData() {
+  private _handleMentorshipRequests() {
 
   }
 }

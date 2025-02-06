@@ -2,7 +2,6 @@ import { useAuth0 } from "@auth0/auth0-react"
 import { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { CreateClientSocketConnection } from "../features/ClientSocket/ClientSocket";
-import HomePage from "../pages/HomePage/HomePage";
 import { Outlet, useNavigate } from "react-router-dom";
 import { ReduxRootState } from "../store";
 
@@ -26,8 +25,6 @@ export default function App() {
   useEffect(() => {
     if (state == 'authed_nouser') {
       navigate('./new-user');
-    } else if (state == 'authed_user') {
-      navigate('./home');
     }
   }, [state]);
 

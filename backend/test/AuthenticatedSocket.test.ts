@@ -240,6 +240,28 @@ describe("Tests authenticated Socket", () => {
     }
   }
 
+  function GetOrWaitForMentorshipRequest(targetSocketData: ObjectAny, errorMessage: string) {
+    return new Promise(async (res) => {
+      let mentorshipRequestID: string | undefined;
+      setTimeout(() => {
+        if (mentorshipRequestID) {
+          return;
+        }
+        throw new Error(
+          "Did not get mentorship request in time [" + errorMessage + "]"
+        );
+      }, 2000);
+      while (true) {
+        mentorshipRequestID = GetMentorshipRequestFromData(targetSocketData);
+        if (mentorshipRequestID) {
+          res(mentorshipRequestID);
+          break;
+        }
+        await sleep(200);
+      }
+    });
+  }
+
   // this function should not be used until after handleGetUser test has been validated.
   async function updateSelf(socket: Socket, targetSocketData: ObjectAny, errorMessage: string) {
       if (!targetSocketData||!targetSocketData.id) {
@@ -1115,7 +1137,60 @@ describe("Tests authenticated Socket", () => {
   });
 
   describe("handleGetAllMentors", () => {
-    it("should get all mentors correctly.", async () => {
+    it("should NOT find self in mentor list since we are mentor.", async () => {
+      // first, have socket1 change themselves to a mentor
+      await new Promise((res, rej) => {
+        socket1.emit("updateProfile", { isMentor: false }, (v: boolean) => {
+          // Moc0dk
+          v
+            ? res(true)
+            : rej("Expected profile change to be successful. asc9cha9sc");
+        });
+      });
+
+      // now it is guarenteed we should NOT find ourselves in mentor list.
+      await new Promise((res, rej) => {
+        socket1.emit("getAllMentors", (mentors: unknown) => {
+          // response will not be an array if failed to get all mentors
+          if (!(mentors instanceof Array)) {
+            rej("Failed to get all mentors " + mentors + " x,OSc0s");
+            return;
+          }
+
+          let selfLocated = false;
+          for (let mentor of mentors) {
+            if (typeof mentor != "object") {
+              rej(
+                "A mentor was not formatted as expected: " +
+                  mentor +
+                  ". SCS9cj0kia3"
+              );
+              return;
+            } else if (!mentor["isMentor"]) {
+              rej(
+                "A mentor did not have isMentor = true: " + mentor + ". _Xj9c _As"
+              );
+              return;
+            }
+
+            if (mentor.id == socket1Data.id) {
+              selfLocated = true;
+            }
+          }
+
+          if (selfLocated) {
+            console.log("mL _!", mentors);
+            rej(
+              "Located self within list of mentors, even though we are NOT a mentor."
+            );
+            return;
+          }
+          res(true);
+        });
+      });
+    });
+
+    it("should find self in mentor list since we are mentor.", async () => {
       // first, have socket1 change themselves to a mentor
       await new Promise((res, rej) => {
         socket1.emit("updateProfile", { isMentor: true }, (v: boolean) => {
@@ -1170,27 +1245,6 @@ describe("Tests authenticated Socket", () => {
   });
 
   describe("handleMentorshipRequest", () => {
-    function GetOrWaitForMentorshipRequest(targetSocketData: ObjectAny, errorMessage: string) {
-      return new Promise(async (res) => {
-        let mentorshipRequestID: string | undefined;
-        setTimeout(() => {
-          if (mentorshipRequestID) {
-            return;
-          }
-          throw new Error(
-            "Did not get mentorship request in time [" + errorMessage + "]"
-          );
-        }, 2000);
-        while (true) {
-          mentorshipRequestID = GetMentorshipRequestFromData(targetSocketData);
-          if (mentorshipRequestID) {
-            res(mentorshipRequestID);
-            break;
-          }
-          await sleep(200);
-        }
-      });
-    }
     it("should send a mentorship request successfully", async () => {
       // Ensure socket1 is a mentor accepting mentees
       await new Promise((res, rej) => {
@@ -1289,6 +1343,9 @@ describe("Tests authenticated Socket", () => {
       });
 
       let mentorshipRequestID = await GetOrWaitForMentorshipRequest(socket1Data, "ixNS0o");
+      await updateSelf(socket1, socket1Data, 's9ajcs0');
+      await updateSelf(socket2, socket2Data, 'os0ajc');
+      console.log('Before Accept', socket1Data, socket2Data);
       // Accept the mentorship request
       await new Promise((res, rej) => {
         socket1.emit(
@@ -1302,6 +1359,9 @@ describe("Tests authenticated Socket", () => {
         );
       });
 
+      await updateSelf(socket1, socket1Data, 's9ajcs0');
+      await updateSelf(socket2, socket2Data, 'os0ajc');
+      console.log('After Accept', socket1Data, socket2Data);
       // give server time to send both users acceptance message
       await sleep(1000);
     });
@@ -1328,6 +1388,10 @@ describe("Tests authenticated Socket", () => {
           }
         );
       });
+
+      await updateSelf(socket1, socket1Data, 's9ajcs0');
+      await updateSelf(socket2, socket2Data, 'os0ajc');
+      console.log('Remove Mentee', socket1Data, socket2Data);
     });
 
     it("it should allow the mentee to remove the mentor", async () => {
@@ -1371,6 +1435,10 @@ describe("Tests authenticated Socket", () => {
         );
       });
 
+      await updateSelf(socket1, socket1Data, 's9ajcs0');
+      await updateSelf(socket2, socket2Data, 'os0ajc');
+      console.log('Accepted mentor socket2 mentee socket1', socket1Data, socket2Data);
+
       // Should pass if they try to remove their mentor
       await new Promise((res, rej) => {
         socket1.emit(
@@ -1381,6 +1449,11 @@ describe("Tests authenticated Socket", () => {
           }
         );
       });
+
+      
+      await updateSelf(socket1, socket1Data, 's9ajcs0');
+      await updateSelf(socket2, socket2Data, 'os0ajc');
+      console.log('Remove Mentor', socket1Data, socket2Data);
     });
   });
 
@@ -1693,9 +1766,186 @@ describe("Tests authenticated Socket", () => {
     });
   });
 
+  describe("handleGetAssessment", () => {
+    it('should successfully get assessment if owner is the requesting party', async () => {
+      // submit an assessment that we'll reference to later
+      const validAssessmentData = {
+        action: "create",
+        questions: [
+          {
+            question: "WHAT FROM DONW UNS?",
+            inputType: "text",
+            answer: "John Doe",
+          },
+          { question: "What is your age?", inputType: "number", answer: 25 },
+          { question: "Do you agree?", inputType: "boolean", answer: true },
+        ],
+      };
+
+      await new Promise((res, rej) => {
+        socket1.emit(
+          "submitAssessment",
+          validAssessmentData,
+          (success: string | boolean) => {
+            success
+              ? res(true)
+              : rej("Expected assessment creation to be successful.");
+          }
+        );
+      });
+
+      await updateSelf(socket1, socket1Data, 'D*AH0d9v');
+
+      // then retrieve socket1 assessmentID from there.
+      const existingAssessmentID = socket1Data.user.assessments[0];
+      const assessment = await new Promise((res, rej) => {
+        socket1.emit('getAssessment', existingAssessmentID, (v: Object | undefined) => {
+          v? res(v):rej('expected success oamsc0iskjc)A');
+        });
+      });
+      if (!assessment || typeof(assessment) != 'object') {
+        throw new Error('Expected to get assessment, but no: '+assessment);
+      }
+      if (assessment['id'] != existingAssessmentID) {
+        throw new Error('Requested assessment does not match received assessment: '+assessment);
+      }
+    });
+
+    it("should allow socket2 to mentor socket1 in preparation of requesting assessments", async () => {
+      await new Promise((res, rej) => {
+        socket1.emit(
+          "mentorshipRequest",
+          { action: "send", mentorID: socket2Data.id },
+          (success: boolean) => {
+            success
+              ? res(true)
+              : rej("Failed to send mentorship request. [ER9]");
+          }
+        );
+      });
+
+      let mentorshipRequestID = await GetOrWaitForMentorshipRequest(socket1Data, "XOIUSC)");
+      // Accept the mentorship request
+      await new Promise((res, rej) => {
+        socket2.emit(
+          "mentorshipRequest",
+          { action: "accept", mentorshipRequestID },
+          (success: boolean) => {
+            success
+              ? res(true)
+              : rej("Failed to accept mentorship request. [ER44]");
+          }
+        );
+      });
+      // give server time to send both users acceptance message
+      await sleep(500);
+    });
+
+    it('should successfully allow socket2 to get socket1 assessments, as they are mentor of socket1', async () => {
+      await updateSelf(socket2, socket2Data, 'LarryC_C_');
+
+      // then retrieve socket1 assessmentID from there.
+      const existingAssessmentID = socket1Data.user.assessments[0];
+      const assessment = await new Promise((res, rej) => {
+        socket2.emit('getAssessment', existingAssessmentID, (v: Object | undefined) => {
+          v? res(v):rej('expected success asf42g4A '+v);
+        });
+      });
+
+      if (!assessment || typeof(assessment) != 'object') {
+        throw new Error('Expected to get assessment, but no: '+assessment);
+      }
+      if (assessment['id'] != existingAssessmentID) {
+        throw new Error('Requested assessment does not match received assessment: '+assessment);
+      }
+    });
+
+    it("should allow socket1 to remove socket2 as mentor, and socket1 to mentor socket2 in preparation for assessment request", async () => {
+      await new Promise((res, rej) => {
+        socket1.emit(
+          "mentorshipRequest",
+          { action: "removeMentor" },
+          (success: boolean) => {
+            success
+              ? res(true)
+              : rej("Failed to send remove mentor. [ER9acs9uj]");
+          }
+        );
+      });
+
+      await new Promise((res, rej) => {
+        socket2.emit(
+          "mentorshipRequest",
+          { action: "send", mentorID: socket1Data.id },
+          (success: boolean) => {
+            success
+              ? res(true)
+              : rej("Failed to send mentorship request. [Eefaf39]");
+          }
+        );
+      });
+
+      let mentorshipRequestID = await GetOrWaitForMentorshipRequest(socket1Data, "Sasd31g4");
+      // Accept the mentorship request
+      await new Promise((res, rej) => {
+        socket1.emit(
+          "mentorshipRequest",
+          { action: "accept", mentorshipRequestID },
+          (success: boolean) => {
+            success
+              ? res(true)
+              : rej("Failed to accept mentorship request. [ER4hn4]");
+          }
+        );
+      });
+      // give server time to send both users acceptance message
+      await sleep(500);
+    });
+
+    it('should deny socket2 to get socket1 assessments, as they are not mentor of socket1', async () => {
+      await updateSelf(socket2, socket2Data, 'LarryC_C_');
+
+      // then retrieve socket1 assessmentID, but fail because lack permissions
+      const existingAssessmentID = socket1Data.user.assessments[0];
+      await new Promise((res, rej) => {
+        socket2.emit('getAssessment', existingAssessmentID, (v: Object | undefined) => {
+          v? rej('expected failure 0asjc0as '+v):res(v);
+        });
+      });
+    });
+
+    it("should allow socket2 to remove socket1 as mentor in preparation for assessment request", async () => {
+      await new Promise((res, rej) => {
+        socket2.emit(
+          "mentorshipRequest",
+          { action: "removeMentor" },
+          (success: boolean) => {
+            success
+              ? res(true)
+              : rej("Failed to send remove mentor. [Ecas45y32]");
+          }
+        );
+      });
+    });
+
+    it('should deny socket2 to get socket1 assessments, as they are not mentor nor mentee of socket1', async () => {
+      await updateSelf(socket2, socket2Data, 'LarryC_C_');
+
+      // then retrieve socket1 assessmentID, but fail because lack permissions
+      const existingAssessmentID = socket1Data.user.assessments[0];
+      await new Promise((res, rej) => {
+        socket2.emit('getAssessment', existingAssessmentID, (v: Object | undefined) => {
+          v? rej('expected failure daef31fe '+v):res(v);
+        });
+      });
+    });
+  });
+
   afterAll(async () => {
     // give server time to finalize actions
-    await sleep(1500);
+    await updateSelf(socket1, socket1Data, 'LarryC_C_sxas');
+    await updateSelf(socket2, socket2Data, 'LarryC_C_sxa');
+    await sleep(2000);
 
     // give server time to do any post disconnect processing.
     try {
@@ -1715,6 +1965,6 @@ describe("Tests authenticated Socket", () => {
       );
     } catch {}
     // give server time to handle disconnections
-    await sleep(2000);
-  });
+    await sleep(4000);
+  }, 50000);
 });

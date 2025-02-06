@@ -185,6 +185,7 @@ export async function DBSetWithID(
   } else {
     newObj = value;
   }
+
   CacheSet(collectionName, id, { ...newObj, id });
   await setDoc(doc(db, collectionName, id), newObj);
 }
