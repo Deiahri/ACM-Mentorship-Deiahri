@@ -23,6 +23,7 @@ import {
   isValidProject,
   isValidSocial,
   isValidUsername,
+  MAX_BIO_LENGTH,
 } from "../scripts/validation";
 
 export type AuthenticatedSocketAdditionalParameters = {
@@ -346,6 +347,7 @@ export default class AuthenticatedSocket {
         softSkills,
         isMentor,
         acceptingMentees,
+        bio
       } = data;
       const newUserObj = { ...JSON.parse(JSON.stringify(this.user)) };
 
@@ -582,6 +584,27 @@ export default class AuthenticatedSocket {
         return;
       }
 
+      if (bio) {
+        if (typeof(bio) != 'string') {
+          this.sendClientMessage(
+            "Error",
+            handleUpdateProfileSubject + "Bio is not valid. "
+          );
+          callback(false);
+          return;
+        }
+        let bioModified = bio.trim();
+        if (bioModified.length > MAX_BIO_LENGTH) {
+          this.sendClientMessage(
+            "Error",
+            handleUpdateProfileSubject + "Bio is too long. "
+          );
+          callback(false);
+          return;
+        }
+        newUserObj.bio = bioModified;
+      }
+
       if (typeof acceptingMentees == "boolean") {
         newUserObj.acceptingMentees = acceptingMentees;
       } else if (acceptingMentees) {
@@ -777,15 +800,18 @@ export default class AuthenticatedSocket {
         callback(createdAssessmentID);
         console.log('created assessment', createdAssessmentID);
       } else if (action == "edit") {
+        console.log('checkups0x');
         if (!id) {
           ErrorCallback("ID was not provided");
           return;
         }
+        console.log('checkup444');
         // ensure assessment is valid
         if (!isValidAnsweredAssessmentQuestions(questions)) {
           ErrorCallback("Questions are not valid");
           return;
         }
+        console.log('checkup152');
 
         // ensure assessment id belongs to current user.
         const assessmentRes = await DBGetWithID("assessment", id);
@@ -796,9 +822,10 @@ export default class AuthenticatedSocket {
           console.log("oascsj", assessmentRes);
           return;
         }
-
+        console.log('checkup15');
         // update the assessment
         try {
+          console.log('updatingAssessment', id, questions);
           await DBSetWithID("assessment", id, { questions }, true);
         } catch (err) {
           if (err instanceof Error) {
@@ -808,6 +835,7 @@ export default class AuthenticatedSocket {
           ErrorCallback("Something went wrong while updating assessment");
           return;
         }
+        callback(true);
       } else if (action == "delete") {
         if (!id) {
           ErrorCallback("ID was not provided");

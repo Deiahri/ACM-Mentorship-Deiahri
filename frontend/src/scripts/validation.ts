@@ -1,5 +1,5 @@
 import { ClientDataPayloadType, ClientDataPayloadTypes, ClientSocketState, ClientSocketStates, SubmitAssessmentAction, SubmitAssessmentActions } from "../features/ClientSocket/ClientSocket";
-import { Assessment, AssessmentQuestion, AssessmentQuestionInputTypes, ObjectAny } from "./types";
+import { Assessment, AssessmentQuestion, AssessmentQuestionInputTypes, ObjectAny, SocialType, SocialTypes } from "./types";
 
 export function isClientSocketState(s: string): s is ClientSocketState {
   return ClientSocketStates.includes(s);
@@ -58,8 +58,12 @@ export function isAssessment(s: object): s is Assessment {
     return false;
   } else if (!userID || typeof(userID) != 'string') {
     return false;
-  } else if (!questions || !(questions instanceof Array) || isAssessmentQuestions(questions)) {
+  } else if (!questions || !(questions instanceof Array) || !isAssessmentQuestions(questions)) {
     return false;
   }
   return true;
+}
+
+export function isSocialType(s: string): s is SocialType {
+  return SocialTypes.includes(s);
 }

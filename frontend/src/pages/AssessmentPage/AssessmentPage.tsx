@@ -57,6 +57,7 @@ export default function AssessmentPage() {
           // then the { published: false } will be returned
           const vAny: ObjectAny = v;
           if (typeof vAny.published == "boolean" && !vAny.published) {
+            console.log('not published');
             setAssessmentObj({ published: false });
             return;
           }
@@ -91,9 +92,7 @@ export default function AssessmentPage() {
         setAssessmentUser(v);
       });
     }
-    console.log('useEffect down');
     GetAssessment();
-    console.log('useEffect down2');
   }, [assessmentID, params, ready]);
 
   if (!user) {
@@ -132,7 +131,7 @@ export default function AssessmentPage() {
     if (submitting) {
       return;
     } else if ((!userOwnsAssessment && type != 'new')) {
-      return
+      return;
     }
 
     if (!isAssessmentValid()) {
@@ -195,8 +194,8 @@ export default function AssessmentPage() {
   function SaveAssessment() {
     if (submitting) {
       return;
-    } else if (!userOwnsAssessment) {
-      return
+    } else if ((!userOwnsAssessment && type != 'new')) {
+      return;
     }
 
     setSubmitting(true);
@@ -222,12 +221,13 @@ export default function AssessmentPage() {
       );
     } else {
       MyClientSocket?.submitAssessment(
-        { questions: assessment, action: 'edit' },
+        { questions: assessment, action: 'edit', id: assessmentObj.id },
         (v: boolean) => {
           setSubmitting(false);
           if (!v) {
             return;
           }
+          MyClientSocket?.requestUpdateSelf();
           setTimeout(() => {
             dispatch(
               setAlert({ title: "Success", body: "Assessment Saved." })
@@ -420,7 +420,7 @@ export default function AssessmentPage() {
       <AssessmentSection
         assessment={assessment}
         setAssessment={setAssessment}
-        disabled={!userOwnsAssessment||submitting}
+        disabled={(!userOwnsAssessment && type != 'new')||submitting}
       />
       <button
         style={{
@@ -493,7 +493,6 @@ function AssessmentSection({
     } else if (answer.length < 3) {
       warning = ShortAnswerWarning;
     }
-    console.log("updat", answer);
 
     const newAssessment = [...assessment];
     newAssessment[index] = {

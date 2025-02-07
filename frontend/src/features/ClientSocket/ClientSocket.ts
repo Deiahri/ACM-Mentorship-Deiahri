@@ -64,7 +64,7 @@ export type ClientSocketUser = {
   lName?: string,
   username?: string,
   id?: string,
-  socials?: string[],
+  socials?: ObjectAny[],
   experience?: ObjectAny[],
   education?: ObjectAny[],
   certifications?: ObjectAny[],
@@ -75,7 +75,9 @@ export type ClientSocketUser = {
   acceptingMentees?: boolean,
   assessments?: string[],
   menteeIDs?: string[],
-  mentorID?: string
+  mentorID?: string,
+  DisplayPictureURL?: string,
+  bio?: string
 }
 
 export type ClientDataPayloadType = 'initialData' | 'mentorshipRequest';
@@ -198,6 +200,13 @@ class ClientSocket {
         callback(v);
         this.submitting = false;
       });
+    } else if (action == 'edit') {
+      console.log('editing');
+      this.submitting = true;
+      this.socket.emit('submitAssessment', { action, questions, id }, (v: boolean | string) => {
+        callback(v);
+        this.submitting = false;
+      });
     }
     // this.dispatch(setAlert({ title: 'Yep', body: 'Alright' }));
 
@@ -283,6 +292,22 @@ class ClientSocket {
     });
   }
 
+  GetAllMentors(callbackRaw?: Function) {
+    const callback = callbackRaw || NothingFunction;
+    this.submitting = true;
+    this.socket.emit('getAllMentors', (v: Object | boolean) => {
+      this.submitting = false;
+      if (typeof(v) == 'boolean') {
+        callback(false);
+        return;
+      }
+      callback(v);
+    });
+  }
+
+  BecomeMentor(cb?: Function) {
+    this.updateProfile({ isMentor: true, acceptingMentees: true }, cb);
+  }
 
   /**
    * adds event function pair to socket.

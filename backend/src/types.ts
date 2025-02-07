@@ -5,14 +5,12 @@ export type SocialType =
   | "twitter"
   | "youtube"
   | "linkedIn"
-  | "indeed"
   | "discord";
 export const SocialTypes = [
   "instagram",
   "twitter",
   "youtube",
   "linkedIn",
-  "indeed",
   "discord",
 ];
 export type SocialObj = {

@@ -10,11 +10,25 @@ export type AssessmentQuestion = {
   [key: string]: any
 };
 
-export type AssessmentQuestionInputType = 'string' | 'number' | 'boolean';
-export const AssessmentQuestionInputTypes = ['string', 'number', 'boolean'];
+export type AssessmentQuestionInputType = 'text' | 'number' | 'boolean';
+export const AssessmentQuestionInputTypes = ['text', 'number', 'boolean'];
 export type Assessment = {
   questions?: AssessmentQuestion[],
   published?: boolean,
   userID?: string,
-  date?: number
+  date?: number,
+  id?: string
 };
+export type SocialType =
+  | "instagram"
+  | "twitter"
+  | "youtube"
+  | "linkedIn"
+  | "discord";
+export const SocialTypes = [
+  "instagram",
+  "twitter",
+  "youtube",
+  "linkedIn",
+  "discord",
+];

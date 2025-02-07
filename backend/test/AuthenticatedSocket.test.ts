@@ -910,6 +910,7 @@ describe("Tests authenticated Socket", () => {
         mName: "A",
         lName: "Doe",
         socials: [{ type: "linkedIn", url: "https://linkedin.com/in/johndoe" }],
+        bio: 'Macintosh, spankinrosh',
         experience: [
           {
             company: "Tech Corp",
@@ -1131,6 +1132,56 @@ describe("Tests authenticated Socket", () => {
         });
         setTimeout(
           () => reject("did not receive response in time. +Er4khj45"),
+          2000
+        );
+      });
+    });
+
+    it("should fail when bio is not a string or too long", async () => {
+      const validProfileData = {
+        bio: 'n'.repeat(100)
+      };
+
+      await new Promise((res, reject) => {
+        socket1.emit("updateProfile", validProfileData, (response) => {
+          // X)(3)
+          expect(response).toBe(false);
+          res(true);
+        });
+        setTimeout(
+          () => reject("did not receive response in time. (VJxsd0v)"),
+          2000
+        );
+      });
+
+      const invalidProfileData = {
+        bio: 'n'.repeat(300)
+      };
+
+      await new Promise((res, reject) => {
+        socket1.emit("updateProfile", invalidProfileData, (response) => {
+          // X)(3)
+          expect(response).toBe(false);
+          res(true);
+        });
+        setTimeout(
+          () => reject("did not receive response in time. (VJd13r0v)"),
+          2000
+        );
+      });
+
+      const invalidProfileData2 = {
+        bio: true
+      };
+
+      await new Promise((res, reject) => {
+        socket1.emit("updateProfile", invalidProfileData2, (response) => {
+          // X)(3)
+          expect(response).toBe(false);
+          res(true);
+        });
+        setTimeout(
+          () => reject("did not receive response in time. (VJd0caxzv)"),
           2000
         );
       });

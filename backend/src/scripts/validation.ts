@@ -299,3 +299,5 @@ export function isValidAssessmentAction(s: string): s is AssessmentAction {
 export function isValidMentorshipRequestAction(s: string): s is MentorshipRequestAction {
   return MentorshipRequestActions.includes(s);
 }
+
+export const MAX_BIO_LENGTH = 200;

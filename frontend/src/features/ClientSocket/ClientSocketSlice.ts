@@ -13,6 +13,9 @@ type ClientSocketMentorshipRequestMap = {
 };
 
 interface ClientSocketRootState {
+  /**
+   * True when socket is authed and ready to be used.
+   */
   ready?: boolean;
   state?: ClientSocketState;
   user?: ClientSocketUser;
