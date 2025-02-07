@@ -30,7 +30,7 @@ export function StartExpressServer() {
             const jwtCheck = auth({
                 audience: 'uhdacm',
                 issuerBaseURL: 'https://dev-10v2hjt70uhuwqnr.us.auth0.com/',
-                tokenSigningAlg: 'RS256',
+                tokenSigningAlg: 'RS256'
             });
         
         

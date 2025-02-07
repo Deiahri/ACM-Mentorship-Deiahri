@@ -7,14 +7,16 @@ import { ReduxRootState } from "../store";
 
 export default function App() {
   const { getAccessTokenSilently, isLoading, isAuthenticated } = useAuth0();
+  
   const dispatch = useDispatch();
   const { state } = useSelector((store: ReduxRootState) => store.ClientSocket);
   const navigate = useNavigate();
+  const path = window.location.pathname;
   
   useEffect(() => {
     async function getToken() {
-      console.log('accessToken', await getAccessTokenSilently());
-      const userToken = await getAccessTokenSilently();
+      const userToken = await getAccessTokenSilently({ 'authorizationParams': { 'scope': 'email openid profile' } });
+      console.log('accessToken', userToken);
       CreateClientSocketConnection(userToken, dispatch);
     }
     if (isAuthenticated) {
@@ -25,6 +27,10 @@ export default function App() {
   useEffect(() => {
     if (state == 'authed_nouser') {
       navigate('./new-user');
+    } else if (state == 'authed_user') {
+      if (path == '/app' || path == '/app/new-user') {
+        navigate('./home');
+      }
     }
   }, [state]);
 
@@ -36,8 +42,6 @@ export default function App() {
     return <p>Not authed</p>
   }
 
-
-  // console.log(getAccessTokenSilently())
   return <>
     <Outlet/>
   </>

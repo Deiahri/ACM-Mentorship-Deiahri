@@ -10,6 +10,7 @@ import NewUserPage from "./pages/NewUserPage/NewUserPage";
 import UserPage from "./pages/UserPage/UserPage";
 import P404Page from "./pages/404Page/P404Page";
 import Alert from "./features/Alert/Alert";
+import AssessmentPage from "./pages/AssessmentPage/AssessmentPage";
 
 const router = createBrowserRouter([
   {
@@ -35,6 +36,10 @@ const router = createBrowserRouter([
       {
         path: '*',
         element: <P404Page/>
+      },
+      {
+        path: 'assessment',
+        element: <AssessmentPage/>
       }
     ]
   },

@@ -15,7 +15,7 @@ export default function LandingPage() {
   }
 
   function handleLogin() {
-    loginWithRedirect();
+    loginWithRedirect({'authorizationParams': { scope: 'openid profile email' }});
   }
 
   return (

@@ -1,21 +1,7 @@
 // written in JS because typing is such an issue with redux
 import { createSlice, Draft, PayloadAction } from "@reduxjs/toolkit";
-import { ClientSocketState } from "./ClientSocket";
-import { ObjectAny } from "../../scripts/types";
-
-type ClientSocketUserData = {
-  id?: string;
-  username?: string;
-  fName?: string;
-  mName?: string;
-  lName?: string;
-  socials?: string[];
-  experience?: ObjectAny[];
-  education?: ObjectAny[];
-  certifications?: ObjectAny[];
-  projects?: ObjectAny[];
-  softSkills?: string[];
-};
+import { ClientSocketState, ClientSocketUser } from "./ClientSocket";
+import { AssessmentQuestion } from "../../scripts/types";
 
 type ClientSocketMentorshipRequest = {
   mentorID: string;
@@ -28,9 +14,10 @@ type ClientSocketMentorshipRequestMap = {
 
 interface ClientSocketRootState {
   state?: ClientSocketState;
-  user?: ClientSocketUserData;
+  user?: ClientSocketUser;
   assessments?: string[];
   mentorshipRequests?: ClientSocketMentorshipRequestMap;
+  availableAssessmentQuestions?: AssessmentQuestion[];
 }
 
 const initialState: ClientSocketRootState = {};
@@ -47,7 +34,7 @@ const ClientSocketSlice = createSlice({
     },
     setClientUser(
       s: Draft<ClientSocketRootState>,
-      action: PayloadAction<ClientSocketUserData>
+      action: PayloadAction<ClientSocketUser>
     ) {
       s.user = action.payload;
     },
@@ -63,6 +50,12 @@ const ClientSocketSlice = createSlice({
     ) {
       s.mentorshipRequests = action.payload;
     },
+    setAvailableAssessmentQuestions(
+      s: Draft<ClientSocketRootState>,
+      action: PayloadAction<AssessmentQuestion[]>
+    ) {
+      s.availableAssessmentQuestions = action.payload;
+    },
     // closeDialog(state: Draft<DialogState>) {
     //     state.active = false;
     // }
@@ -74,6 +67,7 @@ export const {
   setClientUser,
   setClientAssessments,
   setMentorshipRequests,
+  setAvailableAssessmentQuestions,
 } = ClientSocketSlice.actions;
 
 export default ClientSocketSlice.reducer;

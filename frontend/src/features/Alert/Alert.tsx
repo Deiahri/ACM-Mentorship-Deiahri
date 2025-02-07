@@ -17,8 +17,8 @@ export default function Alert() {
   return (
     <AlertDialog.Root open={active}>
       <AlertDialog.Portal>
-        <AlertDialog.Overlay style={{display: 'flex', width: '100vw', height: '100vh', backgroundColor: '#0001', position: 'fixed', inset: 0}} />
-        <AlertDialog.Content className="AlertDialogContent" style={{top: '50%', left: '50%', position: 'fixed', transform: 'translate(-50%, -50%)', backgroundColor: 'white', padding: 30, borderRadius: 10, minWidth: 300, border: '1px solid #0004'}} >
+        <AlertDialog.Overlay style={{display: 'flex', width: '100vw', height: '100vh', backgroundColor: '#0004', position: 'fixed', inset: 0, backdropFilter: 'blur(2px)', zIndex: 20 }} />
+        <AlertDialog.Content className="AlertDialogContent" style={{top: '50%', left: '50%', position: 'fixed', transform: 'translate(-50%, -50%)', backgroundColor: '#333', padding: 30, borderRadius: 10, minWidth: 300, border: '1px solid #0004', zIndex: 21}} >
           <AlertDialog.Title className="AlertDialogTitle" style={{margin: 0}}>
             { title }
           </AlertDialog.Title>
@@ -27,7 +27,7 @@ export default function Alert() {
           </AlertDialog.Description>
           <div style={{ display: "flex", gap: 25, justifyContent: "flex-end" }}>
             <AlertDialog.Action asChild>
-              <button onClick={HandleCloseDialog} className="Button red" style={{ border: '1px solid #0004' }}>Okay</button>
+              <button onClick={HandleCloseDialog} className="Button red" style={{ border: '1px solid #0004', backgroundColor: '#ddd', color: '#333' }}>Okay</button>
             </AlertDialog.Action>
           </div>
         </AlertDialog.Content>

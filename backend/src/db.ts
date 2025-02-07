@@ -36,8 +36,8 @@ initializeApp(firebaseConfig);
 const db = getFirestore();
 
 // list of all collection names
-export type collectionName = "user" | "assessment" | "mentorshipRequest";
-export const collectionsNames = ["user", "assessment", "mentorshipRequest"];
+export type collectionName = "user" | "assessment" | "mentorshipRequest" | 'assessmentQuestion';
+export const collectionsNames = ["user", "assessment", "mentorshipRequest", 'assessmentQuestion'];
 
 type comparisonOperator =
   | "<"

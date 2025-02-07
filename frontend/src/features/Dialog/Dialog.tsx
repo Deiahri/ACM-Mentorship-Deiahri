@@ -1,10 +1,11 @@
 import { useDispatch, useSelector } from "react-redux";
-import { ReduxRootState } from '../../store';
+import { ReduxRootState } from "../../store";
 import * as DialogRadix from "@radix-ui/react-dialog";
 import { closeDialog, DialogButton, DialogInput } from "./DialogSlice";
 import { useEffect, useState } from "react";
-import { AnyObject } from '../../types';
-import { XIcon } from 'lucide-react';
+import { AnyObject } from "../../types";
+import { XIcon } from "lucide-react";
+import Transition from "../../components/Transition/Transition";
 
 const DialogInputDefaultStyling: React.CSSProperties = {
   fontSize: "1rem",
@@ -14,6 +15,8 @@ const DialogInputDefaultStyling: React.CSSProperties = {
   boxSizing: "border-box",
   borderRadius: 10,
   border: "1px solid #0002",
+  backgroundColor: "#222",
+  color: "white",
 };
 export default function Dialog() {
   const {
@@ -26,10 +29,12 @@ export default function Dialog() {
     inputs,
     active,
     containerStyle,
-    overlayStyle
+    overlayStyle,
   } = useSelector((store: ReduxRootState) => store.Dialog);
   const [inputVals, setInputVals] = useState<AnyObject>({});
-  const [disabledButtons, setDisabledButtons] = useState(Array.from({ length: buttons?.length || 0 }, () => false));
+  const [disabledButtons, setDisabledButtons] = useState(
+    Array.from({ length: buttons?.length || 0 }, () => false)
+  );
   const dispatch = useDispatch();
 
   // used to set initial values
@@ -67,24 +72,24 @@ export default function Dialog() {
   }
 
   // const dispatch = useDispatch();
-  if (!active) {
-    return;
-  }
   // function HandleCloseDialog() {
   //   dispatch(closeAlert());
   // }
 
   // const { title, body } = message;
 
-  console.log('IV', inputVals);
   return (
-    <DialogRadix.Root open={true}>
-      {/* <DialogRadix.Trigger asChild>
-        <button className="Button violet">Edit profile</button>
-      </DialogRadix.Trigger> */}
+    <DialogRadix.Root open={active}>
       <DialogRadix.Portal>
         <DialogRadix.Overlay
-          style={{ inset: 0, backgroundColor: "#0001", position: "fixed", ...overlayStyle }}
+          style={{
+            inset: 0,
+            backgroundColor: "#0004",
+            backdropFilter: "blur(2px)",
+            position: "fixed",
+            ...overlayStyle,
+            zIndex: 10
+          }}
         />
         <DialogRadix.Content
           className="DialogContent"
@@ -93,17 +98,29 @@ export default function Dialog() {
             left: "50%",
             position: "fixed",
             transform: "translate(-50%, -50%)",
-            backgroundColor: "white",
+            backgroundColor: "#333",
             padding: 30,
             borderRadius: 10,
             minWidth: 200,
             maxWidth: 600,
             border: "1px solid #0004",
-            ...containerStyle
+            zIndex: 11,
+            ...containerStyle,
           }}
         >
-          <XIcon style={{ position: 'absolute', top: 16, right: 16, cursor: 'pointer' }} onClick={HandleForceClose}/>
-          <DialogRadix.Title className="DialogTitle" style={{ margin: 0, ...titleStyle }}>
+          <XIcon
+            style={{
+              position: "absolute",
+              top: 16,
+              right: 16,
+              cursor: "pointer",
+            }}
+            onClick={HandleForceClose}
+          />
+          <DialogRadix.Title
+            className="DialogTitle"
+            style={{ margin: 0, ...titleStyle }}
+          >
             {title}
           </DialogRadix.Title>
           <DialogRadix.Description
@@ -114,11 +131,18 @@ export default function Dialog() {
           </DialogRadix.Description>
 
           {inputs?.map((DialogInput: DialogInput, index: number) => {
-            const { inputStyle, containerStyle, labelStyle, placeholder, disabled, name, label } = DialogInput;
+            const {
+              inputStyle,
+              containerStyle,
+              labelStyle,
+              placeholder,
+              disabled,
+              name,
+              label,
+            } = DialogInput;
             const typeIsSelect = DialogInput.type == "select";
             const OVRALL_Key = `DialogInput_${index}`;
             const DI_Key = name || label;
-            console.log('DI_KEY', DI_Key);
             const DI_Type = DialogInput.type;
             return (
               <div
@@ -133,7 +157,7 @@ export default function Dialog() {
                     alignItems: "center",
                     marginTop: 10,
                     marginBottom: 5,
-                    ...containerStyle
+                    ...containerStyle,
                   }}
                 >
                   <p style={{ margin: 0, marginRight: 20, ...labelStyle }}>
@@ -143,9 +167,12 @@ export default function Dialog() {
                     <input
                       value={inputVals[DI_Key] || ""}
                       onChange={(e) => updateInputVal(DI_Key, e.target.value)}
-                      style={{...DialogInputDefaultStyling, ...inputStyle}}
+                      style={{
+                        ...DialogInputDefaultStyling,
+                        ...inputStyle,
+                      }}
                       type={DI_Type}
-                      placeholder={placeholder?placeholder:DI_Key}
+                      placeholder={placeholder ? placeholder : DI_Key}
                       disabled={disabled}
                     />
                   )}
@@ -153,21 +180,22 @@ export default function Dialog() {
                     <select
                       value={inputVals[DI_Key]}
                       onChange={(e) => updateInputVal(DI_Key, e.target.value)}
-                      style={{...DialogInputDefaultStyling, ...inputStyle}}
+                      style={{
+                        ...DialogInputDefaultStyling,
+                        ...inputStyle,
+                      }}
                       disabled={disabled}
                     >
-                      {DialogInput.selectOptions?.map(
-                        (option: any, index) => {
-                          return (
-                            <option
-                              value={`${option}`}
-                              key={`${OVRALL_Key}_SelectOption_${index}`}
-                            >
-                              {option}
-                            </option>
-                          );
-                        }
-                      )}
+                      {DialogInput.selectOptions?.map((option: any, index) => {
+                        return (
+                          <option
+                            value={`${option}`}
+                            key={`${OVRALL_Key}_SelectOption_${index}`}
+                          >
+                            {option}
+                          </option>
+                        );
+                      })}
                     </select>
                   )}
                 </div>
@@ -188,20 +216,32 @@ export default function Dialog() {
               if (Object.keys(DialogButton).length == 0) {
                 return null;
               }
-              
+
               const { useDisableTill } = DialogButton;
               const buttonDisabled = disabledButtons[btnIndex];
               return (
                 <button
                   aria-label="Close"
-                  style={{ border: "1px solid #0004", ...DialogButton.style, opacity: buttonDisabled ? 0.5:1 }}
+                  style={{
+                    border: "1px solid #0004",
+                    backgroundColor: "#ddd",
+                    color: "#333",
+                    ...DialogButton.style,
+                    opacity: buttonDisabled ? 0.5 : 1,
+                  }}
                   disabled={buttonDisabled}
-                  onClick={() => { 
+                  onClick={() => {
                     // disables the button
                     useDisableTill && setButtonDisabled(btnIndex, true);
 
                     // calls the onclick + sends a enable callback if dialog button requires it.
-                    DialogButton.onClick && DialogButton.onClick(inputVals, useDisableTill ? () => setButtonDisabled(btnIndex, false) : undefined);
+                    DialogButton.onClick &&
+                      DialogButton.onClick(
+                        inputVals,
+                        useDisableTill
+                          ? () => setButtonDisabled(btnIndex, false)
+                          : undefined
+                      );
                   }}
                   key={`DialogButton_${btnIndex}`}
                 >
@@ -212,6 +252,7 @@ export default function Dialog() {
           </div>
         </DialogRadix.Content>
       </DialogRadix.Portal>
+      {/* </Transition> */}
     </DialogRadix.Root>
   );
 }

@@ -128,7 +128,7 @@ function _addInitialListenersToSocketIOServer() {
             deleteAccountAfterDisconnect: socket.handshake.auth.deleteAccountAfterDisconnect,
             testing: true
           };
-          new AuthenticatedSocket(socket, tokenSplit[1], additional);
+          new AuthenticatedSocket(socket, { userSubID: tokenSplit[1], userEmail: 'testing_no_email', pfp: 'nopfp' }, additional);
         } catch {
           throw new Error('expected test token to contain testing userID');
         }
@@ -153,7 +153,16 @@ function _addInitialListenersToSocketIOServer() {
           }
       }));
       const res = await resRaw.json();
-      new AuthenticatedSocket(socket, res.payload.sub);
+
+      const moreDetails = await (await fetch('https://dev-10v2hjt70uhuwqnr.us.auth0.com/userinfo', {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${tokenWithBearer.split(' ')[1]}`
+        }
+      })).json();
+      // console.log('authPayload', res.payload);
+      // console.log('authPayloadMore', moreDetails);
+      new AuthenticatedSocket(socket, { userSubID: res.payload.sub, userEmail: moreDetails.email, pfp: moreDetails.picture });
       next();
     } catch (error) {
         console.log('caught error while connecting\n', error);

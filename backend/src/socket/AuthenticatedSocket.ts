@@ -24,12 +24,18 @@ import {
   isValidSocial,
   isValidUsername,
 } from "../scripts/validation";
-import { sleep } from "../scripts/tools";
 
 export type AuthenticatedSocketAdditionalParameters = {
   deleteAccountAfterDisconnect?: boolean;
   testing?: boolean;
 };
+
+export type AuthenticatedSocketSetupParameters = {
+  userSubID: string,
+  userEmail: string,
+  pfp: string
+};
+
 
 type AuthenticatedSocketState =
   | "connecting"
@@ -40,11 +46,13 @@ type AuthenticatedSocketState =
 type UserObj = {
   id?: string;
   OAuthSubID?: string;
+  email?: string;
   isMentee?: boolean;
   assessments?: string[];
   username?: string,
   menteeIDs?: string[],
-  mentorID?: string
+  mentorID?: string,
+  DisplayPictureURL?: string
 };
 export default class AuthenticatedSocket {
   socket: Socket;
@@ -58,10 +66,11 @@ export default class AuthenticatedSocket {
   static AllSockets: Map<string, Array<AuthenticatedSocket>> = new Map();
   inAllSockets: boolean;
 
-  constructor(socket: Socket, userSubID: string, additional?: any) {
+  constructor(socket: Socket, setupData: AuthenticatedSocketSetupParameters, additional?: any) {
+    const { userSubID, userEmail, pfp } = setupData;
     this.inAllSockets = false;
     this.socket = socket;
-    this.user = { OAuthSubID: userSubID };
+    this.user = { OAuthSubID: userSubID, email: userEmail, DisplayPictureURL: pfp };
     this._processAdditionalSettings(additional);
     this.addUnconditionalEvents();
     this._enter_connect_state();
@@ -151,11 +160,13 @@ export default class AuthenticatedSocket {
     
     // // send user its own data, userID, and assessment data.
     // const assessments = await GetUserAssessments(this.user.id);
+    const availableAssessmentQuestions = await GetAvailableAssessmentQuestions();
     const mentorshipRequests = await GetUserMentorshipRequests(this.user.id);
 
     this.sendClientData("initialData", {
       user: this.user,
-      mentorshipRequests: mentorshipRequests
+      mentorshipRequests: mentorshipRequests,
+      assessmentQuestions: availableAssessmentQuestions
     });
     
     this._addStateSocketEvent(
@@ -188,10 +199,10 @@ export default class AuthenticatedSocket {
       this._getAssessment.bind(this)
     )
 
-    // this._addStateSocketEvent(
-    //   "getMyMentor",
-    //   this.handleUpdateProfile.bind(this)
-    // );
+    this._addStateSocketEvent(
+      "getAvailableAssessmentQuestions",
+      this.handleGetAvailableAssessmentQuestions.bind(this)
+    );
   }
 
   private _setState(state: AuthenticatedSocketState) {
@@ -267,14 +278,16 @@ export default class AuthenticatedSocket {
       // remove any surrounding stuff from username.
       const usernameProcessed = (username as string).trim();
 
-      const userSubID = this.user.OAuthSubID;
+      const { DisplayPictureURL, OAuthSubID, email } = this.user;
       const userData = {
         username: usernameProcessed,
         usernameLower: usernameProcessed.toLowerCase(),
         fName,
         mName: mName || null,
         lName,
-        OAuthSubID: userSubID
+        OAuthSubID: OAuthSubID,
+        DisplayPictureURL: DisplayPictureURL,
+        email: email
       };
       try {
         userID = await DBCreate("user", userData);
@@ -1185,24 +1198,36 @@ export default class AuthenticatedSocket {
     }
   }
 
-  private async addMenteeIDToMenteeIDs(menteeID: string) {
-    if (!this.user.menteeIDs || !(this.user.menteeIDs instanceof Array)) {
-      // set menteeIDs to list if list not present
-      this.user.menteeIDs = [];
+  private async handleGetAvailableAssessmentQuestions(callback: unknown) {
+    const hGAAQErrorHeader = 'Problem while getting available assessment questions: ';
+    function SendErrorMessage(msg: string) {
+      this.sendClientMessage('Error', hGAAQErrorHeader+msg);
     }
-
-    if (this.user.menteeIDs.includes(menteeID)) {
-      // do nothing if mentee already in list.
-      return;
-    }
-
-    this.user.menteeIDs.push(menteeID);
-    
     try {
-      // update mentee list in database
-      await DBSetWithID('user', this.user.id, { menteeIDs: this.user.menteeIDs }, true);
+      if (!callback || typeof(callback) != 'function') {
+        SendErrorMessage('No callback provided');
+        return;
+      }
+
+      const ErrorCallback = (msg: string) => {
+        SendErrorMessage(msg);
+        callback(false);
+        return;
+      }
+
+      try {
+        const dat = await GetAvailableAssessmentQuestions();
+        callback(dat);
+      } catch(err) {
+        if (err instanceof Error) {
+          ErrorCallback(err.message);
+          return;
+        }
+        ErrorCallback('Something went wrong while getting available assessments');
+        return;
+      }
     } catch (err) {
-      console.error('[xOSs02] something went wrong while adding mentee to mentee list', err);
+
     }
   }
 
@@ -1558,6 +1583,10 @@ async function GetUserData(targetUserID: string, requestingUserID?: string) {
   delete userData.menteeIDs;
   delete userData.isMentee;
 
+  // no one should access our OAuthSubID or email either
+  delete userData.OAuthSubID;
+  delete userData.email;
+
   // check if target user is our mentee
   if (userMentorID == userData.id) {
     return userData;
@@ -1614,4 +1643,13 @@ async function GetAssessmentData(assessmentID: string, requestingUserID?: string
   }
   
   throw new Error('You do not have permission to view this assessment');
+}
+
+async function GetAvailableAssessmentQuestions() {
+  try {
+    return await DBGet('assessmentQuestion');
+  } catch (err) {
+    console.error('Error in GetAvailableAssessmentQuestions', err);
+    return [];
+  }
 }

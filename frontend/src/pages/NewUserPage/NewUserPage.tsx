@@ -3,8 +3,10 @@ import MentorshipLogo from "../../components/MentorshipLogo/MentorshipLogo";
 import { MyClientSocket } from "../../features/ClientSocket/ClientSocket";
 import { useDispatch } from "react-redux";
 import { closeDialog, setDialog } from "../../features/Dialog/DialogSlice";
+import { useAuth0 } from "@auth0/auth0-react";
 
 export default function NewUserPage() {
+  const { logout } = useAuth0();
   const [fName, setFName] = useState("");
   const [mName, setMName] = useState("");
   const [lName, setLName] = useState("");
@@ -123,6 +125,13 @@ export default function NewUserPage() {
         </div>
         <button style={{ marginTop: 10, fontSize: "1rem" }}>Submit</button>
       </form>
+      <button
+        onClick={() =>
+          logout({ logoutParams: { returnTo: window.location.origin } })
+        }
+      >
+        Logout
+      </button>
     </div>
   );
 }

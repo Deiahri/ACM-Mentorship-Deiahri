@@ -1,7 +1,7 @@
 import { io, Socket } from "socket.io-client";
 import { Dispatch } from "@reduxjs/toolkit";
-import { isClientDataPayloadType, isClientSocketState } from "../../scripts/validation";
-import { setClientAssessments, setClientState, setClientUser, setMentorshipRequests } from "./ClientSocketSlice";
+import { isAssessmentQuestions, isClientDataPayloadType, isClientSocketState } from "../../scripts/validation";
+import { setAvailableAssessmentQuestions, setClientAssessments, setClientState, setClientUser, setMentorshipRequests } from "./ClientSocketSlice";
 import { AnyFunction, ObjectAny } from "../../scripts/types";
 import { setAlert } from "../Alert/AlertSlice";
 
@@ -57,7 +57,7 @@ type ClientCreateUserPayload = {
   username: string
 };
 
-type ClientSocketUser = {
+export type ClientSocketUser = {
   fName?: string,
   mName?: string,
   lName?: string,
@@ -242,7 +242,7 @@ class ClientSocket {
       console.error('Expected initial data to be object', initialData);
       return;
     }
-    const { user, assessments, mentorshipRequests } = initialData as ObjectAny;
+    const { user, assessments, mentorshipRequests, assessmentQuestions } = initialData as ObjectAny;
     if (!user) {
       console.error('initialData is missing user payload', initialData);
       return;
@@ -253,6 +253,12 @@ class ClientSocket {
     this.assessments = assessments;
     this.dispatch(setMentorshipRequests(mentorshipRequests));
     this.mentorshipRequests = mentorshipRequests;
+
+    if(isAssessmentQuestions(assessmentQuestions)) {
+      this.dispatch(setAvailableAssessmentQuestions(assessmentQuestions));
+    } else {
+      console.error("Received unexpected format for available assessment questions");
+    }
   }
 
   private _handleMentorshipRequests() {
