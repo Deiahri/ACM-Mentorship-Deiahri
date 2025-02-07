@@ -1,5 +1,5 @@
-import { ClientDataPayloadType, ClientDataPayloadTypes, ClientSocketState, ClientSocketStates } from "../features/ClientSocket/ClientSocket";
-import { AssessmentQuestion, AssessmentQuestionInputTypes, ObjectAny } from "./types";
+import { ClientDataPayloadType, ClientDataPayloadTypes, ClientSocketState, ClientSocketStates, SubmitAssessmentAction, SubmitAssessmentActions } from "../features/ClientSocket/ClientSocket";
+import { Assessment, AssessmentQuestion, AssessmentQuestionInputTypes, ObjectAny } from "./types";
 
 export function isClientSocketState(s: string): s is ClientSocketState {
   return ClientSocketStates.includes(s);
@@ -38,6 +38,28 @@ export function isAssessmentQuestions(qArr: object[]): qArr is AssessmentQuestio
     } else if (!inputType || !AssessmentQuestionInputTypes.includes(inputType)) {
       return false;
     }
+  }
+  return true;
+}
+
+export function isSubmitAssessmentAction(s: string): s is SubmitAssessmentAction {
+  return SubmitAssessmentActions.includes(s);
+}
+
+export function isAssessment(s: object): s is Assessment {
+  if (!s || typeof(s) != 'object') {
+    return false;
+  }
+  const sConv: ObjectAny = s;
+  const { date, published, questions, userID } = sConv;
+  if (!date || typeof(date) != 'number') {
+    return false;
+  } else if (typeof(published) != 'boolean') {
+    return false;
+  } else if (!userID || typeof(userID) != 'string') {
+    return false;
+  } else if (!questions || !(questions instanceof Array) || isAssessmentQuestions(questions)) {
+    return false;
   }
   return true;
 }

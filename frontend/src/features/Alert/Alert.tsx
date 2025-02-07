@@ -22,10 +22,10 @@ export default function Alert() {
           <AlertDialog.Title className="AlertDialogTitle" style={{margin: 0}}>
             { title }
           </AlertDialog.Title>
-          <AlertDialog.Description className="AlertDialogDescription">
+          <AlertDialog.Description className="AlertDialogDescription" style={{margin: 0}}>
             { body }
           </AlertDialog.Description>
-          <div style={{ display: "flex", gap: 25, justifyContent: "flex-end" }}>
+          <div style={{ display: "flex", gap: 25, justifyContent: "flex-end", marginTop: 15 }}>
             <AlertDialog.Action asChild>
               <button onClick={HandleCloseDialog} className="Button red" style={{ border: '1px solid #0004', backgroundColor: '#ddd', color: '#333' }}>Okay</button>
             </AlertDialog.Action>

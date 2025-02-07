@@ -1637,9 +1637,16 @@ async function GetAssessmentData(assessmentID: string, requestingUserID?: string
     throw new Error('The requesting user does not exist.');
   }
 
+  let modifiedAssessmentData: Object;
+  if (assessmentData.published) {
+    modifiedAssessmentData = assessmentData;
+  } else {
+    modifiedAssessmentData = { published: false };
+  }
+
   const { menteeIDs } = requestingUserData;
   if (menteeIDs && (menteeIDs instanceof Array) && menteeIDs.includes(assessmentUserID)) {
-    return assessmentData;
+    return modifiedAssessmentData;
   }
   
   throw new Error('You do not have permission to view this assessment');

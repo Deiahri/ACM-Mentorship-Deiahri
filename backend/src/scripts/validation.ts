@@ -280,10 +280,12 @@ export function isValidAnsweredAssessmentQuestion(AAQO: ObjectAny): AAQO is Answ
 
 export function isValidAnsweredAssessmentQuestions(AAQO: ObjectAny[]): AAQO is AnsweredAssessmentQuestionObj[] {
   if (!(AAQO instanceof Array)) {
+    console.log('5193', 'not arr');
     return false;
   }
   for (let obj of AAQO) {
     if (!isValidAnsweredAssessmentQuestion(obj)) {
+      console.log('5193', 'not questions');
       return false;
     }
   }

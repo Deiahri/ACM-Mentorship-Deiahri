@@ -1,9 +1,10 @@
 import { io, Socket } from "socket.io-client";
 import { Dispatch } from "@reduxjs/toolkit";
-import { isAssessmentQuestions, isClientDataPayloadType, isClientSocketState } from "../../scripts/validation";
-import { setAvailableAssessmentQuestions, setClientAssessments, setClientState, setClientUser, setMentorshipRequests } from "./ClientSocketSlice";
-import { AnyFunction, ObjectAny } from "../../scripts/types";
+import { isAssessmentQuestions, isClientDataPayloadType, isClientSocketState, isSubmitAssessmentAction } from "../../scripts/validation";
+import { setAvailableAssessmentQuestions, setClientAssessments, setClientReady, setClientState, setClientUser, setMentorshipRequests } from "./ClientSocketSlice";
+import { AnyFunction, AssessmentQuestion, ObjectAny } from "../../scripts/types";
 import { setAlert } from "../Alert/AlertSlice";
+import { NothingFunction } from "../../scripts/tools";
 
 export let MyClientSocket: ClientSocket | undefined = undefined;
 
@@ -79,6 +80,15 @@ export type ClientSocketUser = {
 
 export type ClientDataPayloadType = 'initialData' | 'mentorshipRequest';
 export const ClientDataPayloadTypes = ['initialData', 'mentorshipRequest'];
+
+export type SubmitAssessmentAction = 'create' | 'publish' | 'unpublish' | 'delete' | 'edit';
+export const SubmitAssessmentActions = ['create', 'publish', 'unpublish', 'delete', 'edit'];
+export type SubmitAssessmentPayload = {
+  action?: SubmitAssessmentAction,
+  questions?: AssessmentQuestion[],
+  id?: string,
+  published?: boolean
+};
 
 type ClientDataPayload = {
   type: ClientDataPayloadType,
@@ -164,6 +174,36 @@ class ClientSocket {
     });
   }
 
+  
+
+  submitAssessment(payload: SubmitAssessmentPayload, callbackRaw?: Function) {
+    let callback = (callbackRaw || NothingFunction);
+    const { action, questions, id, published } = payload;
+
+    if (this.submitting) {
+      callback(false);
+      return;
+    }
+
+    
+    if (!action || !isSubmitAssessmentAction(action)) {
+      callback(false);
+      this.dispatch(setAlert({ title: 'Invalid Assessment Action', body: `Not sure what action ${action} is.` }));
+      return;
+    }
+    
+    if (action == 'create') {
+      this.submitting = true;
+      this.socket.emit('submitAssessment', { action, questions }, (v: boolean | string) => {
+        callback(v);
+        this.submitting = false;
+      });
+    }
+    // this.dispatch(setAlert({ title: 'Yep', body: 'Alright' }));
+
+    callback(true);
+  }
+
   private InstallBaseListeners() {
     this._cleanupSocketEvents();
     this._addStateSocketEvent('state', (state: string) => {
@@ -214,7 +254,35 @@ class ClientSocket {
       }
       processFunc(data);
     });
+    this.dispatch(setClientReady(true));
   }
+
+  GetAssessment(assessmentID: string, callbackRaw: Function) {
+    const callback = callbackRaw || NothingFunction;
+    this.submitting = true;
+    this.socket.emit('getAssessment', assessmentID, (v: Object | boolean) => {
+      this.submitting = false;
+      if (typeof(v) == 'boolean') {
+        callback(false);
+        return;
+      }
+      callback(v);
+    });
+  }
+
+  GetUser(userID: string, callbackRaw: Function) {
+    const callback = callbackRaw || NothingFunction;
+    this.submitting = true;
+    this.socket.emit('getUser', userID, (v: Object | boolean) => {
+      this.submitting = false;
+      if (typeof(v) == 'boolean') {
+        callback(false);
+        return;
+      }
+      callback(v);
+    });
+  }
+
 
   /**
    * adds event function pair to socket.

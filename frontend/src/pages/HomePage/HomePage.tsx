@@ -67,7 +67,7 @@ export default function HomePage() {
             backgroundColor: subPage == "view_mentor" ? "white" : "transparent",
             color: subPage == "view_mentor" ? "#222" : "white",
             borderRadius: 30,
-            transition: "all 300ms ease-in-out",
+            transition: "background-color 100ms ease-in-out, color 100ms ease-in-out",
             fontSize: "1.1rem",
           }}
           onClick={() => handleChangeSubpage("view_mentor")}
@@ -82,7 +82,7 @@ export default function HomePage() {
             color: subPage == "view_mentees" ? "#222" : "white",
             borderRadius: 30,
             marginLeft: 10,
-            transition: "all 300ms ease-in-out",
+            transition: "background-color 100ms ease-in-out, color 100ms ease-in-out",
             fontSize: "1.1rem",
           }}
           onClick={() => handleChangeSubpage("view_mentees")}
@@ -146,7 +146,7 @@ function BecomeMenteeSection() {
   const dispatch = useDispatch();
 
   function handleTakeAssessment() {
-    navigate("../assessment?type=new");
+    navigate("../assessment?type=new&firstTime=true");
     setTimeout(() => {
       dispatch(setAlert({ title: 'Assessments', body: 'Take an assessment to give your mentor clear insight into your career goals. The more details you share, the easier it\'ll be to work with you.' }))
     }, 500);

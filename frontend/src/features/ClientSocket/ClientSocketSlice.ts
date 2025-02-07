@@ -13,6 +13,7 @@ type ClientSocketMentorshipRequestMap = {
 };
 
 interface ClientSocketRootState {
+  ready?: boolean;
   state?: ClientSocketState;
   user?: ClientSocketUser;
   assessments?: string[];
@@ -26,6 +27,12 @@ const ClientSocketSlice = createSlice({
   name: "ServerConnection",
   initialState: initialState,
   reducers: {
+    setClientReady(
+      s: Draft<ClientSocketRootState>,
+      action: PayloadAction<boolean>
+    ) {
+      s.ready = action.payload;
+    },
     setClientState(
       s: Draft<ClientSocketRootState>,
       action: PayloadAction<ClientSocketState>
@@ -68,6 +75,7 @@ export const {
   setClientAssessments,
   setMentorshipRequests,
   setAvailableAssessmentQuestions,
+  setClientReady,
 } = ClientSocketSlice.actions;
 
 export default ClientSocketSlice.reducer;
