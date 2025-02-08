@@ -17,10 +17,10 @@ import MinimalisticButton from "../../components/MinimalisticButton/Minimalistic
 
 type HomeSubPage = "view_mentor" | "view_mentees";
 export default function HomePage() {
-  const { user } = useSelector((store: ReduxRootState) => store.ClientSocket);
+  const { user, ready } = useSelector((store: ReduxRootState) => store.ClientSocket);
   const [subPage, setSubPage] = useState<HomeSubPage>("view_mentor");
 
-  if (!user || !MyClientSocket) {
+  if (!user || !MyClientSocket || !ready) {
     return <p>Loading...</p>;
   }
 

@@ -104,7 +104,7 @@ export async function isValidUsername(usernameRaw: string) {
 
   if (!ALLOWED_USERNAME_CHARS.test(username)) {
     throw new Error(
-      "Username can only contain letters, numbers, underscores, hyphens, and periods."
+      "Username can only contain letters, numbers, underscores, hyphens, and periods. (No spaces either)"
     );
   }
 
@@ -172,11 +172,11 @@ export function isValidExperience(experience: ObjectAny): experience is Experien
     throw new Error("Experience format was unexpected");
   }
   const { company, position, description, range } = experience;
-  if (!company || typeof(company) != 'string' || company.length < 1) {
+  if (!company || typeof(company) != 'string' || company.trim().length < 1) {
     throw new Error('Company name is missing from experience.');
-  } else if (!position || typeof(position) != 'string' || position.length < 1) {
+  } else if (!position || typeof(position) != 'string' || position.trim().length < 1) {
     throw new Error('Position was not provided');
-  } else if (description && typeof(description) != 'string' || description.length < 1) {
+  } else if (description && typeof(description) != 'string' || description.trim().length < 1) {
     throw new Error('Description was provided, but format was unexpected');
   } else if (!range || !isValidMonthYearRange(range)) {
     throw new Error('Range is not valid');
@@ -211,11 +211,11 @@ export function isValidEducation(education: ObjectAny): education is Education {
     throw new Error("Experience format was unexpected");
   }
   const { school, degree, fieldOfStudy, range } = education;
-  if (!school || typeof(school) != 'string' || school.length < 1) {
+  if (!school || typeof(school) != 'string' || school.trim().length < 1) {
     throw new Error('Education name is missing from experience.');
-  } else if (!degree || typeof(degree) != 'string' || degree.length < 1) {
+  } else if (!degree || typeof(degree) != 'string' || degree.trim().length < 1) {
     throw new Error('Position was not provided');
-  } else if (!fieldOfStudy || typeof(fieldOfStudy) != 'string' || fieldOfStudy.length < 1) {
+  } else if (!fieldOfStudy || typeof(fieldOfStudy) != 'string' || fieldOfStudy.trim().length < 1) {
     throw new Error('Description was provided, but format was unexpected');
   } else if (!range || !isValidMonthYearRange(range)) {
     throw new Error('Range is not valid');
@@ -260,9 +260,9 @@ export function isValidCertification(certification: ObjectAny): certification is
     throw new Error("Certification format was unexpected");
   }
   const { name, issuingOrg } = certification;
-  if (!name || typeof(name) != 'string' || name.length < 1) {
+  if (!name || typeof(name) != 'string' || name.trim().length < 1) {
     throw new Error('Name format was unexpected');
-  } else if (!issuingOrg || typeof(issuingOrg) != 'string' || issuingOrg.length < 1) {
+  } else if (!issuingOrg || typeof(issuingOrg) != 'string' || issuingOrg.trim().length < 1) {
     throw new Error('"Issuing Organization format was unexpected');
   }
   return true;

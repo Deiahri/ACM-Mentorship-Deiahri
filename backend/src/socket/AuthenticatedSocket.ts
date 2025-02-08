@@ -36,11 +36,10 @@ export type AuthenticatedSocketAdditionalParameters = {
 };
 
 export type AuthenticatedSocketSetupParameters = {
-  userSubID: string,
-  userEmail: string,
-  pfp: string
+  userSubID: string;
+  userEmail: string;
+  pfp: string;
 };
-
 
 type AuthenticatedSocketState =
   | "connecting"
@@ -49,28 +48,29 @@ type AuthenticatedSocketState =
   | "connect_error";
 
 type UserObj = {
-  fName?: string,
-  mName?: string,
-  lName?: string,
+  fName?: string;
+  mName?: string;
+  lName?: string;
   id?: string;
   OAuthSubID?: string;
   email?: string;
   isMentee?: boolean;
   assessments?: string[];
-  username?: string,
-  usernameLower?: string,
-  menteeIDs?: string[],
-  mentorID?: string,
-  DisplayPictureURL?: string,
-  socials?: string[],
-  experience?: Experience[],
-  certifications?: Certification[],
-  education?: Education[],
-  projects?: Project[],
-  isMentor?: boolean,
-  softSkills?: string[],
-  acceptingMentees?: boolean,
-  bio?: string
+  username?: string;
+  usernameLower?: string;
+  menteeIDs?: string[];
+  mentorID?: string;
+  DisplayPictureURL?: string;
+  socials?: string[];
+  experience?: Experience[];
+  certifications?: Certification[];
+  education?: Education[];
+  projects?: Project[];
+  isMentor?: boolean;
+  softSkills?: string[];
+  acceptingMentees?: boolean;
+  bio?: string;
+  testing?: boolean
 };
 export default class AuthenticatedSocket {
   socket: Socket;
@@ -81,14 +81,24 @@ export default class AuthenticatedSocket {
     string,
     unknown
   >();
-  static AllSockets: Map<string, Array<AuthenticatedSocket>> = new Map();
   inAllSockets: boolean;
+  testing: boolean = false;
+  static AllSockets: Map<string, Array<AuthenticatedSocket>> = new Map();
+  static AllAcceptingMentorIDs: Set<string> = new Set();
 
-  constructor(socket: Socket, setupData: AuthenticatedSocketSetupParameters, additional?: any) {
+  constructor(
+    socket: Socket,
+    setupData: AuthenticatedSocketSetupParameters,
+    additional?: any
+  ) {
     const { userSubID, userEmail, pfp } = setupData;
     this.inAllSockets = false;
     this.socket = socket;
-    this.user = { OAuthSubID: userSubID, email: userEmail, DisplayPictureURL: pfp };
+    this.user = {
+      OAuthSubID: userSubID,
+      email: userEmail,
+      DisplayPictureURL: pfp,
+    };
     this._processAdditionalSettings(additional);
     this.addUnconditionalEvents();
     this._enter_connect_state();
@@ -98,35 +108,48 @@ export default class AuthenticatedSocket {
    * These events should always run, regardless of socket state.
    */
   private addUnconditionalEvents() {
-    this.socket.on('disconnect', () => {
+    this.socket.on("disconnect", () => {
       this.removeSelfFromSocketMap();
     });
 
-    this.socket.on('connect', () => {
+    this.socket.on("connect", () => {
       this._enter_connect_state();
     });
   }
 
   private _processAdditionalSettings(additional: ObjectAny) {
+    // process additional if we are in testing mode.
     if (!additional || typeof additional != "object") {
       return;
     }
+    
+    if (!additional.testing) {
+      return;
+    }
+    this.testing = true;
+
 
     this._enableTestingListeners();
     if (additional.deleteAccountAfterDisconnect) {
-      this.socketEventTestingVariables.set('deleteAccountAfterDisconnect', true);
-      
+      this.socketEventTestingVariables.set(
+        "deleteAccountAfterDisconnect",
+        true
+      );
+
       this.socket.on("disconnect", async () => {
         // its possible client changed deleteAccountAfterDisconnect value to false.
-        if (!this.socketEventTestingVariables.get('deleteAccountAfterDisconnect')) {
+        if (
+          !this.socketEventTestingVariables.get("deleteAccountAfterDisconnect")
+        ) {
           return;
         }
-        console.log('deleting user', this.user.id);
+        console.log("deleting user", this.user.id);
         try {
           await DBDeleteWithID("user", this.user.id);
         } catch (err) {
           console.error(
-            "_processAdditionalSettings | problem deleting user after disconnect "+err.message
+            "_processAdditionalSettings | problem deleting user after disconnect " +
+              err.message
           );
         }
       });
@@ -174,18 +197,19 @@ export default class AuthenticatedSocket {
     this.addSelfToSocketMap();
     this._cleanupSocketEvents();
     this._setState("authed_user");
-    
+
     // // send user its own data, userID, and assessment data.
     // const assessments = await GetUserAssessments(this.user.id);
-    const availableAssessmentQuestions = await GetAvailableAssessmentQuestions();
+    const availableAssessmentQuestions =
+      await GetAvailableAssessmentQuestions();
     const mentorshipRequests = await GetUserMentorshipRequests(this.user.id);
 
     this.sendClientData("initialData", {
       user: this.user,
       mentorshipRequests: mentorshipRequests,
-      assessmentQuestions: availableAssessmentQuestions
+      assessmentQuestions: availableAssessmentQuestions,
     });
-    
+
     this._addStateSocketEvent(
       "updateProfile",
       this.handleUpdateProfile.bind(this)
@@ -206,15 +230,9 @@ export default class AuthenticatedSocket {
       this.handleMentorshipRequest.bind(this)
     );
 
-    this._addStateSocketEvent(
-      'getUser',
-      this._getUser.bind(this)
-    )
+    this._addStateSocketEvent("getUser", this._getUser.bind(this));
 
-    this._addStateSocketEvent(
-      'getAssessment',
-      this._getAssessment.bind(this)
-    )
+    this._addStateSocketEvent("getAssessment", this._getAssessment.bind(this));
 
     this._addStateSocketEvent(
       "getAvailableAssessmentQuestions",
@@ -238,7 +256,7 @@ export default class AuthenticatedSocket {
    * @returns nada
    */
   async handleCreateUser(dataRaw: unknown, callback: unknown) {
-    console.log('handleCreateUserRequest', dataRaw);
+    console.log("handleCreateUserRequest", dataRaw);
     const createUserSubject = "Fatal error while creating user: ";
     try {
       if (!callback || typeof callback != "function") {
@@ -257,9 +275,9 @@ export default class AuthenticatedSocket {
       }
 
       const data: ObjectAny = dataRaw;
-      console.log('handleCreateUserRequest', data);
+      console.log("handleCreateUserRequest", data);
       const { fName, mName, lName, username } = data;
-      
+
       // verify names are useable
       try {
         isValidNames(fName, mName, lName);
@@ -270,7 +288,10 @@ export default class AuthenticatedSocket {
           return;
         }
         callback(false);
-        this.sendClientMessage("Error", createUserSubject + 'Something went wong while validating names');
+        this.sendClientMessage(
+          "Error",
+          createUserSubject + "Something went wong while validating names"
+        );
         return;
       }
 
@@ -284,19 +305,21 @@ export default class AuthenticatedSocket {
           return;
         }
         callback(false);
-        this.sendClientMessage("Error", createUserSubject + 'Something went wrong while validating username');
+        this.sendClientMessage(
+          "Error",
+          createUserSubject + "Something went wrong while validating username"
+        );
         return;
       }
 
-      
       // stuff is valid, create user.
       let userID: string;
-      
+
       // remove any surrounding stuff from username.
       const usernameProcessed = (username as string).trim();
 
       const { DisplayPictureURL, OAuthSubID, email } = this.user;
-      const userData = {
+      const userData: UserObj = {
         username: usernameProcessed,
         usernameLower: usernameProcessed.toLowerCase(),
         fName,
@@ -304,8 +327,9 @@ export default class AuthenticatedSocket {
         lName,
         OAuthSubID: OAuthSubID,
         DisplayPictureURL: DisplayPictureURL,
-        email: email
+        email: email,
       };
+      this.testing && (userData.testing = true);
       try {
         userID = await DBCreate("user", userData);
       } catch (err) {
@@ -315,7 +339,11 @@ export default class AuthenticatedSocket {
           return;
         }
         callback(false);
-        this.sendClientMessage("Error", createUserSubject + 'Something went wrong while creating your account.');
+        this.sendClientMessage(
+          "Error",
+          createUserSubject +
+            "Something went wrong while creating your account."
+        );
         return;
       }
 
@@ -363,9 +391,9 @@ export default class AuthenticatedSocket {
         softSkills,
         isMentor,
         acceptingMentees,
-        bio
+        bio,
       } = data;
-      console.log('processing update profile data', data);
+      console.log("processing update profile data", data);
       const newUserObj: UserObj = {};
 
       // process username
@@ -385,7 +413,8 @@ export default class AuthenticatedSocket {
           }
           this.sendClientMessage(
             "Error",
-            handleUpdateProfileSubject + 'Something went wrong while validating new username.'
+            handleUpdateProfileSubject +
+              "Something went wrong while validating new username."
           );
           callback(false);
         }
@@ -602,7 +631,7 @@ export default class AuthenticatedSocket {
       }
 
       if (bio) {
-        if (typeof(bio) != 'string') {
+        if (typeof bio != "string") {
           this.sendClientMessage(
             "Error",
             handleUpdateProfileSubject + "Bio is not valid. "
@@ -636,7 +665,7 @@ export default class AuthenticatedSocket {
       // everything valid, write to profile
       try {
         await DBSetWithID("user", this.user.id, newUserObj, true);
-        console.log('_!-_Updating profile', this.user.id, newUserObj);
+        console.log("_!-_Updating profile", this.user.id, newUserObj);
       } catch (err) {
         if (err instanceof Error) {
           this.sendClientMessage(
@@ -647,6 +676,17 @@ export default class AuthenticatedSocket {
         callback(false);
         return;
       }
+
+      const isAcceptingMentor = (this.user.acceptingMentees || acceptingMentees) && (this.user.isMentor || isMentor);
+      if (isAcceptingMentor) {
+        console.log('added to mentor list', this.user.username);
+        this.addSelfToAcceptingMentorIDsList();
+      } else if (!isMentor || !acceptingMentees) {
+        console.log('removed from mentor list', this.user.username);
+        // remove user if they made a change that would affect their accepting mentor status.
+        this.removeSelfFromAcceptingMentorIDsList();
+      }
+
       callback(true);
     } catch (err) {
       if (err instanceof Error) {
@@ -676,13 +716,28 @@ export default class AuthenticatedSocket {
         return;
       }
 
-      let allMentors: Array<ObjectAny>;
+      let allMentors: Array<ObjectAny> = [];
       try {
-        allMentors = await DBGet("user", [["isMentor", "==", true]]);
-        for (let mentorIndex in allMentors) {
-          const mentor = allMentors[mentorIndex];
-          allMentors[mentorIndex] = ModifyUserForPublic(mentor);
-        }
+        const AllMentorIDs = Array.from(AuthenticatedSocket.AllAcceptingMentorIDs.values());
+        const promises = AllMentorIDs.map(async (mentorID: string) => {
+          return DBGetWithID('user', mentorID);
+        });
+        
+        const results = await Promise.allSettled(promises);
+        
+        results.forEach((datProm, index) => {
+          if (datProm.status == 'rejected') {
+            AuthenticatedSocket.AllAcceptingMentorIDs.delete(AllMentorIDs[index]); //Remove from set
+            return;
+          }
+
+          const dat = datProm.value;
+          if (!dat) {
+            AuthenticatedSocket.AllAcceptingMentorIDs.delete(AllMentorIDs[index]); //Remove from set
+          } else {
+            allMentors.push(dat);
+          }
+        });
       } catch (err) {
         if (err instanceof Error) {
           this.sendClientMessage(
@@ -726,7 +781,7 @@ export default class AuthenticatedSocket {
    */
   async handleSubmitAssessment(dataRaw: unknown, callback: unknown) {
     await this._updateSelf();
-    console.log('this.user.assessments', this.user.assessments);
+    console.log("this.user.assessments", this.user.assessments);
     if (!this.user.assessments) {
       this.user.assessments = [];
     }
@@ -777,12 +832,13 @@ export default class AuthenticatedSocket {
         // create assessment, send assessment to user after creation
         let createdAssessmentID: string;
         try {
-          const assessmentObj = {
+          const assessmentObj: ObjectAny = {
             questions,
             userID: this.user.id,
             date: Date.now(),
             published: false,
           };
+          this.testing && (assessmentObj.testing = true);
           createdAssessmentID = await DBCreate("assessment", assessmentObj);
         } catch (err: unknown) {
           if (err instanceof Error) {
@@ -814,20 +870,20 @@ export default class AuthenticatedSocket {
 
         // send back id of newly created assessment
         callback(createdAssessmentID);
-        console.log('created assessment', createdAssessmentID);
+        console.log("created assessment", createdAssessmentID);
       } else if (action == "edit") {
-        console.log('checkups0x');
+        console.log("checkups0x");
         if (!id) {
           ErrorCallback("ID was not provided");
           return;
         }
-        console.log('checkup444');
+        console.log("checkup444");
         // ensure assessment is valid
         if (!isValidAnsweredAssessmentQuestions(questions)) {
           ErrorCallback("Questions are not valid");
           return;
         }
-        console.log('checkup152');
+        console.log("checkup152");
 
         // ensure assessment id belongs to current user.
         const assessmentRes = await DBGetWithID("assessment", id);
@@ -838,10 +894,10 @@ export default class AuthenticatedSocket {
           console.log("oascsj", assessmentRes);
           return;
         }
-        console.log('checkup15');
+        console.log("checkup15");
         // update the assessment
         try {
-          console.log('updatingAssessment', id, questions);
+          console.log("updatingAssessment", id, questions);
           await DBSetWithID("assessment", id, { questions }, true);
         } catch (err) {
           if (err instanceof Error) {
@@ -977,38 +1033,46 @@ export default class AuthenticatedSocket {
       }
 
       const data: ObjectAny = dataRaw;
-      const { action, mentorID, mentorshipRequestID, menteeID: targetMenteeID } = data;
+      const {
+        action,
+        mentorID,
+        mentorshipRequestID,
+        menteeID: targetMenteeID,
+      } = data;
 
       // ensure parameters are valid if they are given
       if (!action || !isValidMentorshipRequestAction(action)) {
         ErrorCallback("Action is invalid.");
         return;
-      } else if (mentorID && typeof(mentorID) != 'string') {
+      } else if (mentorID && typeof mentorID != "string") {
         ErrorCallback("MentorID is invalid");
         return;
-      } else if (mentorshipRequestID && typeof(mentorshipRequestID) != 'string') {
+      } else if (
+        mentorshipRequestID &&
+        typeof mentorshipRequestID != "string"
+      ) {
         ErrorCallback("MentorshipRequestID is invalid");
         return;
-      } else if (targetMenteeID && typeof(targetMenteeID) != 'string') {
+      } else if (targetMenteeID && typeof targetMenteeID != "string") {
         ErrorCallback("MenteeID is not valid.");
         return;
       }
 
-      if (action == 'send') {
+      if (action == "send") {
         if (mentorID == this.user.id) {
-          ErrorCallback('You cannot send yourself a mentorship request.');
+          ErrorCallback("You cannot send yourself a mentorship request.");
           return;
         }
         // determine if user exists, if they are a mentor, and if they are accepting mentees.
         try {
-          const userRes = await DBGetWithID('user', mentorID);
+          const userRes = await DBGetWithID("user", mentorID);
           if (!userRes) {
             ErrorCallback("That user does not exist");
             return;
-          } else if (!userRes['isMentor']) {
+          } else if (!userRes["isMentor"]) {
             ErrorCallback("That user is not a mentor ");
             return;
-          } else if (!userRes['acceptingMentees']) {
+          } else if (!userRes["acceptingMentees"]) {
             ErrorCallback("That user is not currently accepting mentees.");
             return;
           }
@@ -1017,191 +1081,279 @@ export default class AuthenticatedSocket {
             ErrorCallback(err.message);
             return;
           }
-          ErrorCallback("Something went wrong while sending mentorship request.");
+          ErrorCallback(
+            "Something went wrong while sending mentorship request."
+          );
           return;
         }
 
         // by this point, request can be sent. Also send a copy to both mentor and mentee
         try {
-          const mentorshipRequestObj = {
-            mentorID, menteeID: this.user.id
+          const mentorshipRequestObj: ObjectAny = {
+            mentorID,
+            menteeID: this.user.id,
           };
-          const createRes = await DBCreate('mentorshipRequest', mentorshipRequestObj);
-          AuthenticatedSocket.SendClientsDataWithUserID([mentorID, this.user.id], 'mentorshipRequest', [{ ...mentorshipRequestObj, id: createRes }]);
+          this.testing && (mentorshipRequestObj.testing = true);
+
+          const createRes = await DBCreate(
+            "mentorshipRequest",
+            mentorshipRequestObj
+          );
+          AuthenticatedSocket.SendClientsDataWithUserID(
+            [mentorID, this.user.id],
+            "mentorshipRequest",
+            [{ ...mentorshipRequestObj, id: createRes }]
+          );
         } catch (err) {
           if (err instanceof Error) {
-            ErrorCallback(
-              handleMentorshipRequestErrorHeader + err.message
-            );
+            ErrorCallback(handleMentorshipRequestErrorHeader + err.message);
             return;
           }
           ErrorCallback(
-            handleMentorshipRequestErrorHeader + 'Something went wrong while creating mentorshipRequest'
+            handleMentorshipRequestErrorHeader +
+              "Something went wrong while creating mentorshipRequest"
           );
           return;
         }
-      } else if (action == 'accept') {
+      } else if (action == "accept") {
         // determine if mentorshipRequest exists, and if the current user is the mentor
         let mentorshipRequestObj: ObjectAny;
         try {
-          mentorshipRequestObj = await DBGetWithID('mentorshipRequest', mentorshipRequestID);
+          mentorshipRequestObj = await DBGetWithID(
+            "mentorshipRequest",
+            mentorshipRequestID
+          );
           if (!mentorshipRequestObj) {
-            ErrorCallback('Action failed, that mentorship request does not exist.');
+            ErrorCallback(
+              "Action failed, that mentorship request does not exist."
+            );
             return;
           }
         } catch (err) {
           if (err instanceof Error) {
-            ErrorCallback('Encountered error while verifying request '+err.message);
+            ErrorCallback(
+              "Encountered error while verifying request " + err.message
+            );
             return;
           }
-          ErrorCallback('Something went wrong while verifying request');
+          ErrorCallback("Something went wrong while verifying request");
           return;
         }
 
         const { mentorID, menteeID } = mentorshipRequestObj;
         if (!mentorID || !menteeID) {
-          ErrorCallback('There is something wrong with this request. You cannot accept it.');
+          ErrorCallback(
+            "There is something wrong with this request. You cannot accept it."
+          );
           // try deleting the request
           try {
-            await DBDeleteWithID('mentorshipRequest', mentorshipRequestID);
+            await DBDeleteWithID("mentorshipRequest", mentorshipRequestID);
           } catch (err) {
-            console.error('problem with deleting malformed mentorship request', err);
+            console.error(
+              "problem with deleting malformed mentorship request",
+              err
+            );
           }
           return;
         }
         if (mentorshipRequestObj.mentorID != this.user.id) {
-          ErrorCallback('You do not have permission to accept this request.');
+          ErrorCallback("You do not have permission to accept this request.");
           return;
         }
 
-        // delete request, send alert that it was accepted, 
+        // delete request, send alert that it was accepted,
         // set mentee mentorID to this user's ID, and add mentee to this user's mentee list
         try {
           await AuthenticatedSocket.addMentorship(mentorID, menteeID);
-          AuthenticatedSocket.SendClientsDataWithUserID([mentorID, menteeID], 'mentorshipRequest', [{ ...mentorshipRequestObj, id: mentorshipRequestID, status: 'accepted' }]);
+          AuthenticatedSocket.SendClientsDataWithUserID(
+            [mentorID, menteeID],
+            "mentorshipRequest",
+            [
+              {
+                ...mentorshipRequestObj,
+                id: mentorshipRequestID,
+                status: "accepted",
+              },
+            ]
+          );
         } catch (err) {
           if (err instanceof Error) {
-            ErrorCallback('Encountered error while accepting request '+err.message);
+            ErrorCallback(
+              "Encountered error while accepting request " + err.message
+            );
             return;
           }
-          ErrorCallback('Something went wrong while accepting request');
+          ErrorCallback("Something went wrong while accepting request");
           return;
         }
-      } else if (action == 'decline') {
+      } else if (action == "decline") {
         // determine if mentorshipRequest exists, and if the current user is the mentor
         let mentorshipRequestObj: ObjectAny;
         try {
-          mentorshipRequestObj = await DBGetWithID('mentorshipRequest', mentorshipRequestID);
+          mentorshipRequestObj = await DBGetWithID(
+            "mentorshipRequest",
+            mentorshipRequestID
+          );
           if (!mentorshipRequestObj) {
-            ErrorCallback('Action failed, that mentorship request does not exist.');
+            ErrorCallback(
+              "Action failed, that mentorship request does not exist."
+            );
             return;
           }
         } catch (err) {
           if (err instanceof Error) {
-            ErrorCallback('Encountered error while verifying request '+err.message);
+            ErrorCallback(
+              "Encountered error while verifying request " + err.message
+            );
             return;
           }
-          ErrorCallback('Something went wrong while verifying request');
+          ErrorCallback("Something went wrong while verifying request");
           return;
         }
 
         const { mentorID, menteeID } = mentorshipRequestObj;
         if (!mentorID || !menteeID) {
-          ErrorCallback('There is something wrong with this request. You cannot decline it.');
+          ErrorCallback(
+            "There is something wrong with this request. You cannot decline it."
+          );
           // try deleting the request
           try {
-            await DBDeleteWithID('mentorshipRequest', mentorshipRequestID);
+            await DBDeleteWithID("mentorshipRequest", mentorshipRequestID);
           } catch (err) {
-            console.error('[pns9x] problem with deleting malformed mentorship request', err);
+            console.error(
+              "[pns9x] problem with deleting malformed mentorship request",
+              err
+            );
           }
           return;
         }
 
         // determine if current user is target mentor
         if (mentorshipRequestObj.mentorID != this.user.id) {
-          ErrorCallback('You do not have permission to decline this request.');
+          ErrorCallback("You do not have permission to decline this request.");
           return;
         }
 
         // delete request, send alert that it was declined
         try {
-          await DBDeleteWithID('mentorshipRequest', mentorshipRequestID);
-          AuthenticatedSocket.SendClientsDataWithUserID([mentorID, menteeID], 'mentorshipRequest', [{ ...mentorshipRequestObj, id: mentorshipRequestID, status: 'declined' }]);
+          await DBDeleteWithID("mentorshipRequest", mentorshipRequestID);
+          AuthenticatedSocket.SendClientsDataWithUserID(
+            [mentorID, menteeID],
+            "mentorshipRequest",
+            [
+              {
+                ...mentorshipRequestObj,
+                id: mentorshipRequestID,
+                status: "declined",
+              },
+            ]
+          );
         } catch (err) {
           if (err instanceof Error) {
-            ErrorCallback('Encountered error while declining request '+err.message);
+            ErrorCallback(
+              "Encountered error while declining request " + err.message
+            );
             return;
           }
-          ErrorCallback('Something went wrong while declining request');
+          ErrorCallback("Something went wrong while declining request");
           return;
         }
-      } else if (action == 'cancel') {
+      } else if (action == "cancel") {
         // determine if mentorshipRequest exists, and if the current user is the mentee
         let mentorshipRequestObj: ObjectAny;
         try {
-          mentorshipRequestObj = await DBGetWithID('mentorshipRequest', mentorshipRequestID);
+          mentorshipRequestObj = await DBGetWithID(
+            "mentorshipRequest",
+            mentorshipRequestID
+          );
           if (!mentorshipRequestObj) {
-            ErrorCallback('Action failed, that mentorship request does not exist.');
+            ErrorCallback(
+              "Action failed, that mentorship request does not exist."
+            );
             return;
           }
         } catch (err) {
           if (err instanceof Error) {
-            ErrorCallback('Encountered error while verifying request '+err.message);
+            ErrorCallback(
+              "Encountered error while verifying request " + err.message
+            );
             return;
           }
-          ErrorCallback('Something went wrong while verifying request');
+          ErrorCallback("Something went wrong while verifying request");
           return;
         }
 
         const { mentorID, menteeID } = mentorshipRequestObj;
         if (!mentorID || !menteeID) {
-          ErrorCallback('There is something wrong with this request. You cannot cancel it.');
+          ErrorCallback(
+            "There is something wrong with this request. You cannot cancel it."
+          );
           // try deleting the request
           try {
-            await DBDeleteWithID('mentorshipRequest', mentorshipRequestID);
+            await DBDeleteWithID("mentorshipRequest", mentorshipRequestID);
           } catch (err) {
-            console.error('[Xd-vak] problem with deleting malformed mentorship request', err);
+            console.error(
+              "[Xd-vak] problem with deleting malformed mentorship request",
+              err
+            );
           }
           return;
         }
 
         // determine if current user is target mentee
         if (menteeID != this.user.id) {
-          ErrorCallback('You do not have permission to cancel this request.');
+          ErrorCallback("You do not have permission to cancel this request.");
           return;
         }
 
         // delete request, send alert that it was cancelled
         try {
-          await DBDeleteWithID('mentorshipRequest', mentorshipRequestID);
-          AuthenticatedSocket.SendClientsDataWithUserID([mentorID, menteeID], 'mentorshipRequest', [{ ...mentorshipRequestObj, id: mentorshipRequestID, status: 'cancelled' }]);
+          await DBDeleteWithID("mentorshipRequest", mentorshipRequestID);
+          AuthenticatedSocket.SendClientsDataWithUserID(
+            [mentorID, menteeID],
+            "mentorshipRequest",
+            [
+              {
+                ...mentorshipRequestObj,
+                id: mentorshipRequestID,
+                status: "cancelled",
+              },
+            ]
+          );
         } catch (err) {
           if (err instanceof Error) {
-            ErrorCallback('Encountered error while cancelling request '+err.message);
+            ErrorCallback(
+              "Encountered error while cancelling request " + err.message
+            );
             return;
           }
-          ErrorCallback('Something went wrong while cancelling request');
+          ErrorCallback("Something went wrong while cancelling request");
           return;
         }
-      } else if (action == 'removeMentor') {
+      } else if (action == "removeMentor") {
         // determine if current user has a mentor
         if (!this.user.mentorID) {
           ErrorCallback("You do not have a mentor");
           return;
         }
-        
+
         // remove mentor from current, and remove mentee from mentor, send data update alert.
         try {
-          await AuthenticatedSocket.removeMentorship(this.user.mentorID, this.user.id);
+          await AuthenticatedSocket.removeMentorship(
+            this.user.mentorID,
+            this.user.id
+          );
         } catch (err) {
           if (err instanceof Error) {
-            ErrorCallback('Encountered error while removing mentorship '+err.message);
+            ErrorCallback(
+              "Encountered error while removing mentorship " + err.message
+            );
             return;
           }
-          ErrorCallback('Something went wrong while removing mentorship');
+          ErrorCallback("Something went wrong while removing mentorship");
           return;
         }
-      } else if (action == 'removeMentee') {
+      } else if (action == "removeMentee") {
         // determine if current user has a mentor
         if (!this.user.menteeIDs) {
           ErrorCallback("You do not have mentees");
@@ -1210,17 +1362,27 @@ export default class AuthenticatedSocket {
           ErrorCallback("That is not one of your mentees.");
           return;
         }
-        console.log('removingMentee!!', this.user.id, targetMenteeID, this.user.menteeIDs);
-        
+        console.log(
+          "removingMentee!!",
+          this.user.id,
+          targetMenteeID,
+          this.user.menteeIDs
+        );
+
         // remove mentor from current, and remove mentee from mentor, send data update alert.
         try {
-          await AuthenticatedSocket.removeMentorship(this.user.id, targetMenteeID);
+          await AuthenticatedSocket.removeMentorship(
+            this.user.id,
+            targetMenteeID
+          );
         } catch (err) {
           if (err instanceof Error) {
-            ErrorCallback('Encountered error while removing mentorship '+err.message);
+            ErrorCallback(
+              "Encountered error while removing mentorship " + err.message
+            );
             return;
           }
-          ErrorCallback('Something went wrong while removing mentorship');
+          ErrorCallback("Something went wrong while removing mentorship");
           return;
         }
       }
@@ -1243,13 +1405,14 @@ export default class AuthenticatedSocket {
   }
 
   private async handleGetAvailableAssessmentQuestions(callback: unknown) {
-    const hGAAQErrorHeader = 'Problem while getting available assessment questions: ';
+    const hGAAQErrorHeader =
+      "Problem while getting available assessment questions: ";
     function SendErrorMessage(msg: string) {
-      this.sendClientMessage('Error', hGAAQErrorHeader+msg);
+      this.sendClientMessage("Error", hGAAQErrorHeader + msg);
     }
     try {
-      if (!callback || typeof(callback) != 'function') {
-        SendErrorMessage('No callback provided');
+      if (!callback || typeof callback != "function") {
+        SendErrorMessage("No callback provided");
         return;
       }
 
@@ -1257,79 +1420,82 @@ export default class AuthenticatedSocket {
         SendErrorMessage(msg);
         callback(false);
         return;
-      }
+      };
 
       try {
         const dat = await GetAvailableAssessmentQuestions();
         callback(dat);
-      } catch(err) {
+      } catch (err) {
         if (err instanceof Error) {
           ErrorCallback(err.message);
           return;
         }
-        ErrorCallback('Something went wrong while getting available assessments');
+        ErrorCallback(
+          "Something went wrong while getting available assessments"
+        );
         return;
       }
-    } catch (err) {
-
-    }
+    } catch (err) {}
   }
 
-  private static async addMentorship(mentorID: string, menteeID: string) {// get both mentor and mentee
+  private static async addMentorship(mentorID: string, menteeID: string) {
     // get both mentor and mentee
-    const mentorObj = await DBGetWithID('user', mentorID);
+    // get both mentor and mentee
+    const mentorObj = await DBGetWithID("user", mentorID);
     if (!mentorObj) {
-      throw new Error('Mentor does not exist');
+      throw new Error("Mentor does not exist");
     }
-    const menteeObj = await DBGetWithID('user', menteeID);
+    const menteeObj = await DBGetWithID("user", menteeID);
     if (!menteeObj) {
-      throw new Error('Mentee does not exist');
+      throw new Error("Mentee does not exist");
     }
-    
+
     // add mentee to mentor's mentee list
     let mentorMenteeList: Array<string> = mentorObj.menteeIDs;
     if (!mentorMenteeList) {
       mentorMenteeList = [];
     }
     mentorMenteeList.push(menteeID);
-    
+
     // update and send both
-    await DBSetWithID('user', menteeID, { mentorID: mentorID }, true);
-    await DBSetWithID('user', mentorID, { menteeIDs: mentorMenteeList }, true);
-    console.log('added mentorship relation', menteeObj, mentorObj);
+    await DBSetWithID("user", menteeID, { mentorID: mentorID }, true);
+    await DBSetWithID("user", mentorID, { menteeIDs: mentorMenteeList }, true);
+    console.log("added mentorship relation", menteeObj, mentorObj);
   }
 
   private static async removeMentorship(mentorID: string, menteeID: string) {
     // get both mentor and mentee
-    const mentorObj = await DBGetWithID('user', mentorID);
+    const mentorObj = await DBGetWithID("user", mentorID);
     if (!mentorObj) {
-      throw new Error('Mentor does not exist');
+      throw new Error("Mentor does not exist");
     }
 
-    const menteeObj = await DBGetWithID('user', menteeID);
+    const menteeObj = await DBGetWithID("user", menteeID);
     if (!menteeObj) {
-      throw new Error('Mentee does not exist');
+      throw new Error("Mentee does not exist");
     }
 
     // remove mentor from mentee
     menteeObj.mentorID = null;
-    await DBSetWithID('user', menteeID, { mentorID: null }, true);
+    await DBSetWithID("user", menteeID, { mentorID: null }, true);
 
     // remove mentee from mentor's mentee list
     const mentorMenteeList: Array<string> = mentorObj.menteeIDs;
     if (!mentorMenteeList) {
-      throw new Error('Mentor does not have any mentees');
+      throw new Error("Mentor does not have any mentees");
     }
 
     try {
       mentorMenteeList.splice(mentorMenteeList.indexOf(menteeID), 1);
     } catch {
-      throw new Error('Cannot remove mentee. They are not one of the mentor\'s mentees.');
+      throw new Error(
+        "Cannot remove mentee. They are not one of the mentor's mentees."
+      );
     }
 
     menteeObj.menteeIDs = mentorMenteeList;
-    await DBSetWithID('user', mentorID, { menteeIDs: mentorMenteeList }, true);
-    console.log('removed mentorship relation', menteeObj, mentorObj);
+    await DBSetWithID("user", mentorID, { menteeIDs: mentorMenteeList }, true);
+    console.log("removed mentorship relation", menteeObj, mentorObj);
   }
 
   sendClientData(type: string, data: any) {
@@ -1338,9 +1504,9 @@ export default class AuthenticatedSocket {
 
   /**
    * Uses global socket map `AllSockets` to send data to sockets with given userIDs
-   * @param userIDs 
+   * @param userIDs
    * @param type
-   * @param data 
+   * @param data
    */
   static SendClientsDataWithUserID(userIDs: string[], type: string, data: any) {
     if (!(userIDs instanceof Array)) {
@@ -1348,7 +1514,7 @@ export default class AuthenticatedSocket {
     }
     // iterates through each userID
     for (let userID of userIDs) {
-      if (typeof(userID) != 'string') {
+      if (typeof userID != "string") {
         continue;
       }
 
@@ -1369,21 +1535,21 @@ export default class AuthenticatedSocket {
 
   /**
    * This function fetches the target user data if the current user is allowed to.
-   * 
-   * Depending on their relation, some data may not be available. If they are not related at all (mentee to mentee), 
+   *
+   * Depending on their relation, some data may not be available. If they are not related at all (mentee to mentee),
    * then they cannot see each other's data.
-   * @param userID 
+   * @param userID
    */
   private async _getUser(userID: unknown, callback: unknown) {
-    console.log('_getUser', userID);
+    console.log("_getUser", userID);
     await this._updateSelf();
-    const GetUserErrorHeader = 'Error while getting user: ';
+    const GetUserErrorHeader = "Error while getting user: ";
     const SendErrorMessage = (msg: string) => {
-      this.sendClientMessage('Error', GetUserErrorHeader+msg);
-    }
+      this.sendClientMessage("Error", GetUserErrorHeader + msg);
+    };
     try {
-      if (!callback || typeof(callback) != 'function') {
-        SendErrorMessage('No callback was provided');
+      if (!callback || typeof callback != "function") {
+        SendErrorMessage("No callback was provided");
         return;
       }
 
@@ -1392,8 +1558,8 @@ export default class AuthenticatedSocket {
         callback(false);
       };
 
-      if (!userID || typeof(userID) != 'string') {
-        ErrorCallback('Invalid userID');
+      if (!userID || typeof userID != "string") {
+        ErrorCallback("Invalid userID");
         return;
       }
 
@@ -1409,20 +1575,20 @@ export default class AuthenticatedSocket {
         SendErrorMessage(err.message);
         return;
       }
-      SendErrorMessage('Something went wrong while getting user');
+      SendErrorMessage("Something went wrong while getting user");
       return;
     }
   }
 
   private async _getAssessment(assessmentID: unknown, callback: unknown) {
     await this._updateSelf();
-    const GetUserErrorHeader = 'Error while getting assessment: ';
+    const GetUserErrorHeader = "Error while getting assessment: ";
     const SendErrorMessage = (msg: string) => {
-      this.sendClientMessage('Error', GetUserErrorHeader+msg);
-    }
+      this.sendClientMessage("Error", GetUserErrorHeader + msg);
+    };
     try {
-      if (!callback || typeof(callback) != 'function') {
-        SendErrorMessage('No callback was provided');
+      if (!callback || typeof callback != "function") {
+        SendErrorMessage("No callback was provided");
         return;
       }
 
@@ -1431,8 +1597,8 @@ export default class AuthenticatedSocket {
         callback(false);
       };
 
-      if (!assessmentID || typeof(assessmentID) != 'string') {
-        ErrorCallback('Invalid assessmentID: '+assessmentID);
+      if (!assessmentID || typeof assessmentID != "string") {
+        ErrorCallback("Invalid assessmentID: " + assessmentID);
         return;
       }
 
@@ -1448,7 +1614,7 @@ export default class AuthenticatedSocket {
         SendErrorMessage(err.message);
         return;
       }
-      SendErrorMessage('Something went wrong while getting user');
+      SendErrorMessage("Something went wrong while getting user");
       return;
     }
   }
@@ -1502,7 +1668,12 @@ export default class AuthenticatedSocket {
   private addSelfToSocketMap() {
     if (this.inAllSockets || !this.user || !this.user.id) {
       // do not add socket if already in map, or if no userID is present
-      console.error('Could not add socket to socket map', this.inAllSockets, this.user, this.user?.id);
+      console.error(
+        "Could not add socket to socket map",
+        this.inAllSockets,
+        this.user,
+        this.user?.id
+      );
       return;
     }
 
@@ -1510,7 +1681,7 @@ export default class AuthenticatedSocket {
     const socketList = AuthenticatedSocket.AllSockets.get(this.user.id);
     if (socketList) {
       socketList.push(this);
-    } 
+    }
     // otherwise, start a new list
     else {
       AuthenticatedSocket.AllSockets.set(this.user.id, [this]);
@@ -1524,11 +1695,11 @@ export default class AuthenticatedSocket {
     }
     this.inAllSockets = false;
     const socketList = AuthenticatedSocket.AllSockets.get(this.user.id);
-    
+
     if (!socketList) {
       // interestingly, not in socket list. Not sure how this is possibile
       return;
-    } else if (socketList.length == 1){
+    } else if (socketList.length == 1) {
       // if the list will be empty after this operation, remove list entirely.
       AuthenticatedSocket.AllSockets.delete(this.user.id);
       return;
@@ -1542,21 +1713,62 @@ export default class AuthenticatedSocket {
 
   private async _updateSelf() {
     try {
-      const self = await DBGetWithID('user', this.user.id);
+      const self = await DBGetWithID("user", this.user.id);
       if (!self) {
-        this.sendClientMessage('Error', 'Your account does not exist');
+        this.sendClientMessage("Error", "Your account does not exist");
         this.socket.disconnect();
         return;
       }
       this.user = self;
     } catch {
-      console.error('Fatal error, could not update self.');
-      this.sendClientMessage('Error', 'There was a problem syncing your data.');
+      console.error("Fatal error, could not update self.");
+      this.sendClientMessage("Error", "There was a problem syncing your data.");
       this.socket.disconnect();
       return;
     }
   }
+
+  /**
+   * Updates the mentor list set.
+   * Used to keep track of all mentorIDs. 
+   * 
+   * Calling this once, then maintaining sync of AllAcceptingMentorIDs will 
+   * allow handleGetAllMentors to get all mentors via cache (reducing database reads)
+   * 
+   * This is supposed to be called once at the beginning of the socket server.
+   */
+  static async SyncAllAcceptingMentorIDs() {
+    // get all people with isMentor = true
+    const allMentors = await DBGet("user", [["isMentor", "==", true], ['acceptingMentees', '==', true]], 'and');
+
+    // create a new set to add these mentor IDs to
+    const newAllMentorIDsSet = new Set<string>();
+
+    // process each mentor, ensuring they are a mentor and accepting mentors
+    for (let mentor of allMentors) {
+      const { id, isMentor, acceptingMentees } = mentor;
+
+      if (!id || !isMentor || !acceptingMentees) {
+        continue;
+      }
+      newAllMentorIDsSet.add(id);
+    }
+
+    // set AllAcceptingMentorIDs to the new set.
+    AuthenticatedSocket.AllAcceptingMentorIDs = newAllMentorIDsSet;
+  }
+
+  private removeSelfFromAcceptingMentorIDsList() {
+    AuthenticatedSocket.AllAcceptingMentorIDs.delete(this.user.id);
+  }
+
+  private addSelfToAcceptingMentorIDsList() {
+    AuthenticatedSocket.AllAcceptingMentorIDs.add(this.user.id);
+  }
 }
+
+// required to call once when socket server starts.
+AuthenticatedSocket.SyncAllAcceptingMentorIDs();
 
 /**
  * Removes all confidential information from a given user, letting it be viewable to the public.
@@ -1571,17 +1783,16 @@ function ModifyUserForPublic(user: ObjectAny) {
   return userCopy;
 }
 
-async function GetUserAssessments(userID: string) {
-  try {
-    return await DBGet("assessment", [["userID", "==", userID]]);
-  } catch {
-    return [];
-  }
-}
-
 async function GetUserMentorshipRequests(userID: string) {
   try {
-    return await DBGet('mentorshipRequest', [["mentorID", "==", userID], ['menteeID', '==', userID]], 'or');
+    return await DBGet(
+      "mentorshipRequest",
+      [
+        ["mentorID", "==", userID],
+        ["menteeID", "==", userID],
+      ],
+      "or"
+    );
   } catch {
     return [];
   }
@@ -1589,30 +1800,30 @@ async function GetUserMentorshipRequests(userID: string) {
 
 /**
  * This function returns the target userData with the information that is visible to the requestingUser.
- * 
+ *
  * if no requestingUserID is provided, then the targetUser data is returned as it is.
- * 
+ *
  * Otherwise, depending on relationship between requesting user and targetUser, some information will be removed before being returned.
- * @param targetUserID 
- * @param requestingUserID 
- * @returns 
+ * @param targetUserID
+ * @param requestingUserID
+ * @returns
  */
 async function GetUserData(targetUserID: string, requestingUserID?: string) {
   let userData: DBObj;
   let selfData: DBObj;
 
-  let userDataRaw = await DBGetWithID('user', targetUserID);
+  let userDataRaw = await DBGetWithID("user", targetUserID);
   if (!userDataRaw) {
-    throw new Error('Requested user does not exist');
+    throw new Error("Requested user does not exist");
   }
   if (!requestingUserID) {
     return userDataRaw;
   }
   userData = { ...userDataRaw };
 
-  selfData = await DBGetWithID('user', requestingUserID);
+  selfData = await DBGetWithID("user", requestingUserID);
   if (!selfData) {
-    throw new Error('Self user doesn\'t exist');
+    throw new Error("Self user doesn't exist");
   }
 
   const { mentorID: userMentorID } = userData;
@@ -1644,22 +1855,24 @@ async function GetUserData(targetUserID: string, requestingUserID?: string) {
   return userData;
 }
 
-
 /**
  * This function returns the target assessmentData if the requesting party is allowed to see it (mentor).
- * 
+ *
  * if no requestingUserID is provided, then the targetUser data is returned automatically.
- * 
- * Otherwise, the assessment is returned depending on if the 
+ *
+ * Otherwise, the assessment is returned depending on if the
  * assessment taker and the requester are mentor and mentee (or self)
- * @param targetUserID 
- * @param requestingUserID 
- * @returns 
+ * @param targetUserID
+ * @param requestingUserID
+ * @returns
  */
-async function GetAssessmentData(assessmentID: string, requestingUserID?: string) {
-  let assessmentData = await DBGetWithID('assessment', assessmentID);
+async function GetAssessmentData(
+  assessmentID: string,
+  requestingUserID?: string
+) {
+  let assessmentData = await DBGetWithID("assessment", assessmentID);
   if (!assessmentData) {
-    throw new Error('The requested assessment does not exist.');
+    throw new Error("The requested assessment does not exist.");
   }
   if (!requestingUserID) {
     // if no requesting userID was passed, then return auto.
@@ -1668,7 +1881,9 @@ async function GetAssessmentData(assessmentID: string, requestingUserID?: string
 
   const { userID: assessmentUserID } = assessmentData;
   if (!assessmentUserID) {
-    throw new Error('There\'s something wrong with the assessment you requested.');
+    throw new Error(
+      "There's something wrong with the assessment you requested."
+    );
   }
 
   // taker is the requesting user.
@@ -1677,31 +1892,35 @@ async function GetAssessmentData(assessmentID: string, requestingUserID?: string
   }
 
   // check if requesting user is mentor of assessment taker
-  let requestingUserData = await DBGetWithID('user', requestingUserID);
+  let requestingUserData = await DBGetWithID("user", requestingUserID);
   if (!requestingUserData) {
-    throw new Error('The requesting user does not exist.');
+    throw new Error("The requesting user does not exist.");
   }
 
   let modifiedAssessmentData: Object;
   if (assessmentData.published) {
     modifiedAssessmentData = assessmentData;
   } else {
-    modifiedAssessmentData = { published: false };
+    modifiedAssessmentData = { published: false, id: assessmentID };
   }
 
   const { menteeIDs } = requestingUserData;
-  if (menteeIDs && (menteeIDs instanceof Array) && menteeIDs.includes(assessmentUserID)) {
+  if (
+    menteeIDs &&
+    menteeIDs instanceof Array &&
+    menteeIDs.includes(assessmentUserID)
+  ) {
     return modifiedAssessmentData;
   }
-  
-  throw new Error('You do not have permission to view this assessment');
+
+  throw new Error("You do not have permission to view this assessment");
 }
 
 async function GetAvailableAssessmentQuestions() {
   try {
-    return await DBGet('assessmentQuestion');
+    return await DBGet("assessmentQuestion");
   } catch (err) {
-    console.error('Error in GetAvailableAssessmentQuestions', err);
+    console.error("Error in GetAvailableAssessmentQuestions", err);
     return [];
   }
 }

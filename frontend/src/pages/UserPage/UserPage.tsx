@@ -116,10 +116,11 @@ export default function UserPage() {
   }, [id, ready]);
 
   function setName(fName: string, mName: string | undefined, lName: string) {
-    
     setUser({
       ...user,
-      fName: fName.trim(), mName: mName?.trim(), lName: lName.trim()
+      fName: fName.trim(),
+      mName: mName?.trim(),
+      lName: lName.trim(),
     });
     setChanged(true);
   }
@@ -217,7 +218,7 @@ export default function UserPage() {
   const { id: selfUserID } = self;
 
   const CanMakeChanges = selfUserID == id;
-  console.log('us', user);
+  console.log("us", user);
   return (
     <div
       style={{
@@ -234,7 +235,12 @@ export default function UserPage() {
       }}
     >
       {CanMakeChanges && (
-        <SaveButton disabled={!CanMakeChanges} saving={saving} show={changed} onSave={HandleSave} />
+        <SaveButton
+          disabled={!CanMakeChanges}
+          saving={saving}
+          show={changed}
+          onSave={HandleSave}
+        />
       )}
       <div
         style={{
@@ -253,7 +259,13 @@ export default function UserPage() {
           {"<"} Home
         </MinimalisticButton>
         <div style={{ marginTop: 20 }} />
-        <NameSection fName={fName} mName={mName} lName={lName} setName={setName} disabled={!CanMakeChanges}/>
+        <NameSection
+          fName={fName}
+          mName={mName}
+          lName={lName}
+          setName={setName}
+          disabled={!CanMakeChanges}
+        />
         <div
           onClick={CanMakeChanges ? HandleChangeUsername : undefined}
           style={{
@@ -283,10 +295,16 @@ export default function UserPage() {
           disabled={!CanMakeChanges}
         />
         <BioSection bio={bio} setBio={setBio} disabled={!CanMakeChanges} />
-        <SocialSection socials={socials} setSocials={setSocials} 
-          disabled={!CanMakeChanges}/>
-        <EducationSection education={education} setEducation={setEducation}
-          disabled={!CanMakeChanges} />
+        <SocialSection
+          socials={socials}
+          setSocials={setSocials}
+          disabled={!CanMakeChanges}
+        />
+        <EducationSection
+          education={education}
+          setEducation={setEducation}
+          disabled={!CanMakeChanges}
+        />
         <CertificationSection
           certifications={certifications}
           setCertifications={setCertifications}
@@ -297,8 +315,11 @@ export default function UserPage() {
           setExperience={setExperience}
           disabled={!CanMakeChanges}
         />
-        <ProjectSection projects={projects} setProjects={setProjects}
-          disabled={!CanMakeChanges} />
+        <ProjectSection
+          projects={projects}
+          setProjects={setProjects}
+          disabled={!CanMakeChanges}
+        />
         <SoftSkillSection
           softSkills={softSkills}
           setSoftSkills={setSoftSkills}
@@ -310,16 +331,28 @@ export default function UserPage() {
   );
 }
 
-function NameSection({ fName, mName, lName, setName, disabled=true }: { fName?: string, mName?: string, lName?: string, setName?: AnyFunction, disabled?: boolean }) {
+function NameSection({
+  fName,
+  mName,
+  lName,
+  setName,
+  disabled = true,
+}: {
+  fName?: string;
+  mName?: string;
+  lName?: string;
+  setName?: AnyFunction;
+  disabled?: boolean;
+}) {
   function handleNameChange(fN?: string, mN?: string, lN?: string) {
     if (disabled || !setName) {
       return;
     }
-    setName(fN || '', mN, lN || '');
+    setName(fN || "", mN, lN || "");
   }
 
   return (
-    <div style={{display: 'flex', alignItems: 'center'}}>
+    <div style={{ display: "flex", alignItems: "center" }}>
       {/* <p
       style={{
         color: "white",
@@ -330,10 +363,37 @@ function NameSection({ fName, mName, lName, setName, disabled=true }: { fName?: 
     >
       {fName} {mName} {lName}
     </p> */}
-      <MinimalisticInput onChange={(val) => handleNameChange(val, mName, lName)} disabled={disabled} style={{fontSize: '1.5rem', minWidth: '1.25rem', marginRight: '0.5rem'}} value={fName} />
-      {(mName?.trim() || !disabled) && <MinimalisticInput onChange={(val) => handleNameChange(fName, val, lName)} disabled={disabled} value={mName} style={{fontSize: '1.5rem', minWidth: '1.25rem', marginRight: '0.5rem'}} />}
-      <MinimalisticInput onChange={(val) => handleNameChange(fName, mName, val)} disabled={disabled} value={lName} style={{fontSize: '1.5rem', minWidth: '1.25rem'}} />
-      <Pencil size={'1.25rem'} style={{marginLeft: '0.5rem'}}/>
+      <MinimalisticInput
+        onChange={(val) => handleNameChange(val, mName, lName)}
+        disabled={disabled}
+        style={{
+          fontSize: "1.5rem",
+          minWidth: "1.25rem",
+          marginRight: "0.5rem",
+        }}
+        value={fName}
+      />
+      {(mName?.trim() || !disabled) && (
+        <MinimalisticInput
+          onChange={(val) => handleNameChange(fName, val, lName)}
+          disabled={disabled}
+          value={mName}
+          style={{
+            fontSize: "1.5rem",
+            minWidth: "1.25rem",
+            marginRight: "0.5rem",
+          }}
+        />
+      )}
+      <MinimalisticInput
+        onChange={(val) => handleNameChange(fName, mName, val)}
+        disabled={disabled}
+        value={lName}
+        style={{ fontSize: "1.5rem", minWidth: "1.25rem" }}
+      />
+      {!disabled && (
+        <Pencil size={"1.25rem"} style={{ marginLeft: "0.5rem" }} />
+      )}
     </div>
   );
 }
@@ -597,12 +657,16 @@ function CertificationSection({
   setCertifications?: AnyFunction;
   disabled?: boolean;
 }) {
-  function handleCertificationChange(cIndex: number, newCertificationData: ObjectAny) {
+  function handleCertificationChange(
+    cIndex: number,
+    newCertificationData: ObjectAny
+  ) {
     if (!certifications || !setCertifications) {
       return;
     }
     const newCerts = [...certifications];
-    newCerts[cIndex] = newCertificationData
+    const { title, subtitle } = newCertificationData;
+    newCerts[cIndex] = { name: title, issuingOrg: subtitle };
     setCertifications(newCerts);
   }
 
@@ -631,7 +695,11 @@ function CertificationSection({
               key={`cert_${cIndex}`}
               title={name}
               subtitle={issuingOrg}
-              onChange={(dat: ObjectAny) => handleCertificationChange(cIndex, dat)}
+              onChange={(dat: ObjectAny) =>
+                handleCertificationChange(cIndex, dat)
+              }
+              hideRange={true}
+              hideDescription={true}
               disabled={disabled}
             />
           );
@@ -640,15 +708,14 @@ function CertificationSection({
           <p style={{ margin: 0, opacity: 0.5 }}>No certifications</p>
         )}
       </div>
-      {
-        !disabled &&
-      <MinimalisticButton
-        style={{ fontSize: "0.8rem", marginLeft: 10, marginTop: 5 }}
-        onClick={handleAddCertification}
-      >
-        Add Certification +
-      </MinimalisticButton>
-      }
+      {!disabled && (
+        <MinimalisticButton
+          style={{ fontSize: "0.8rem", marginLeft: 10, marginTop: 5 }}
+          onClick={handleAddCertification}
+        >
+          Add Certification +
+        </MinimalisticButton>
+      )}
     </>
   );
 }
@@ -761,14 +828,14 @@ function EducationSection({
           <p style={{ margin: 0, opacity: 0.5 }}>No education</p>
         )}
       </div>
-      {!disabled&&
-      <MinimalisticButton
-        style={{ marginLeft: 10, fontSize: "0.8rem", marginTop: 5 }}
-        onClick={handleAddEducationClick}
-      >
-        Add Education +
-      </MinimalisticButton>
-      }
+      {!disabled && (
+        <MinimalisticButton
+          style={{ marginLeft: 10, fontSize: "0.8rem", marginTop: 5 }}
+          onClick={handleAddEducationClick}
+        >
+          Add Education +
+        </MinimalisticButton>
+      )}
     </>
   );
 }
@@ -932,15 +999,14 @@ function SocialSection({
           <p style={{ margin: 0, opacity: 0.5 }}>No socials</p>
         )}
       </div>
-      {
-        !disabled &&
-      <MinimalisticButton
-        onClick={handleAddSocialClick}
-        style={{ marginTop: 5, marginLeft: 10, fontSize: "0.8rem" }}
-      >
-        Add Social +
-      </MinimalisticButton>
-      }
+      {!disabled && (
+        <MinimalisticButton
+          onClick={handleAddSocialClick}
+          style={{ marginTop: 5, marginLeft: 10, fontSize: "0.8rem" }}
+        >
+          Add Social +
+        </MinimalisticButton>
+      )}
     </>
   );
 }
@@ -957,29 +1023,37 @@ function BioSection({
   return (
     <>
       <p style={{ color: "white", fontSize: "1.25rem", margin: 0 }}>Bio</p>
-      <textarea
-        placeholder="Your bio"
-        style={{
-          margin: 0,
-          fontSize: "1rem",
-          padding: 10,
-          borderRadius: 10,
-          borderStartStartRadius: 0,
-          marginLeft: 10,
-          backgroundColor: "transparent",
-          color: "white",
-          minWidth: "10rem",
-          minHeight: "1.2rem",
-          maxWidth: "80%",
-          maxHeight: "40vh",
-          marginTop: 5,
-          height: "4rem",
-          width: "28rem",
-        }}
-        value={bio}
-        onChange={(e) => setBio && setBio(e.target.value)}
-        disabled={disabled}
-      />
+      {bio || !disabled ? (
+        <textarea
+          placeholder={disabled ? "No bio" : "Your bio"}
+          style={{
+            margin: 0,
+            fontSize: "1rem",
+            padding: 10,
+            borderRadius: 10,
+            borderStartStartRadius: 0,
+            marginLeft: 10,
+            backgroundColor: "transparent",
+            color: "white",
+            minWidth: "10rem",
+            minHeight: "1.2rem",
+            maxWidth: "80%",
+            maxHeight: "40vh",
+            marginTop: 5,
+            height: "4rem",
+            width: "28rem",
+          }}
+          value={bio}
+          onChange={(e) => setBio && setBio(e.target.value)}
+          disabled={disabled}
+        />
+      ) : (
+        <p
+          style={{ fontSize: "1rem", margin: 0, marginLeft: 10, opacity: 0.5 }}
+        >
+          No bio
+        </p>
+      )}
     </>
   );
 }
@@ -1078,6 +1152,10 @@ function ExperienceLikeSection({
   subtitle,
   description,
   range,
+  hideTitle,
+  hideSubtitle,
+  hideDescription,
+  hideRange,
   onChange,
   disabled = true,
 }: {
@@ -1087,6 +1165,10 @@ function ExperienceLikeSection({
   range?: ObjectAny;
   onChange?: AnyFunction;
   disabled?: boolean;
+  hideTitle?: boolean;
+  hideSubtitle?: boolean;
+  hideDescription?: boolean;
+  hideRange?: boolean;
 }) {
   const dispatch = useDispatch();
   const { start, end } = range || {};
@@ -1205,13 +1287,15 @@ function ExperienceLikeSection({
   return (
     <div>
       <div style={{ display: "flex", flexWrap: "wrap" }}>
-        <MinimalisticInput
-          value={title}
-          onChange={handleChangeTitle}
-          style={{ fontWeight: "bold", minWidth: "0.5rem" }}
-          disabled={disabled}
-        />
-        {subtitle && (
+        {!hideTitle && (
+          <MinimalisticInput
+            value={title}
+            onChange={handleChangeTitle}
+            style={{ fontWeight: "bold", minWidth: "0.5rem" }}
+            disabled={disabled}
+          />
+        )}
+        {!hideSubtitle && (
           <>
             <span style={{ marginLeft: "0.5rem", marginRight: "0.5rem" }}>
               |
@@ -1224,24 +1308,24 @@ function ExperienceLikeSection({
             />
           </>
         )}
-        {range && (
+        {!hideRange && (
           <>
             <span style={{ marginLeft: "0.5rem", marginRight: "0.5rem" }}>
               |
             </span>
             <div
               style={{
-                borderBottom: "1px solid #fff4",
+                borderBottom: disabled ? 'none' : "1px solid #fff4",
                 cursor: !disabled ? "pointer" : "text",
               }}
               onClick={handleChangeRange}
             >
-              <span>
+              {start && <span>
                 {getMonthName(start[0])} {Math.abs(start[1])}{" "}
                 {start[1] < 0 ? "B.C." : ""}
-              </span>
+              </span>}
+              <span style={{marginRight: '0.2rem'}}>-</span>
               <span>
-                -{" "}
                 {end
                   ? `${getMonthName(end[0])} ${Math.abs(end[1])} ${
                       end[1] < 0 ? "B.C." : ""
@@ -1254,33 +1338,35 @@ function ExperienceLikeSection({
 
         {!disabled && <Pencil style={{ marginLeft: 5 }} size={"1rem"} />}
       </div>
-      <div style={{ marginLeft: 0 }}>
-        <textarea
-          placeholder="Your bio"
-          style={{
-            margin: 0,
-            fontSize: "1rem",
-            padding: 10,
-            borderRadius: 10,
-            borderStartStartRadius: 0,
-            marginLeft: 10,
-            backgroundColor: "transparent",
-            color: "white",
-            minWidth: "10rem",
-            minHeight: "1.2rem",
-            maxWidth: "80%",
-            maxHeight: "40vh",
-            marginTop: 5,
-            height: "4rem",
-            width: "28rem",
-          }}
-          value={description}
-          onChange={(e) =>
-            handleChangeDescription && handleChangeDescription(e.target.value)
-          }
-          disabled={disabled}
-        />
-      </div>
+      {!hideDescription && (
+        <div style={{ marginLeft: 0 }}>
+          <textarea
+            placeholder="Your bio"
+            style={{
+              margin: 0,
+              fontSize: "1rem",
+              padding: 10,
+              borderRadius: 10,
+              borderStartStartRadius: 0,
+              marginLeft: 10,
+              backgroundColor: "transparent",
+              color: "white",
+              minWidth: "10rem",
+              minHeight: "1.2rem",
+              maxWidth: "80%",
+              maxHeight: "40vh",
+              marginTop: 5,
+              height: "4rem",
+              width: "28rem",
+            }}
+            value={description}
+            onChange={(e) =>
+              handleChangeDescription && handleChangeDescription(e.target.value)
+            }
+            disabled={disabled}
+          />
+        </div>
+      )}
     </div>
   );
 }
