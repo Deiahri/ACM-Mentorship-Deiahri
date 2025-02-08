@@ -115,6 +115,15 @@ export default function UserPage() {
     GetUser();
   }, [id, ready]);
 
+  function setName(fName: string, mName: string | undefined, lName: string) {
+    
+    setUser({
+      ...user,
+      fName: fName.trim(), mName: mName?.trim(), lName: lName.trim()
+    });
+    setChanged(true);
+  }
+
   function setSocials(newSocials: ObjectAny[]) {
     setUser({
       ...user,
@@ -208,6 +217,7 @@ export default function UserPage() {
   const { id: selfUserID } = self;
 
   const CanMakeChanges = selfUserID == id;
+  console.log('us', user);
   return (
     <div
       style={{
@@ -243,16 +253,7 @@ export default function UserPage() {
           {"<"} Home
         </MinimalisticButton>
         <div style={{ marginTop: 20 }} />
-        <p
-          style={{
-            color: "white",
-            fontSize: "1.5rem",
-            margin: 0,
-            marginBottom: -5,
-          }}
-        >
-          {fName} {mName} {lName}
-        </p>
+        <NameSection fName={fName} mName={mName} lName={lName} setName={setName} disabled={!CanMakeChanges}/>
         <div
           onClick={CanMakeChanges ? HandleChangeUsername : undefined}
           style={{
@@ -305,6 +306,34 @@ export default function UserPage() {
         />
       </div>
       <div style={{ height: "10vh" }} />
+    </div>
+  );
+}
+
+function NameSection({ fName, mName, lName, setName, disabled=true }: { fName?: string, mName?: string, lName?: string, setName?: AnyFunction, disabled?: boolean }) {
+  function handleNameChange(fN?: string, mN?: string, lN?: string) {
+    if (disabled || !setName) {
+      return;
+    }
+    setName(fN || '', mN, lN || '');
+  }
+
+  return (
+    <div style={{display: 'flex', alignItems: 'center'}}>
+      {/* <p
+      style={{
+        color: "white",
+        fontSize: "1.5rem",
+        margin: 0,
+        marginBottom: -5,
+      }}
+    >
+      {fName} {mName} {lName}
+    </p> */}
+      <MinimalisticInput onChange={(val) => handleNameChange(val, mName, lName)} disabled={disabled} style={{fontSize: '1.5rem', minWidth: '1.25rem', marginRight: '0.5rem'}} value={fName} />
+      {(mName?.trim() || !disabled) && <MinimalisticInput onChange={(val) => handleNameChange(fName, val, lName)} disabled={disabled} value={mName} style={{fontSize: '1.5rem', minWidth: '1.25rem', marginRight: '0.5rem'}} />}
+      <MinimalisticInput onChange={(val) => handleNameChange(fName, mName, val)} disabled={disabled} value={lName} style={{fontSize: '1.5rem', minWidth: '1.25rem'}} />
+      <Pencil size={'1.25rem'} style={{marginLeft: '0.5rem'}}/>
     </div>
   );
 }

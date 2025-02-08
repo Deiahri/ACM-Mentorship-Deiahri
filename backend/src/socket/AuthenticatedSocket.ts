@@ -403,7 +403,7 @@ export default class AuthenticatedSocket {
         }
         if (lName || typeof lName == "string") {
           isValidLastName(lName);
-          newUserObj.fName = lName;
+          newUserObj.lName = lName;
         }
       } catch (err) {
         if (err instanceof Error) {
