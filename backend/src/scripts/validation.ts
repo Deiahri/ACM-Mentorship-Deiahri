@@ -128,7 +128,12 @@ export async function isValidUsername(usernameRaw: string) {
   return true;
 }
 
-export function isValidSocial(social: ObjectAny) {
+
+export type Social = {
+  type: string,
+  url: string
+}
+export function isValidSocial(social: ObjectAny): social is Social {
   if (typeof social != "object") {
     throw new Error("A social was not formatted correctly.");
   }
@@ -155,8 +160,14 @@ export function isValidSocial(social: ObjectAny) {
  *   range: [[month, year], [month, year] | undefined]
  * }
  */
-export function isValidExperience(experience: ObjectAny) {
-  console.log('iVE', experience);
+
+export type Experience = {
+  company: string,
+  position: string,
+  description: string,
+  range: MonthYearDateRange
+}
+export function isValidExperience(experience: ObjectAny): experience is Experience {
   if (typeof(experience) != 'object') {
     throw new Error("Experience format was unexpected");
   }
@@ -170,9 +181,16 @@ export function isValidExperience(experience: ObjectAny) {
   } else if (!range || !isValidMonthYearRange(range)) {
     throw new Error('Range is not valid');
   }
+  return true;
 }
 
-export function isValidProject(project: ObjectAny) {
+export type Project = {
+  name: string,
+  position: string,
+  description: string,
+  range: MonthYearDateRange
+}
+export function isValidProject(project: ObjectAny): project is Project {
   if (typeof(project) != 'object') {
     throw new Error("Experience format was unexpected");
   }
@@ -182,7 +200,13 @@ export function isValidProject(project: ObjectAny) {
   return true;
 }
 
-export function isValidEducation(education: ObjectAny) {
+export type Education = {
+  school: string,
+  degree: string,
+  fieldOfStudy: string,
+  range: MonthYearDateRange
+}
+export function isValidEducation(education: ObjectAny): education is Education {
   if (typeof(education) != 'object') {
     throw new Error("Experience format was unexpected");
   }
@@ -196,13 +220,15 @@ export function isValidEducation(education: ObjectAny) {
   } else if (!range || !isValidMonthYearRange(range)) {
     throw new Error('Range is not valid');
   }
+  return true;
 }
 
 export function isValidMonthInteger(monthInteger: number) {
   return monthInteger > 0 && monthInteger < 13;
 }
 
-export function isValidMonthYearRange(range: { start: [number, number], end?: [number, number] }) {
+type MonthYearDateRange = { start: [number, number], end?: [number, number] }
+export function isValidMonthYearRange(range: ObjectAny): range is MonthYearDateRange {
   if (!range || typeof range !== 'object' || !range.start || !Array.isArray(range.start) || range.start.length !== 2) {
     return false;
   }
@@ -225,8 +251,11 @@ export function isValidMonthYearRange(range: { start: [number, number], end?: [n
   return true;
 }
 
-
-export function isValidCertification(certification: ObjectAny) {
+export type Certification = {
+  name: string,
+  issuingOrg: string
+}
+export function isValidCertification(certification: ObjectAny): certification is Certification {
   if (typeof(certification) != 'object') {
     throw new Error("Certification format was unexpected");
   }
@@ -236,6 +265,7 @@ export function isValidCertification(certification: ObjectAny) {
   } else if (!issuingOrg || typeof(issuingOrg) != 'string' || issuingOrg.length < 1) {
     throw new Error('"Issuing Organization format was unexpected');
   }
+  return true;
 }
 
 const AssessmentInputTypes = ['text', 'number', 'boolean'];

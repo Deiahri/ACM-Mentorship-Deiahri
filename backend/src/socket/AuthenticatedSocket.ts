@@ -10,6 +10,9 @@ import {
 } from "../db";
 import { ObjectAny } from "../types";
 import {
+  Certification,
+  Education,
+  Experience,
   isValidAnsweredAssessmentQuestions,
   isValidAssessmentAction,
   isValidCertification,
@@ -24,6 +27,7 @@ import {
   isValidSocial,
   isValidUsername,
   MAX_BIO_LENGTH,
+  Project,
 } from "../scripts/validation";
 
 export type AuthenticatedSocketAdditionalParameters = {
@@ -45,15 +49,28 @@ type AuthenticatedSocketState =
   | "connect_error";
 
 type UserObj = {
+  fName?: string,
+  mName?: string,
+  lName?: string,
   id?: string;
   OAuthSubID?: string;
   email?: string;
   isMentee?: boolean;
   assessments?: string[];
   username?: string,
+  usernameLower?: string,
   menteeIDs?: string[],
   mentorID?: string,
-  DisplayPictureURL?: string
+  DisplayPictureURL?: string,
+  socials?: string[],
+  experience?: Experience[],
+  certifications?: Certification[],
+  education?: Education[],
+  projects?: Project[],
+  isMentor?: boolean,
+  softSkills?: string[],
+  acceptingMentees?: boolean,
+  bio?: string
 };
 export default class AuthenticatedSocket {
   socket: Socket;
@@ -349,7 +366,7 @@ export default class AuthenticatedSocket {
         acceptingMentees,
         bio
       } = data;
-      const newUserObj = { ...JSON.parse(JSON.stringify(this.user)) };
+      const newUserObj: UserObj = {};
 
       // process username
       if (username) {
@@ -455,7 +472,7 @@ export default class AuthenticatedSocket {
             return;
           }
         }
-        newUserObj.experience = JSON.stringify(experience);
+        newUserObj.experience = experience;
       }
 
       if (education) {
@@ -513,7 +530,7 @@ export default class AuthenticatedSocket {
             return;
           }
         }
-        newUserObj.certifications = certifications;
+        newUserObj.certifications = certifications as Certification[];
       }
 
       if (projects) {
@@ -630,7 +647,6 @@ export default class AuthenticatedSocket {
         callback(false);
         return;
       }
-      this.user = { ...this.user, ...newUserObj };
       callback(true);
     } catch (err) {
       if (err instanceof Error) {

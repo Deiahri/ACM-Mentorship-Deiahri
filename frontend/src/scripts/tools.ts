@@ -40,6 +40,43 @@ export function getMonthName(monthNumber: number): string | undefined {
 }
 
 
+export function getMonthNumber(monthName: string): number | undefined {
+  if (typeof monthName !== 'string') {
+    return undefined; // Or throw an error: throw new Error("Invalid input: Month name must be a string.");
+  }
+
+  const lowerCaseMonth = monthName.trim().toLowerCase();
+
+  switch (lowerCaseMonth) {
+    case "january":
+      return 1;
+    case "february":
+      return 2;
+    case "march":
+      return 3;
+    case "april":
+      return 4;
+    case "may":
+      return 5;
+    case "june":
+      return 6;
+    case "july":
+      return 7;
+    case "august":
+      return 8;
+    case "september":
+      return 9;
+    case "october":
+      return 10;
+    case "november":
+      return 11;
+    case "december":
+      return 12;
+    default:
+      return undefined; // Or throw an error:  throw new Error("Invalid month name: " + monthName);
+  }
+}
+
 /**
  * This function does nothing. 
  * 

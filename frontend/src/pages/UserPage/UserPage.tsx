@@ -7,14 +7,24 @@ import {
   ClientSocketUser,
   MyClientSocket,
 } from "../../features/ClientSocket/ClientSocket";
-import { AnyFunction, ObjectAny, SocialTypes } from "../../scripts/types";
-import { Instagram, Twitter, XIcon, Youtube } from "lucide-react";
-import { closeDialog, setDialog } from "../../features/Dialog/DialogSlice";
+import {
+  AnyFunction,
+  Months,
+  ObjectAny,
+  SocialTypes,
+} from "../../scripts/types";
+import { Instagram, Pen, Pencil, Twitter, XIcon, Youtube } from "lucide-react";
+import {
+  closeDialog,
+  DialogInput,
+  setDialog,
+} from "../../features/Dialog/DialogSlice";
 import { FaDiscord, FaLinkedin } from "react-icons/fa";
-import { getMonthName, sleep } from "../../scripts/tools";
+import { getMonthName, getMonthNumber, sleep } from "../../scripts/tools";
 import MinimalisticInput from "../../components/MinimalisticInput/MinimalisticInput";
 import MinimalisticButton from "../../components/MinimalisticButton/MinimalisticButton";
 import { setAlert } from "../../features/Alert/AlertSlice";
+import { useChangeUsernameWithDialog } from "../../hooks/UseChangeUsername";
 
 export default function UserPage() {
   const [params, _] = useSearchParams();
@@ -22,6 +32,20 @@ export default function UserPage() {
   const id = params.get("id");
   const [user, setUser] = useState<ClientSocketUser | undefined>(undefined);
   const { ready } = useSelector((store: ReduxRootState) => store.ClientSocket);
+
+  const changeUsernameWithDialog = useChangeUsernameWithDialog();
+
+  function HandleChangeUsername() {
+    changeUsernameWithDialog((v?: boolean, newUsername?: string) => {
+      if (!v || !newUsername) {
+        return;
+      }
+      setUser({
+        ...user,
+        username: newUsername
+      })
+    });
+  }
 
   useEffect(() => {
     async function GetUser() {
@@ -43,6 +67,51 @@ export default function UserPage() {
     setUser({
       ...user,
       socials: newSocials,
+    });
+  }
+
+  function setBio(bio: string) {
+    if (bio.length > 200) {
+      bio = bio.substring(0, 200);
+    }
+    setUser({
+      ...user,
+      bio: bio,
+    });
+  }
+
+  function setEducation(newEducation: ObjectAny[]) {
+    setUser({
+      ...user,
+      education: newEducation,
+    });
+  }
+
+  function setCertifications(newCertifications: ObjectAny[]) {
+    setUser({
+      ...user,
+      certifications: newCertifications,
+    });
+  }
+
+  function setExperience(newExperience: ObjectAny[]) {
+    setUser({
+      ...user,
+      experience: newExperience,
+    });
+  }
+
+  function setProjects(newProjects: ObjectAny[]) {
+    setUser({
+      ...user,
+      projects: newProjects,
+    });
+  }
+
+  function setSoftSkills(newSoftSkills: string[]) {
+    setUser({
+      ...user,
+      softSkills: newSoftSkills,
     });
   }
 
@@ -72,6 +141,8 @@ export default function UserPage() {
     DisplayPictureURL,
     bio,
   } = user;
+
+  console.log(user);
   return (
     <div
       style={{
@@ -83,7 +154,7 @@ export default function UserPage() {
         alignItems: "start",
         backgroundColor: "#111",
         flexDirection: "column",
-        padding: 20,
+        padding: '2rem',
         boxSizing: "border-box",
       }}
     >
@@ -114,156 +185,305 @@ export default function UserPage() {
         >
           {fName} {mName} {lName}
         </p>
-        <p
-          style={{
-            color: "white",
-            fontSize: "1rem",
-            margin: 0,
-            marginLeft: 10,
-            opacity: 0.5,
-          }}
-        >
-          aka {username}
-        </p>
+        <div onClick={HandleChangeUsername} style={{display: 'flex', alignItems: 'center', cursor: 'pointer'}}>
+          <p
+            style={{
+              color: "white",
+              fontSize: "1rem",
+              margin: 0,
+              marginLeft: 10,
+              opacity: 0.5,
+            }}
+          >
+            aka {username}
+          </p>
+          <Pencil style={{marginLeft: '0.5rem'}} size={'1rem'}/>
+        </div>
         <MentorSection
           isMentor={isMentor}
           acceptingMentees={acceptingMentees}
         />
-        <BioSection />
+        <BioSection bio={bio} setBio={setBio} />
         <SocialSection socials={socials} setSocials={setSocials} />
-        <EducationSection education={education} />
-        <CertificationSection certifications={certifications} />
-        <EducationSection education={education} />
-        <ExperienceSection experience={experience} />
-        <ProjectSection projects={projects} />
-        <SoftSkillSection softSkills={softSkills} />
+        <EducationSection education={education} setEducation={setEducation} />
+        <CertificationSection
+          certifications={certifications}
+          setCertifications={setCertifications}
+        />
+        <ExperienceSection
+          experience={experience}
+          setExperience={setExperience}
+        />
+        <ProjectSection projects={projects} setProjects={setProjects} />
+        <SoftSkillSection
+          softSkills={softSkills}
+          setSoftSkills={setSoftSkills}
+        />
       </div>
+      <div style={{height: '10vh'}} />
     </div>
   );
 }
 
-function SoftSkillSection({ softSkills }: { softSkills?: string[] }) {
+function SoftSkillSection({
+  softSkills,
+  setSoftSkills,
+}: {
+  softSkills?: string[];
+  setSoftSkills: AnyFunction;
+}) {
+  const [inputSS, setInputSS] = useState("");
+  const dispatch = useDispatch();
+  function handleAddSoftSkill() {
+    let softSkill = inputSS;
+    softSkill = softSkill.trim();
+    if (softSkill.length < 3) {
+      dispatch(
+        setAlert({
+          title: "Invalid soft skill",
+          body: "Soft skill is too short",
+        })
+      );
+      return;
+    }
+    const newSoftSkills = [...(softSkills || [])];
+    newSoftSkills.push(softSkill);
+    setSoftSkills(newSoftSkills);
+    setInputSS("");
+  }
+
+  function handleRemoveSoftSkill(sIndex: number) {
+    if (!softSkills || softSkills.length == 0) {
+      return;
+    }
+    const newSoftSkills = [...softSkills];
+    newSoftSkills.splice(sIndex, 1);
+    setSoftSkills(newSoftSkills);
+  }
+
   return (
     <>
       <p style={{ color: "white", fontSize: "1.25rem", margin: 0 }}>
         Soft Skills
       </p>
-      <div style={{ marginLeft: 10 }}>
-        {softSkills?.map((softSkill) => {
-          return <span>{softSkill}</span>;
-        })}
+      <div style={{ marginLeft: 10, display: 'flex', flexDirection: 'column', alignItems: 'start' }}>
+        {(softSkills && softSkills.length > 0) && <div style={{ display: "flex", padding: 5, border: '1px solid #fff4', borderRadius: 15, marginBottom: 10, flexWrap: 'wrap', maxWidth: '80vw' }}>
+          {softSkills?.map((softSkill, sIndex) => {
+            return (
+              <SoftSkill
+                onClose={() => handleRemoveSoftSkill(sIndex)}
+                key={`sS_${sIndex}`}
+                style={{ margin: 5 }}
+              >
+                {softSkill}
+              </SoftSkill>
+            );
+          })}
+        </div>}
         {(!softSkills || softSkills.length == 0) && (
           <p style={{ margin: 0, opacity: 0.5 }}>No soft skills</p>
         )}
-        <div style={{ display: "flex" }}>
-          <SoftSkill style={{ margin: 5 }}>Mega</SoftSkill>
-          <SoftSkill style={{ margin: 5 }}>Lovania</SoftSkill>
-        </div>
-        <input
-          style={{
-            backgroundColor: "transparent",
-            fontSize: "1rem",
-            border: "1px solid #fff4",
-            padding: 5,
-            borderRadius: 10,
-            color: "white",
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleAddSoftSkill();
           }}
-          placeholder="Add soft skill"
-        ></input>
+          style={{marginTop: 5, display: 'flex'}}
+        >
+          <input
+            style={{
+              backgroundColor: "transparent",
+              fontSize: "1rem",
+              border: "1px solid #fffd",
+              padding: 5,
+              paddingLeft: 10,
+              width: '10rem',
+              borderRadius: 10,
+              color: "white",
+            }}
+            placeholder="Add soft skill"
+            value={inputSS}
+            onChange={(e) => setInputSS(e.target.value)}
+          />
+          <MinimalisticButton style={{marginLeft: '0.5rem', fontSize: '0.8rem'}}>Add Soft Skill +</MinimalisticButton>
+        </form>
       </div>
     </>
   );
 }
 
-function ExperienceSection({ experience }: { experience?: ObjectAny[] }) {
+function ExperienceSection({
+  experience,
+  setExperience,
+}: {
+  experience?: ObjectAny[];
+  setExperience?: AnyFunction;
+}) {
+  function handleExperienceChange(index: number, dat: ObjectAny) {
+    if (!setExperience || !experience) {
+      return;
+    }
+    const { title: company, subtitle: position, description, range } = dat;
+    const newExp = [...experience];
+    newExp[index] = { company, position, description, range };
+    setExperience(newExp);
+  }
+
+  function addExperience() {
+    if (!setExperience) {
+      return;
+    }
+    const newExp = [...(experience || [])];
+    newExp.push({
+      company: "Company name",
+      position: "position",
+      description: "Here's a description of your experience",
+      range: { start: [1, 2000], end: [1, 2004] },
+    });
+    setExperience(newExp);
+  }
+
   return (
     <>
       <p style={{ color: "white", fontSize: "1.25rem", margin: 0 }}>
         Experience
       </p>
       <div style={{ marginLeft: 10 }}>
-        {experience?.map((experience) => {
+        {experience?.map((experience, eIndex) => {
           const { company, position, description, range } = experience;
           return (
             <ExperienceLikeSection
+              key={`exp_${eIndex}`}
               title={company}
               subtitle={position}
               description={description}
               range={range}
+              onChange={(dat: ObjectAny) => handleExperienceChange(eIndex, dat)}
             />
           );
         })}
-        <ExperienceLikeSection
-          title={"Microsoft"}
-          subtitle={"CEO Executive"}
-          description={
-            "Did executive stuff around the world cause why not, screw you."
-          }
-          range={{ start: [2, 2022], end: undefined }}
-        />
         {(!experience || experience.length == 0) && (
           <p style={{ margin: 0, opacity: 0.5 }}>No experience</p>
         )}
       </div>
+      <MinimalisticButton
+        style={{ fontSize: "0.8rem", marginLeft: 10, marginTop: 5 }}
+        onClick={addExperience}
+      >
+        Add Experience +
+      </MinimalisticButton>
     </>
   );
 }
 
-function ProjectSection({ projects }: { projects?: ObjectAny[] }) {
+function ProjectSection({
+  projects,
+  setProjects,
+}: {
+  projects?: ObjectAny[];
+  setProjects?: AnyFunction;
+}) {
+  function handleProjectChange(index: number, dat: ObjectAny) {
+    if (!setProjects || !projects) {
+      return;
+    }
+    const { title: name, subtitle: position, description, range } = dat;
+    const newExp = [...projects];
+    newExp[index] = { name, position, description, range };
+    setProjects(newExp);
+  }
+
+  function addProject() {
+    if (!setProjects) {
+      return;
+    }
+    const newExp = [...(projects || [])];
+    newExp.push({
+      name: "Project name",
+      position: "position",
+      description: "Here's a description of your project",
+      range: { start: [1, 2000], end: [1, 2004] },
+    });
+    setProjects(newExp);
+  }
   return (
     <>
       <p style={{ color: "white", fontSize: "1.25rem", margin: 0 }}>Projects</p>
       <div style={{ marginLeft: 10 }}>
-        {projects?.map((project) => {
+        {projects?.map((project, pIndex) => {
           const { name, position, description, range } = project;
           return (
             <ExperienceLikeSection
+              key={`project_${pIndex}`}
               title={name}
               subtitle={position}
               description={description}
               range={range}
+              onChange={(dat: ObjectAny) => handleProjectChange(pIndex, dat)}
             />
           );
         })}
-        <ExperienceLikeSection
-          title={"Phoenix Mobile App Redesign"}
-          subtitle={"Senior Front-End Developer"}
-          description={
-            "Led the front-end development (React Native) for a complete redesign of the Phoenix mobile app, focusing on performance optimization, improved user experience, and integration with new backend services. Implemented new features, including a personalized recommendation engine and an enhanced search functionality."
-          }
-          range={{ start: [9, 2023], end: [11, 2024] }}
-        />
         {(!projects || projects.length == 0) && (
           <p style={{ margin: 0, opacity: 0.5 }}>No projects</p>
         )}
       </div>
+      <MinimalisticButton
+        style={{ fontSize: "0.8rem", marginLeft: 10, marginTop: 5 }}
+        onClick={addProject}
+      >
+        Add Project +
+      </MinimalisticButton>
     </>
   );
 }
 
 function CertificationSection({
   certifications,
+  setCertifications,
 }: {
   certifications?: ObjectAny[];
+  setCertifications?: AnyFunction;
 }) {
+  function handleCertificationChange(newCertificationData: ObjectAny) {
+    console.log("cert", newCertificationData);
+  }
+
+  function handleAddCertification() {
+    const newCerts = [...(certifications || [])];
+    newCerts.push({
+      name: "New Certification",
+      issuingOrg: "Issuing Organization",
+    });
+    setCertifications && setCertifications(newCerts);
+  }
+
   return (
     <>
       <p style={{ color: "white", fontSize: "1.25rem", margin: 0 }}>
         Certifications
       </p>
       <div style={{ marginLeft: 10 }}>
-        {certifications?.map((cert) => {
+        {certifications?.map((cert, cIndex) => {
           const { name, issuingOrg } = cert;
-          return <ExperienceLikeSection title={name} subtitle={issuingOrg} />;
+          return (
+            <ExperienceLikeSection
+              key={`cert_${cIndex}`}
+              title={name}
+              subtitle={issuingOrg}
+              onChange={handleCertificationChange}
+            />
+          );
         })}
-        <ExperienceLikeSection
-          title={"Certified Cloud Security Architect"}
-          subtitle={"Global Network Security Council (GNSC)"}
-        />
         {(!certifications || certifications.length == 0) && (
           <p style={{ margin: 0, opacity: 0.5 }}>No certifications</p>
         )}
       </div>
+      <MinimalisticButton
+        style={{ fontSize: "0.8rem", marginLeft: 10, marginTop: 5 }}
+        onClick={handleAddCertification}
+      >
+        Add Certification +
+      </MinimalisticButton>
     </>
   );
 }
@@ -299,34 +519,84 @@ function MentorSection({
   );
 }
 
-function EducationSection({ education }: { education?: ObjectAny[] }) {
+function EducationSection({
+  education,
+  setEducation,
+}: {
+  education?: ObjectAny[];
+  setEducation: AnyFunction;
+}) {
+  function handleEducationOnChange(index: number, newEduObjRaw: ObjectAny) {
+    if (!education) {
+      return;
+    }
+
+    const { title, description, subtitle, range } = newEduObjRaw;
+    if (!title || !description || !subtitle || !range) {
+      return;
+    }
+    if (education.length <= index || index < 0) {
+      return;
+    }
+    const newEducation = [...education];
+    newEducation[index] = {
+      school: title,
+      degree: subtitle,
+      fieldOfStudy: description,
+      range,
+    };
+    setEducation(newEducation);
+  }
+
+  function handleAddEducationClick() {
+    const newEducation = [...(education || [])];
+    newEducation.push({
+      school: "Your school",
+      degree: "Your Degree",
+      fieldOfStudy: "Major, description, etc.",
+      range: { start: [1, 2000], end: [1, 2004] },
+    });
+    setEducation(newEducation);
+  }
+
   return (
     <>
       <p style={{ color: "white", fontSize: "1.25rem", margin: 0 }}>
         Education
       </p>
       <div style={{ marginLeft: 10 }}>
-        {education?.map((edu) => {
+        {education?.map((edu, eduIndex) => {
           const { school, degree, fieldOfStudy, range } = edu;
           return (
             <ExperienceLikeSection
+              key={`edu_${eduIndex}`}
               title={school}
               subtitle={degree}
               description={fieldOfStudy}
               range={range}
+              onChange={(dat: ObjectAny) =>
+                handleEducationOnChange(eduIndex, dat)
+              }
             />
           );
         })}
-        <ExperienceLikeSection
+        {/* <ExperienceLikeSection
           title={"University of Houston Downtown"}
           subtitle={"B.S."}
           description={"Computer Science"}
           range={{ start: [2, 2022], end: undefined }}
-        />
+          onChange={(dat: ObjectAny) => handleEducationOnChange(0, dat)}
+        /> */}
         {(!education || education.length == 0) && (
           <p style={{ margin: 0, opacity: 0.5 }}>No education</p>
         )}
       </div>
+      <MinimalisticButton
+        style={{ marginLeft: 10, fontSize: "0.8rem", marginTop: 5 }}
+        onClick={handleAddEducationClick}
+      >
+        Add Education +
+      </MinimalisticButton>
     </>
   );
 }
@@ -398,7 +668,7 @@ function SocialSection({
             name: "url",
             label: "Url",
             type: "text",
-            initialValue: currentSocial.url
+            initialValue: currentSocial.url,
           },
         ],
         buttons: [
@@ -498,7 +768,7 @@ function SocialSection({
   );
 }
 
-function BioSection() {
+function BioSection({ bio, setBio }: { bio?: string; setBio?: AnyFunction }) {
   return (
     <>
       <p style={{ color: "white", fontSize: "1.25rem", margin: 0 }}>Bio</p>
@@ -521,10 +791,8 @@ function BioSection() {
           height: "4rem",
           width: "28rem",
         }}
-        // value={answer}
-        // onChange={(e) =>
-        //   !disabled && updateAssessmentQuestion(index, question || "", e.target.value)
-        // }
+        value={bio}
+        onChange={(e) => setBio && setBio(e.target.value)}
         // disabled={disabled}
       />
     </>
@@ -546,7 +814,7 @@ function SoftSkill({
         padding: 5,
         paddingLeft: 10,
         paddingRight: 10,
-        backgroundColor: "#555",
+        backgroundColor: "#444",
         borderRadius: 10,
         display: "flex",
         flexDirection: "row",
@@ -554,8 +822,14 @@ function SoftSkill({
         ...style,
       }}
     >
-      <span>{children}</span>
-      <XIcon onClick={onClose} cursor={"pointer"} />
+      <span
+        style={{
+          fontSize: "0.8 rem"
+        }}
+      >
+        {children}
+      </span>
+      <XIcon size={'1.25rem'} onClick={onClose} cursor={"pointer"} />
     </span>
   );
 }
@@ -564,28 +838,182 @@ function MenteeRequestSection() {
   return <p>Mentee Request Sec</p>;
 }
 
+const CreateDateRangeDialogInputs = (
+  startMonthIndex: number,
+  startYear: number,
+  endMonthIndex: number,
+  endYear: number
+): DialogInput[] => [
+  {
+    name: "startMonth",
+    label: "Start Month",
+    type: "select",
+    selectOptions: Months,
+    initialValue: getMonthName(startMonthIndex) || Months[0],
+    inputStyle: { width: "10rem" },
+  },
+  {
+    name: "startYear",
+    label: "Start Year",
+    type: "number",
+    initialValue: startYear || 2000,
+    containerStyle: { marginBottom: 30 },
+    inputStyle: { width: "10rem" },
+  },
+  {
+    name: "endMonth",
+    label: "End Month",
+    type: "select",
+    selectOptions: Months,
+    initialValue: getMonthName(endMonthIndex) || Months[0],
+    inputStyle: { width: "10rem" },
+  },
+  {
+    name: "endYear",
+    label: "End Year",
+    type: "number",
+    initialValue: endYear || 2000,
+    inputStyle: { width: "10rem" },
+  },
+  {
+    name: "endIsCurrent",
+    label: "End is Current?",
+    type: "toggle",
+    initialValue: !endYear,
+    containerStyle: { marginBottom: 10 },
+    inputStyle: { marginRight: 20 },
+  },
+];
 function ExperienceLikeSection({
   title,
   subtitle,
   description,
   range,
+  onChange,
 }: {
   title?: string;
   subtitle?: string;
   description?: string;
   range?: ObjectAny;
+  onChange?: AnyFunction;
 }) {
+  const dispatch = useDispatch();
   const { start, end } = range || {};
+
+  const [startMonthIndex, startYear] = start || [null, null];
+  const [endMonthIndex, endYear] = end || [null, null];
+
+  function handleChangeSubmit(newExperienceLikeData: ObjectAny) {
+    onChange && onChange(newExperienceLikeData);
+  }
+
+  function handleChangeRange() {
+    dispatch(
+      setDialog({
+        title: `Change date range`,
+        subtitle: `${title} ${subtitle}`,
+        inputs: CreateDateRangeDialogInputs(
+          startMonthIndex,
+          startYear,
+          endMonthIndex,
+          endYear
+        ),
+        buttons: [
+          {
+            text: "Submit change",
+            onClick: (params: ObjectAny) => {
+              function AlertRangeError(msg: string) {
+                dispatch(
+                  setAlert({
+                    title: "Invalid date range",
+                    body: msg,
+                  })
+                );
+              }
+              const {
+                startMonth,
+                startYear: startYearRaw,
+                endMonth,
+                endYear: endYearRaw,
+                endIsCurrent,
+              } = params;
+
+              const startYear = Number(startYearRaw);
+              const endYear = Number(endYearRaw);
+
+              const startMonthIndex = getMonthNumber(startMonth);
+
+              let newObj: ObjectAny = {
+                title,
+                subtitle,
+                description,
+                range: {},
+              };
+              if (
+                !startMonth ||
+                !startYear ||
+                typeof startMonthIndex != "number" ||
+                typeof startYear != "number"
+              ) {
+                AlertRangeError("Start year or month is invalid");
+                return;
+              }
+
+              newObj.range.start = [startMonthIndex, startYear];
+
+              if (!endIsCurrent) {
+                const endMonthIndex = getMonthNumber(endMonth);
+                if (
+                  !endMonthIndex ||
+                  !endYear ||
+                  typeof endMonthIndex != "number" ||
+                  typeof endYear != "number"
+                ) {
+                  console.log(endMonthIndex, endYear);
+                  AlertRangeError("End year or month is invalid");
+                  return;
+                }
+                newObj.range.end = [endMonthIndex, endYear];
+              }
+              dispatch(closeDialog());
+              handleChangeSubmit(newObj);
+            },
+          },
+        ],
+      })
+    );
+  }
+
+  function handleChangeTitle(newTitle: string) {
+    onChange && onChange({ title: newTitle, subtitle, description, range });
+  }
+
+  function handleChangeSubtitle(newSub: string) {
+    onChange && onChange({ title, subtitle: newSub, description, range });
+  }
+
+  function handleChangeDescription(newDesc: string) {
+    onChange && onChange({ title, subtitle, description: newDesc, range });
+  }
+
   return (
     <div>
       <div style={{ display: "flex", flexWrap: "wrap" }}>
-        <span style={{ fontWeight: "bold" }}>{title}</span>
+        <MinimalisticInput
+          value={title}
+          onChange={handleChangeTitle}
+          style={{ fontWeight: "bold", minWidth: "0.5rem" }}
+        />
         {subtitle && (
           <>
             <span style={{ marginLeft: "0.5rem", marginRight: "0.5rem" }}>
               |
             </span>
-            <span>{subtitle}</span>
+            <MinimalisticInput
+              onChange={handleChangeSubtitle}
+              style={{ minWidth: "1rem" }}
+              value={subtitle}
+            />
           </>
         )}
         {range && (
@@ -593,17 +1021,54 @@ function ExperienceLikeSection({
             <span style={{ marginLeft: "0.5rem", marginRight: "0.5rem" }}>
               |
             </span>
-            <span>
-              {getMonthName(start[0])} {start[1]}
-            </span>
-            <span>
-              - {end ? `${getMonthName(end[0])} ${end[1]}` : "Current"}
-            </span>
+            <div
+              style={{ borderBottom: "1px solid #fff4", cursor: "pointer" }}
+              onClick={handleChangeRange}
+            >
+              <span>
+                {getMonthName(start[0])} {Math.abs(start[1])}{" "}
+                {start[1] < 0 ? "B.C." : ""}
+              </span>
+              <span>
+                -{" "}
+                {end
+                  ? `${getMonthName(end[0])} ${Math.abs(end[1])} ${
+                      end[1] < 0 ? "B.C." : ""
+                    }`
+                  : "Current"}
+              </span>
+            </div>
           </>
         )}
+
+        <Pencil style={{ marginLeft: 5 }} size={"1rem"} />
       </div>
-      <div style={{ marginLeft: 10 }}>
-        <span>{description}</span>
+      <div style={{ marginLeft: 0 }}>
+        <textarea
+          placeholder="Your bio"
+          style={{
+            margin: 0,
+            fontSize: "1rem",
+            padding: 10,
+            borderRadius: 10,
+            borderStartStartRadius: 0,
+            marginLeft: 10,
+            backgroundColor: "transparent",
+            color: "white",
+            minWidth: "10rem",
+            minHeight: "1.2rem",
+            maxWidth: "80%",
+            maxHeight: "40vh",
+            marginTop: 5,
+            height: "4rem",
+            width: "28rem",
+          }}
+          value={description}
+          onChange={(e) =>
+            handleChangeDescription && handleChangeDescription(e.target.value)
+          }
+          // disabled={disabled}
+        />
       </div>
     </div>
   );
@@ -657,7 +1122,7 @@ function SocialTile({
           onEdit();
           dispatch(closeDialog());
         },
-        style: {marginRight: 10}
+        style: { marginRight: 10 },
       });
     }
     dispatch(

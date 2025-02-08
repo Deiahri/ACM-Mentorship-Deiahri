@@ -4,8 +4,9 @@ import * as DialogRadix from "@radix-ui/react-dialog";
 import { closeDialog, DialogButton, DialogInput } from "./DialogSlice";
 import { useEffect, useState } from "react";
 import { AnyObject } from "../../types";
-import { XIcon } from "lucide-react";
-import Transition from "../../components/Transition/Transition";
+import { CheckIcon, XIcon } from "lucide-react";
+// import { Checkbox } from "@radix-ui/react-checkbox";
+import { Checkbox } from "radix-ui";
 
 const DialogInputDefaultStyling: React.CSSProperties = {
   fontSize: "1rem",
@@ -17,6 +18,16 @@ const DialogInputDefaultStyling: React.CSSProperties = {
   border: "1px solid #0002",
   backgroundColor: "#222",
   color: "white",
+};
+
+const DialogToggleDefaultStyling: React.CSSProperties = {
+  backgroundColor: "#222",
+  width: '2rem',
+  height: '2rem',
+  padding: 0,
+  display: 'flex', 
+  justifyContent: 'center',
+  alignItems: 'center'
 };
 export default function Dialog() {
   const {
@@ -77,7 +88,6 @@ export default function Dialog() {
   // }
 
   // const { title, body } = message;
-
   return (
     <DialogRadix.Root open={active}>
       <DialogRadix.Portal>
@@ -88,7 +98,7 @@ export default function Dialog() {
             backdropFilter: "blur(2px)",
             position: "fixed",
             ...overlayStyle,
-            zIndex: 10
+            zIndex: 10,
           }}
         />
         <DialogRadix.Content
@@ -139,8 +149,11 @@ export default function Dialog() {
               disabled,
               name,
               label,
+              type,
             } = DialogInput;
-            const typeIsSelect = DialogInput.type == "select";
+            const typeIsSelect = type == "select";
+            const typeIsToggle = type == "toggle";
+            const typeIsInput = !(typeIsSelect || typeIsToggle);
             const OVRALL_Key = `DialogInput_${index}`;
             const DI_Key = name || label;
             const DI_Type = DialogInput.type;
@@ -163,7 +176,7 @@ export default function Dialog() {
                   <p style={{ margin: 0, marginRight: 20, ...labelStyle }}>
                     {label}
                   </p>
-                  {!typeIsSelect && (
+                  {typeIsInput && (
                     <input
                       value={inputVals[DI_Key] || ""}
                       onChange={(e) => updateInputVal(DI_Key, e.target.value)}
@@ -197,6 +210,14 @@ export default function Dialog() {
                         );
                       })}
                     </select>
+                  )}
+                  {typeIsToggle && (
+                    <Checkbox.Root
+                      style={{ ...DialogToggleDefaultStyling, ...inputStyle }}
+                      onClick={() => updateInputVal(DI_Key, !inputVals[DI_Key])}
+                    >
+                        {inputVals[DI_Key] && <XIcon style={{lineHeight: 0}} strokeWidth={3} color={'#ddd'} size={'1.5rem'} />}
+                    </Checkbox.Root>
                   )}
                 </div>
               </div>

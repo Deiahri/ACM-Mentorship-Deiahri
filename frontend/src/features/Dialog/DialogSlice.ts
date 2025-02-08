@@ -1,7 +1,7 @@
 // written in JS because typing is such an issue with redux
 import { createSlice, Draft, PayloadAction } from "@reduxjs/toolkit";
 
-export type DialogInputType = 'number' | 'text' | 'email' | 'select';
+export type DialogInputType = 'number' | 'text' | 'email' | 'select' | 'toggle';
 export type DialogInput = {
   label: string,
   type: DialogInputType,
