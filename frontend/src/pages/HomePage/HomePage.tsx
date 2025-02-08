@@ -13,6 +13,7 @@ import { setAlert } from "../../features/Alert/AlertSlice";
 import { useNavigate } from "react-router-dom";
 import { NothingFunction } from "../../scripts/tools";
 import { useChangeUsernameWithDialog } from "../../hooks/UseChangeUsername";
+import MinimalisticButton from "../../components/MinimalisticButton/MinimalisticButton";
 
 type HomeSubPage = "view_mentor" | "view_mentees";
 export default function HomePage() {
@@ -440,20 +441,20 @@ function UserProfileCard({ user }: { user: ClientSocketUser }) {
         aka {username}
       </p>
       <p style={{ margin: 0 }}>{bio}</p>
-      <div style={{width: '100%', display: 'flex', justifyContent: 'end'}}>
-      <button
-        style={{
-          border: "2px solid #fff",
-          backgroundColor: "transparent",
-          color: "white",
-          borderRadius: 30,
-          marginTop: 5,
-          fontSize: "0.8rem",
-        }}
-        onClick={() => handleViewProfile(id)}
-      >
-        View Profile {'>'}
-      </button>
+      <div style={{ width: "100%", display: "flex", justifyContent: "end" }}>
+        <button
+          style={{
+            border: "2px solid #fff",
+            backgroundColor: "transparent",
+            color: "white",
+            borderRadius: 30,
+            marginTop: 5,
+            fontSize: "0.8rem",
+          }}
+          onClick={() => handleViewProfile(id)}
+        >
+          View Profile {">"}
+        </button>
       </div>
     </div>
   );
@@ -501,6 +502,7 @@ function BecomeMenteeSection() {
 }
 
 function HomePageHeader() {
+  const navigate = useNavigate();
   const { logout } = useAuth0();
   const { user } = useSelector((store: ReduxRootState) => store.ClientSocket);
   const changeUsernameWithDialog = useChangeUsernameWithDialog();
@@ -508,6 +510,10 @@ function HomePageHeader() {
   if (!user) {
     return <p>Waiting for user data...</p>;
   }
+
+  const HandleViewProfile = () => {
+    navigate(`/app/user?id=${user.id}`);
+  };
 
   const { username } = user;
   return (
@@ -538,22 +544,29 @@ function HomePageHeader() {
             color="white"
           />
         </div>
-
-        <button
-          onClick={() =>
-            logout({ logoutParams: { returnTo: window.location.origin } })
-          }
-          style={{
-            border: "2px solid #fff",
-            backgroundColor: "transparent",
-            color: "white",
-            borderRadius: 30,
-            marginTop: 5,
-            fontSize: "0.8rem",
-          }}
-        >
-          Logout
-        </button>
+        <div>
+          <MinimalisticButton
+            onClick={() =>
+              logout({ logoutParams: { returnTo: window.location.origin } })
+            }
+            style={{
+              marginTop: 5,
+              fontSize: "0.8rem",
+            }}
+          >
+            Logout
+          </MinimalisticButton>
+          <MinimalisticButton
+            onClick={HandleViewProfile}
+            style={{
+              marginTop: 5,
+              fontSize: "0.8rem",
+              marginLeft: 10,
+            }}
+          >
+            View Profile
+          </MinimalisticButton>
+        </div>
       </div>
     </div>
   );

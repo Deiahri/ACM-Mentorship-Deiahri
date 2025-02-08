@@ -68,7 +68,7 @@ export async function DBGetWithID(
     // try fetching from cache first.
     const cacheRes = CacheGet(collectionName, id);
     if (cacheRes) {
-      return cacheRes;
+      return { ...cacheRes }; // avoids mutations
     }
 
     // if cache is empty, fetch from db
@@ -79,7 +79,7 @@ export async function DBGetWithID(
     const resComb = { ...res, id };
     // if db hit, then store data in cache.
     CacheSet(collectionName, id, resComb);
-    return resComb;
+    return { ...resComb };
   } catch (error) {
     console.error(`Error in DBGetWithID(${collectionName}, ${id}): ${error}`);
     return undefined;
@@ -145,7 +145,7 @@ export async function DBGet(
     const returnArr: DBObj[] = [];
     res.forEach((doc) => {
       const val = { ...doc.data(), id: doc.id };
-      CacheSet(collectionName, doc.id, val);
+      CacheSet(collectionName, doc.id, { ...val });
       returnArr.push(val);
     });
     return returnArr;
@@ -230,3 +230,4 @@ function CacheDelete(collection: collectionName, id: string) {
   // this is done so subsequent get requests don't need to check DB to see item was deleted.
   DBCache.set(collection + id, undefined);
 }
+

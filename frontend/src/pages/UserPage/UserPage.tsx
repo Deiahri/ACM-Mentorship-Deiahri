@@ -13,7 +13,7 @@ import {
   ObjectAny,
   SocialTypes,
 } from "../../scripts/types";
-import { Instagram, Pen, Pencil, Twitter, XIcon, Youtube } from "lucide-react";
+import { Instagram, Pencil, Twitter, XIcon, Youtube } from "lucide-react";
 import {
   closeDialog,
   DialogInput,
@@ -27,24 +27,76 @@ import { setAlert } from "../../features/Alert/AlertSlice";
 import { useChangeUsernameWithDialog } from "../../hooks/UseChangeUsername";
 
 export default function UserPage() {
+  const [changed, setChanged] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [params, _] = useSearchParams();
   const navigate = useNavigate();
   const id = params.get("id");
   const [user, setUser] = useState<ClientSocketUser | undefined>(undefined);
-  const { ready } = useSelector((store: ReduxRootState) => store.ClientSocket);
+  const { ready, user: self } = useSelector(
+    (store: ReduxRootState) => store.ClientSocket
+  );
+  const dispatch = useDispatch();
 
   const changeUsernameWithDialog = useChangeUsernameWithDialog();
 
   function HandleChangeUsername() {
+    if (!CanMakeChanges) {
+      return;
+    }
     changeUsernameWithDialog((v?: boolean, newUsername?: string) => {
       if (!v || !newUsername) {
         return;
       }
       setUser({
         ...user,
-        username: newUsername
-      })
+        username: newUsername,
+      });
     });
+  }
+
+  function HandleSave() {
+    if (!changed || saving || !user) {
+      return;
+    }
+
+    dispatch(
+      setDialog({
+        title: "Update Profile",
+        subtitle:
+          "Saving overwrites current profile settings. Continue? (This cannot be undone)",
+        buttons: [
+          {
+            text: "Yes",
+            onClick: () => {
+              setSaving(true);
+              dispatch(closeDialog());
+              MyClientSocket?.updateProfile(
+                { ...user, username: undefined },
+                (v: boolean) => {
+                  setSaving(false);
+                  if (!v) {
+                    return;
+                  }
+                  setChanged(false);
+                  dispatch(
+                    setAlert({
+                      title: "Saved",
+                      body: "Successfully saved changes",
+                    })
+                  );
+                }
+              );
+            },
+          },
+        ],
+        buttonContainerStyle: {
+          width: "100%",
+          display: "flex",
+          justifyContent: "end",
+        },
+      })
+    );
   }
 
   useEffect(() => {
@@ -68,6 +120,7 @@ export default function UserPage() {
       ...user,
       socials: newSocials,
     });
+    setChanged(true);
   }
 
   function setBio(bio: string) {
@@ -78,6 +131,7 @@ export default function UserPage() {
       ...user,
       bio: bio,
     });
+    setChanged(true);
   }
 
   function setEducation(newEducation: ObjectAny[]) {
@@ -85,6 +139,7 @@ export default function UserPage() {
       ...user,
       education: newEducation,
     });
+    setChanged(true);
   }
 
   function setCertifications(newCertifications: ObjectAny[]) {
@@ -92,6 +147,7 @@ export default function UserPage() {
       ...user,
       certifications: newCertifications,
     });
+    setChanged(true);
   }
 
   function setExperience(newExperience: ObjectAny[]) {
@@ -99,6 +155,7 @@ export default function UserPage() {
       ...user,
       experience: newExperience,
     });
+    setChanged(true);
   }
 
   function setProjects(newProjects: ObjectAny[]) {
@@ -106,6 +163,7 @@ export default function UserPage() {
       ...user,
       projects: newProjects,
     });
+    setChanged(true);
   }
 
   function setSoftSkills(newSoftSkills: string[]) {
@@ -113,6 +171,11 @@ export default function UserPage() {
       ...user,
       softSkills: newSoftSkills,
     });
+    setChanged(true);
+  }
+
+  if (!self) {
+    return <p>Waiting for your data...</p>;
   }
 
   if (!id) {
@@ -142,7 +205,9 @@ export default function UserPage() {
     bio,
   } = user;
 
-  console.log(user);
+  const { id: selfUserID } = self;
+
+  const CanMakeChanges = selfUserID == id;
   return (
     <div
       style={{
@@ -154,10 +219,13 @@ export default function UserPage() {
         alignItems: "start",
         backgroundColor: "#111",
         flexDirection: "column",
-        padding: '2rem',
+        padding: "2rem",
         boxSizing: "border-box",
       }}
     >
+      {CanMakeChanges && (
+        <SaveButton disabled={!CanMakeChanges} saving={saving} show={changed} onSave={HandleSave} />
+      )}
       <div
         style={{
           maxWidth: 800,
@@ -185,7 +253,14 @@ export default function UserPage() {
         >
           {fName} {mName} {lName}
         </p>
-        <div onClick={HandleChangeUsername} style={{display: 'flex', alignItems: 'center', cursor: 'pointer'}}>
+        <div
+          onClick={CanMakeChanges ? HandleChangeUsername : undefined}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            cursor: CanMakeChanges ? "pointer" : "default",
+          }}
+        >
           <p
             style={{
               color: "white",
@@ -197,30 +272,39 @@ export default function UserPage() {
           >
             aka {username}
           </p>
-          <Pencil style={{marginLeft: '0.5rem'}} size={'1rem'}/>
+          {CanMakeChanges && (
+            <Pencil style={{ marginLeft: "0.5rem" }} size={"1rem"} />
+          )}
         </div>
         <MentorSection
           isMentor={isMentor}
           acceptingMentees={acceptingMentees}
+          disabled={!CanMakeChanges}
         />
-        <BioSection bio={bio} setBio={setBio} />
-        <SocialSection socials={socials} setSocials={setSocials} />
-        <EducationSection education={education} setEducation={setEducation} />
+        <BioSection bio={bio} setBio={setBio} disabled={!CanMakeChanges} />
+        <SocialSection socials={socials} setSocials={setSocials} 
+          disabled={!CanMakeChanges}/>
+        <EducationSection education={education} setEducation={setEducation}
+          disabled={!CanMakeChanges} />
         <CertificationSection
           certifications={certifications}
           setCertifications={setCertifications}
+          disabled={!CanMakeChanges}
         />
         <ExperienceSection
           experience={experience}
           setExperience={setExperience}
+          disabled={!CanMakeChanges}
         />
-        <ProjectSection projects={projects} setProjects={setProjects} />
+        <ProjectSection projects={projects} setProjects={setProjects}
+          disabled={!CanMakeChanges} />
         <SoftSkillSection
           softSkills={softSkills}
           setSoftSkills={setSoftSkills}
+          disabled={!CanMakeChanges}
         />
       </div>
-      <div style={{height: '10vh'}} />
+      <div style={{ height: "10vh" }} />
     </div>
   );
 }
@@ -228,9 +312,11 @@ export default function UserPage() {
 function SoftSkillSection({
   softSkills,
   setSoftSkills,
+  disabled = true,
 }: {
   softSkills?: string[];
   setSoftSkills: AnyFunction;
+  disabled?: boolean;
 }) {
   const [inputSS, setInputSS] = useState("");
   const dispatch = useDispatch();
@@ -266,47 +352,73 @@ function SoftSkillSection({
       <p style={{ color: "white", fontSize: "1.25rem", margin: 0 }}>
         Soft Skills
       </p>
-      <div style={{ marginLeft: 10, display: 'flex', flexDirection: 'column', alignItems: 'start' }}>
-        {(softSkills && softSkills.length > 0) && <div style={{ display: "flex", padding: 5, border: '1px solid #fff4', borderRadius: 15, marginBottom: 10, flexWrap: 'wrap', maxWidth: '80vw' }}>
-          {softSkills?.map((softSkill, sIndex) => {
-            return (
-              <SoftSkill
-                onClose={() => handleRemoveSoftSkill(sIndex)}
-                key={`sS_${sIndex}`}
-                style={{ margin: 5 }}
-              >
-                {softSkill}
-              </SoftSkill>
-            );
-          })}
-        </div>}
+      <div
+        style={{
+          marginLeft: 10,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "start",
+        }}
+      >
+        {softSkills && softSkills.length > 0 && (
+          <div
+            style={{
+              display: "flex",
+              padding: 5,
+              border: "1px solid #fff4",
+              borderRadius: 15,
+              marginBottom: 10,
+              flexWrap: "wrap",
+              maxWidth: "80vw",
+            }}
+          >
+            {softSkills?.map((softSkill, sIndex) => {
+              return (
+                <SoftSkill
+                  onClose={() => handleRemoveSoftSkill(sIndex)}
+                  key={`sS_${sIndex}`}
+                  style={{ margin: 5 }}
+                  disabled={disabled}
+                >
+                  {softSkill}
+                </SoftSkill>
+              );
+            })}
+          </div>
+        )}
         {(!softSkills || softSkills.length == 0) && (
           <p style={{ margin: 0, opacity: 0.5 }}>No soft skills</p>
         )}
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            handleAddSoftSkill();
-          }}
-          style={{marginTop: 5, display: 'flex'}}
-        >
-          <input
-            style={{
-              backgroundColor: "transparent",
-              fontSize: "1rem",
-              border: "1px solid #fffd",
-              padding: 5,
-              paddingLeft: 10,
-              width: '10rem',
-              borderRadius: 10,
-              color: "white",
+        {!disabled && (
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleAddSoftSkill();
             }}
-            placeholder="Add soft skill"
-            value={inputSS}
-            onChange={(e) => setInputSS(e.target.value)}
-          />
-          <MinimalisticButton style={{marginLeft: '0.5rem', fontSize: '0.8rem'}}>Add Soft Skill +</MinimalisticButton>
-        </form>
+            style={{ marginTop: 5, display: "flex" }}
+          >
+            <input
+              style={{
+                backgroundColor: "transparent",
+                fontSize: "1rem",
+                border: "1px solid #fffd",
+                padding: 5,
+                paddingLeft: 10,
+                width: "10rem",
+                borderRadius: 10,
+                color: "white",
+              }}
+              placeholder="Add soft skill"
+              value={inputSS}
+              onChange={(e) => setInputSS(e.target.value)}
+            />
+            <MinimalisticButton
+              style={{ marginLeft: "0.5rem", fontSize: "0.8rem" }}
+            >
+              Add Soft Skill +
+            </MinimalisticButton>
+          </form>
+        )}
       </div>
     </>
   );
@@ -315,9 +427,11 @@ function SoftSkillSection({
 function ExperienceSection({
   experience,
   setExperience,
+  disabled = true,
 }: {
   experience?: ObjectAny[];
   setExperience?: AnyFunction;
+  disabled?: boolean;
 }) {
   function handleExperienceChange(index: number, dat: ObjectAny) {
     if (!setExperience || !experience) {
@@ -359,6 +473,7 @@ function ExperienceSection({
               description={description}
               range={range}
               onChange={(dat: ObjectAny) => handleExperienceChange(eIndex, dat)}
+              disabled={disabled}
             />
           );
         })}
@@ -366,12 +481,14 @@ function ExperienceSection({
           <p style={{ margin: 0, opacity: 0.5 }}>No experience</p>
         )}
       </div>
-      <MinimalisticButton
-        style={{ fontSize: "0.8rem", marginLeft: 10, marginTop: 5 }}
-        onClick={addExperience}
-      >
-        Add Experience +
-      </MinimalisticButton>
+      {!disabled && (
+        <MinimalisticButton
+          style={{ fontSize: "0.8rem", marginLeft: 10, marginTop: 5 }}
+          onClick={addExperience}
+        >
+          Add Experience +
+        </MinimalisticButton>
+      )}
     </>
   );
 }
@@ -379,9 +496,11 @@ function ExperienceSection({
 function ProjectSection({
   projects,
   setProjects,
+  disabled = true,
 }: {
   projects?: ObjectAny[];
   setProjects?: AnyFunction;
+  disabled?: boolean;
 }) {
   function handleProjectChange(index: number, dat: ObjectAny) {
     if (!setProjects || !projects) {
@@ -420,6 +539,7 @@ function ProjectSection({
               description={description}
               range={range}
               onChange={(dat: ObjectAny) => handleProjectChange(pIndex, dat)}
+              disabled={disabled}
             />
           );
         })}
@@ -427,12 +547,14 @@ function ProjectSection({
           <p style={{ margin: 0, opacity: 0.5 }}>No projects</p>
         )}
       </div>
-      <MinimalisticButton
-        style={{ fontSize: "0.8rem", marginLeft: 10, marginTop: 5 }}
-        onClick={addProject}
-      >
-        Add Project +
-      </MinimalisticButton>
+      {!disabled && (
+        <MinimalisticButton
+          style={{ fontSize: "0.8rem", marginLeft: 10, marginTop: 5 }}
+          onClick={addProject}
+        >
+          Add Project +
+        </MinimalisticButton>
+      )}
     </>
   );
 }
@@ -440,15 +562,25 @@ function ProjectSection({
 function CertificationSection({
   certifications,
   setCertifications,
+  disabled = true,
 }: {
   certifications?: ObjectAny[];
   setCertifications?: AnyFunction;
+  disabled?: boolean;
 }) {
-  function handleCertificationChange(newCertificationData: ObjectAny) {
-    console.log("cert", newCertificationData);
+  function handleCertificationChange(cIndex: number, newCertificationData: ObjectAny) {
+    if (!certifications || !setCertifications) {
+      return;
+    }
+    const newCerts = [...certifications];
+    newCerts[cIndex] = newCertificationData
+    setCertifications(newCerts);
   }
 
   function handleAddCertification() {
+    if (!setCertifications) {
+      return;
+    }
     const newCerts = [...(certifications || [])];
     newCerts.push({
       name: "New Certification",
@@ -470,7 +602,8 @@ function CertificationSection({
               key={`cert_${cIndex}`}
               title={name}
               subtitle={issuingOrg}
-              onChange={handleCertificationChange}
+              onChange={(dat: ObjectAny) => handleCertificationChange(cIndex, dat)}
+              disabled={disabled}
             />
           );
         })}
@@ -478,12 +611,15 @@ function CertificationSection({
           <p style={{ margin: 0, opacity: 0.5 }}>No certifications</p>
         )}
       </div>
+      {
+        !disabled &&
       <MinimalisticButton
         style={{ fontSize: "0.8rem", marginLeft: 10, marginTop: 5 }}
         onClick={handleAddCertification}
       >
         Add Certification +
       </MinimalisticButton>
+      }
     </>
   );
 }
@@ -491,9 +627,11 @@ function CertificationSection({
 function MentorSection({
   isMentor,
   acceptingMentees,
+  disabled = true,
 }: {
   isMentor?: boolean;
   acceptingMentees?: boolean;
+  disabled?: boolean;
 }) {
   return (
     <>
@@ -522,9 +660,11 @@ function MentorSection({
 function EducationSection({
   education,
   setEducation,
+  disabled = true,
 }: {
   education?: ObjectAny[];
   setEducation: AnyFunction;
+  disabled?: boolean;
 }) {
   function handleEducationOnChange(index: number, newEduObjRaw: ObjectAny) {
     if (!education) {
@@ -577,6 +717,7 @@ function EducationSection({
               onChange={(dat: ObjectAny) =>
                 handleEducationOnChange(eduIndex, dat)
               }
+              disabled={disabled}
             />
           );
         })}
@@ -591,12 +732,14 @@ function EducationSection({
           <p style={{ margin: 0, opacity: 0.5 }}>No education</p>
         )}
       </div>
+      {!disabled&&
       <MinimalisticButton
         style={{ marginLeft: 10, fontSize: "0.8rem", marginTop: 5 }}
         onClick={handleAddEducationClick}
       >
         Add Education +
       </MinimalisticButton>
+      }
     </>
   );
 }
@@ -604,9 +747,11 @@ function EducationSection({
 function SocialSection({
   socials,
   setSocials,
+  disabled = true,
 }: {
   socials?: ObjectAny[];
   setSocials: AnyFunction;
+  disabled?: boolean;
 }) {
   const dispatch = useDispatch();
   function handleAddSocialClick() {
@@ -746,9 +891,9 @@ function SocialSection({
           return (
             <SocialTile
               key={`social_${socialIndex}`}
-              canRemove={true}
+              canRemove={!disabled}
               onRemove={() => handleRemoveSocial(socialIndex)}
-              canEdit={true}
+              canEdit={!disabled}
               onEdit={() => handleEditSocialClick(socialIndex)}
               social={{ type: type, url: url }}
             />
@@ -758,17 +903,28 @@ function SocialSection({
           <p style={{ margin: 0, opacity: 0.5 }}>No socials</p>
         )}
       </div>
+      {
+        !disabled &&
       <MinimalisticButton
         onClick={handleAddSocialClick}
         style={{ marginTop: 5, marginLeft: 10, fontSize: "0.8rem" }}
       >
         Add Social +
       </MinimalisticButton>
+      }
     </>
   );
 }
 
-function BioSection({ bio, setBio }: { bio?: string; setBio?: AnyFunction }) {
+function BioSection({
+  bio,
+  setBio,
+  disabled = true,
+}: {
+  bio?: string;
+  setBio?: AnyFunction;
+  disabled?: boolean;
+}) {
   return (
     <>
       <p style={{ color: "white", fontSize: "1.25rem", margin: 0 }}>Bio</p>
@@ -793,7 +949,7 @@ function BioSection({ bio, setBio }: { bio?: string; setBio?: AnyFunction }) {
         }}
         value={bio}
         onChange={(e) => setBio && setBio(e.target.value)}
-        // disabled={disabled}
+        disabled={disabled}
       />
     </>
   );
@@ -803,10 +959,12 @@ function SoftSkill({
   children,
   style,
   onClose,
+  disabled = true,
 }: {
   children?: React.ReactNode;
   style?: React.CSSProperties;
   onClose?: AnyFunction;
+  disabled?: boolean;
 }) {
   return (
     <span
@@ -824,12 +982,14 @@ function SoftSkill({
     >
       <span
         style={{
-          fontSize: "0.8 rem"
+          fontSize: "0.8 rem",
         }}
       >
         {children}
       </span>
-      <XIcon size={'1.25rem'} onClick={onClose} cursor={"pointer"} />
+      {!disabled && (
+        <XIcon size={"1.25rem"} onClick={onClose} cursor={"pointer"} />
+      )}
     </span>
   );
 }
@@ -890,12 +1050,14 @@ function ExperienceLikeSection({
   description,
   range,
   onChange,
+  disabled = true,
 }: {
   title?: string;
   subtitle?: string;
   description?: string;
   range?: ObjectAny;
   onChange?: AnyFunction;
+  disabled?: boolean;
 }) {
   const dispatch = useDispatch();
   const { start, end } = range || {};
@@ -904,10 +1066,16 @@ function ExperienceLikeSection({
   const [endMonthIndex, endYear] = end || [null, null];
 
   function handleChangeSubmit(newExperienceLikeData: ObjectAny) {
+    if (disabled) {
+      return;
+    }
     onChange && onChange(newExperienceLikeData);
   }
 
   function handleChangeRange() {
+    if (disabled) {
+      return;
+    }
     dispatch(
       setDialog({
         title: `Change date range`,
@@ -985,14 +1153,23 @@ function ExperienceLikeSection({
   }
 
   function handleChangeTitle(newTitle: string) {
+    if (disabled) {
+      return;
+    }
     onChange && onChange({ title: newTitle, subtitle, description, range });
   }
 
   function handleChangeSubtitle(newSub: string) {
+    if (disabled) {
+      return;
+    }
     onChange && onChange({ title, subtitle: newSub, description, range });
   }
 
   function handleChangeDescription(newDesc: string) {
+    if (disabled) {
+      return;
+    }
     onChange && onChange({ title, subtitle, description: newDesc, range });
   }
 
@@ -1003,6 +1180,7 @@ function ExperienceLikeSection({
           value={title}
           onChange={handleChangeTitle}
           style={{ fontWeight: "bold", minWidth: "0.5rem" }}
+          disabled={disabled}
         />
         {subtitle && (
           <>
@@ -1013,6 +1191,7 @@ function ExperienceLikeSection({
               onChange={handleChangeSubtitle}
               style={{ minWidth: "1rem" }}
               value={subtitle}
+              disabled={disabled}
             />
           </>
         )}
@@ -1022,7 +1201,10 @@ function ExperienceLikeSection({
               |
             </span>
             <div
-              style={{ borderBottom: "1px solid #fff4", cursor: "pointer" }}
+              style={{
+                borderBottom: "1px solid #fff4",
+                cursor: !disabled ? "pointer" : "text",
+              }}
               onClick={handleChangeRange}
             >
               <span>
@@ -1041,7 +1223,7 @@ function ExperienceLikeSection({
           </>
         )}
 
-        <Pencil style={{ marginLeft: 5 }} size={"1rem"} />
+        {!disabled && <Pencil style={{ marginLeft: 5 }} size={"1rem"} />}
       </div>
       <div style={{ marginLeft: 0 }}>
         <textarea
@@ -1067,7 +1249,7 @@ function ExperienceLikeSection({
           onChange={(e) =>
             handleChangeDescription && handleChangeDescription(e.target.value)
           }
-          // disabled={disabled}
+          disabled={disabled}
         />
       </div>
     </div>
@@ -1177,5 +1359,63 @@ function SocialTile({
         />
       )}
     </>
+  );
+}
+
+function SaveButton({
+  show = false,
+  saving,
+  onSave,
+  disabled = true,
+}: {
+  show?: boolean;
+  onSave?: AnyFunction;
+  saving?: boolean;
+  disabled?: boolean;
+}) {
+  if (!show || disabled) {
+    return;
+  }
+  return (
+    <div
+      style={{
+        position: "fixed",
+        left: 0,
+        bottom: 0,
+        width: "100vw",
+        zIndex: 10,
+      }}
+    >
+      <div
+        style={{
+          maxWidth: "90vw",
+          width: "20rem",
+          backgroundColor: "#333",
+          display: "flex",
+          alignItems: "center",
+          marginLeft: 10,
+          marginBottom: 10,
+          padding: 8,
+          borderRadius: 10,
+          border: "1px solid #fff4",
+        }}
+      >
+        <button
+          disabled={saving}
+          style={{
+            backgroundColor: "#26610E",
+            color: "#ddd",
+            fontSize: "1rem",
+            opacity: saving ? 0.5 : 1,
+          }}
+          onClick={onSave}
+        >
+          {!saving ? "Save" : "Saving..."}
+        </button>
+        <span style={{ marginLeft: "0.5rem", fontSize: "1rem" }}>
+          You have unsaved changes.
+        </span>
+      </div>
+    </div>
   );
 }

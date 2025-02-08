@@ -140,7 +140,6 @@ export default class AuthenticatedSocket {
 
     try {
       const res = await DBGet("user", [["OAuthSubID", "==", userSubID]]);
-
       // enter authed no user state if no user data exists for this subID.
       if (!res || res.length == 0) {
         this._enter_authed_nouser_state();
@@ -366,6 +365,7 @@ export default class AuthenticatedSocket {
         acceptingMentees,
         bio
       } = data;
+      console.log('processing update profile data', data);
       const newUserObj: UserObj = {};
 
       // process username
@@ -678,7 +678,7 @@ export default class AuthenticatedSocket {
 
       let allMentors: Array<ObjectAny>;
       try {
-        allMentors = await DBGet("user", [["isMentor", "==", true]], "and");
+        allMentors = await DBGet("user", [["isMentor", "==", true]]);
         for (let mentorIndex in allMentors) {
           const mentor = allMentors[mentorIndex];
           allMentors[mentorIndex] = ModifyUserForPublic(mentor);
@@ -1601,13 +1601,14 @@ async function GetUserData(targetUserID: string, requestingUserID?: string) {
   let userData: DBObj;
   let selfData: DBObj;
 
-  userData = await DBGetWithID('user', targetUserID);
-  if (!userData) {
+  let userDataRaw = await DBGetWithID('user', targetUserID);
+  if (!userDataRaw) {
     throw new Error('Requested user does not exist');
   }
   if (!requestingUserID) {
-    return userData;
+    return userDataRaw;
   }
+  userData = { ...userDataRaw };
 
   selfData = await DBGetWithID('user', requestingUserID);
   if (!selfData) {
