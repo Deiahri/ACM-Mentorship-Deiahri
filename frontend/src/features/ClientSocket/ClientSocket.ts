@@ -45,7 +45,9 @@ export function CreateClientSocketConnection(
   CreatingConnection = true;
   console.log(
     "establishing socket connection with",
-    import.meta.env.VITE_SERVER_SOCKET_URL
+    import.meta.env.VITE_SERVER_SOCKET_URL,
+    "\n",
+    userToken
   );
   const socket = io(import.meta.env.VITE_SERVER_SOCKET_URL, {
     auth: {
@@ -383,16 +385,25 @@ class ClientSocket {
     );
   }
 
-  GetMentorshipRequestBetweenMentorMentee(mentorID: string, menteeID: string, callback: AnyFunction) {
+  GetMentorshipRequestBetweenMentorMentee(
+    mentorID: string,
+    menteeID: string,
+    callback: AnyFunction
+  ) {
     if (!mentorID || !menteeID) {
       callback(false);
       return;
     }
-    this.socket.emit('getMentorshipRequestBetweenUsers', mentorID, menteeID, (v: ObjectAny | undefined) => {
-      setTimeout(() => {
-        callback(v);
-      }, 500);
-    });
+    this.socket.emit(
+      "getMentorshipRequestBetweenUsers",
+      mentorID,
+      menteeID,
+      (v: ObjectAny | undefined) => {
+        setTimeout(() => {
+          callback(v);
+        }, 500);
+      }
+    );
   }
 
   /**
@@ -421,8 +432,7 @@ class ClientSocket {
       console.error("Expected initial data to be object", initialData);
       return;
     }
-    const { user, assessments, assessmentQuestions } =
-      initialData as ObjectAny;
+    const { user, assessments, assessmentQuestions } = initialData as ObjectAny;
     if (!user) {
       console.error("initialData is missing user payload", initialData);
       return;
@@ -469,7 +479,10 @@ class ClientSocket {
       if (!this.user.mentorshipRequests) {
         return;
       }
-      this.user.mentorshipRequests.splice(this.user.mentorshipRequests.indexOf(id), 1);
+      this.user.mentorshipRequests.splice(
+        this.user.mentorshipRequests.indexOf(id),
+        1
+      );
       if (
         (action == "accepted" || action == "declined") &&
         this.user.id == menteeID
@@ -512,7 +525,7 @@ class ClientSocket {
           })
         );
       }
-      console.log('mentorshipRequests', this.user.mentorshipRequests);
+      console.log("mentorshipRequests", this.user.mentorshipRequests);
       this.user.mentorshipRequests.push(id);
     }
   }

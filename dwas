@@ -1,0 +1,155 @@
+[33mcommit e5c2b5fa6d866d429c4ea8d77f79690655088f62[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mdev[m[33m, [m[1;31morigin/dev[m[33m)[m
+Author: Junda Yin <junda.yin1@gmail.com>
+Date:   Sun Feb 9 00:21:04 2025 -0600
+
+    more debugging stuff
+
+[33mcommit 232204dbd2402e69fcf9876184bc15326340912b[m
+Author: Junda Yin <junda.yin1@gmail.com>
+Date:   Sat Feb 8 23:48:21 2025 -0600
+
+    added debugging stuff
+
+[33mcommit 69cfe00e8bc3aae539611b3f21ff8f0bbe54c94a[m
+Author: Junda Yin <junda.yin1@gmail.com>
+Date:   Sat Feb 8 23:40:26 2025 -0600
+
+    Fixed URI_Base ommision
+
+[33mcommit 64e209a2fefeb4c49d6714f4101c57bcece9ab59[m
+Author: Junda Yin <junda.yin1@gmail.com>
+Date:   Sat Feb 8 23:31:21 2025 -0600
+
+    Added env var for frontend to change auth0 redirect uri
+
+[33mcommit 487fed2795f05f281098247944a73161cc6d373f[m
+Author: Junda Yin <junda.yin1@gmail.com>
+Date:   Sat Feb 8 23:23:57 2025 -0600
+
+    Altered scripts to run on free-tier
+
+[33mcommit 012ecf58cdad5fb0f1fc2bc187bb73db97972145[m
+Author: Junda Yin <junda.yin1@gmail.com>
+Date:   Sat Feb 8 23:14:43 2025 -0600
+
+    Added scripts for building and running
+
+[33mcommit 8b27d19704b05321ee6534e0954412893e4f83d0[m
+Author: Junda Yin <junda.yin1@gmail.com>
+Date:   Sat Feb 8 23:07:59 2025 -0600
+
+    Fixed TS compile errors
+
+[33mcommit 1ca5ecb86c5c1026c15b48db591ea6cd0e1146ed[m
+Author: Junda Yin <junda.yin1@gmail.com>
+Date:   Sat Feb 8 22:56:10 2025 -0600
+
+    changed required envs for backend
+
+[33mcommit e07e071e7aa0912b6592f95afec6965895197b24[m[33m ([m[1;31morigin/master[m[33m, [m[1;32mmaster[m[33m)[m
+Author: Junda Yin <junda.yin1@gmail.com>
+Date:   Sat Feb 8 22:52:46 2025 -0600
+
+    Finished request sending functionality
+
+[33mcommit e1110d4d314824ebcb6d0d24e448263d1cd1a815[m
+Author: Junda Yin <junda.yin1@gmail.com>
+Date:   Sat Feb 8 19:52:06 2025 -0600
+
+    Added mentorshipRequests to user object to save on read requests
+
+[33mcommit fd2f536230f8292f8cb09ae895cb56531e9fc2ae[m
+Author: Junda Yin <junda.yin1@gmail.com>
+Date:   Sat Feb 8 16:00:55 2025 -0600
+
+    Fixed profile certification bug, added testing discriminator to delete files created during testing
+
+[33mcommit 69367fec4232b193bad624d7b18e314f8965086b[m
+Author: Junda Yin <junda.yin1@gmail.com>
+Date:   Sat Feb 8 11:55:36 2025 -0600
+
+    Fixed update profile lName = fName bug + added name changing to profile section
+
+[33mcommit a6c6fb67f3361bf246d6995a706efe6c40f16e71[m
+Author: Junda Yin <junda.yin1@gmail.com>
+Date:   Sat Feb 8 00:23:46 2025 -0600
+
+    Finished all functionality for user profile page (except for pfp)
+
+[33mcommit ef4937b4751fcca0ee1290b851c21d8ac6916bd9[m
+Author: Junda Yin <junda.yin1@gmail.com>
+Date:   Fri Feb 7 22:07:03 2025 -0600
+
+    Finishing up profile editing feature + fixed OAuthSubID deleting bug
+
+[33mcommit 78060ebcf45b1b19466986444f7cc7cc49c868e1[m
+Author: Junda Yin <junda.yin1@gmail.com>
+Date:   Fri Feb 7 17:49:26 2025 -0600
+
+    Made significant progress on user page
+
+[33mcommit 5ee1801a16a905d7e5746d2888758b1bdcfe3c74[m
+Author: Junda Yin <junda.yin1@gmail.com>
+Date:   Fri Feb 7 01:50:05 2025 -0600
+
+    Implemented assessments feature
+
+[33mcommit be8ff509eb466874329c560c6e4235fe55250e2e[m
+Author: Junda Yin <junda.yin1@gmail.com>
+Date:   Thu Feb 6 21:35:57 2025 -0600
+
+    Added assessmentQuestions to DB, and sending it via initialData. Also began dev on create assessment page
+
+[33mcommit 638f1482763fb3cb737176e62f17eda0087cf716[m
+Author: Junda Yin <junda.yin1@gmail.com>
+Date:   Thu Feb 6 13:59:14 2025 -0600
+
+    added change username functionality
+
+[33mcommit 5f39e1cba76e24f5aaf396720b6222bf0c8443de[m
+Author: Junda Yin <junda.yin1@gmail.com>
+Date:   Thu Feb 6 13:29:26 2025 -0600
+
+    added environment var validation to backend
+
+[33mcommit c07928b498bd86c68584e0f66fc8fb308fbb30a6[m
+Author: Junda Yin <junda.yin1@gmail.com>
+Date:   Thu Feb 6 12:32:00 2025 -0600
+
+    Fixed removeMentee and removeMentor, began modifying frontend
+
+[33mcommit c4727f20ccae11eccd5d592d6b0247a87b0b1491[m
+Author: Junda Yin <junda.yin1@gmail.com>
+Date:   Wed Feb 5 18:03:24 2025 -0600
+
+    Changed implementation of data sending and syncing, implemented getUser
+
+[33mcommit 75ab2883ca6bd180e29c3d0a3c23ba528b674c71[m
+Author: Junda Yin <junda.yin1@gmail.com>
+Date:   Wed Feb 5 11:17:33 2025 -0600
+
+    added mentorship features (incompletely tested)
+
+[33mcommit 77b2af532746f51629c00e07ff4b66ab5c71dc69[m
+Author: Junda Yin <junda.yin1@gmail.com>
+Date:   Sun Feb 2 21:10:40 2025 -0600
+
+    added update profile functionality
+
+[33mcommit 70af9846dd179c1b1af27899019f6dcf98c9e047[m
+Author: Junda Yin <junda.yin1@gmail.com>
+Date:   Sun Feb 2 17:23:20 2025 -0600
+
+    Created AuthenticatedSocket, socketServer, and tests for backend. Also connected frontend with OAuth API.
+
+[33mcommit 03349c3b05712ea9b5c8252d163354a387160013[m
+Author: Junda Yin <junda.yin1@gmail.com>
+Date:   Sun Feb 2 09:14:48 2025 -0600
+
+    Added base files for mentorship portal
+
+[33mcommit a33ebe152d533087b126a97b96866a559ea97d16[m
+Author: Junda Yin <junda.yin1@gmail.com>
+Date:   Fri Jan 31 18:56:08 2025 -0600
+
+    Added initial files for ACM-Mentorship
