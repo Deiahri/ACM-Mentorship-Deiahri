@@ -1,8 +1,26 @@
 import { io, Socket } from "socket.io-client";
 import { Dispatch } from "@reduxjs/toolkit";
-import { isAssessmentQuestions, isClientDataPayloadType, isClientSocketState, isSubmitAssessmentAction } from "../../scripts/validation";
-import { setAvailableAssessmentQuestions, setClientAssessments, setClientReady, setClientState, setClientUser, setMentorshipRequests } from "./ClientSocketSlice";
-import { AnyFunction, AssessmentQuestion, ObjectAny } from "../../scripts/types";
+import {
+  isAssessmentQuestions,
+  isClientDataPayloadType,
+  isClientSocketState,
+  isMentorshipRequestObject,
+  isSubmitAssessmentAction,
+} from "../../scripts/validation";
+import {
+  setAvailableAssessmentQuestions,
+  setClientAssessments,
+  setClientReady,
+  setClientState,
+  setClientUser,
+  setMentorshipRequests,
+} from "./ClientSocketSlice";
+import {
+  AnyFunction,
+  AssessmentQuestion,
+  MentorshipRequestObj,
+  ObjectAny,
+} from "../../scripts/types";
 import { setAlert } from "../Alert/AlertSlice";
 import { NothingFunction } from "../../scripts/tools";
 
@@ -11,98 +29,120 @@ export let MyClientSocket: ClientSocket | undefined = undefined;
 const MAX_FAILED_CONNECTION_ATTEMPTS = 3;
 let CreatingConnection = false;
 /**
- * 
+ *
  * @param dispatch Redux dispatch function. Used by server socket to update store when needed
  */
-export function CreateClientSocketConnection(userToken: string, dispatch: Dispatch) {
+export function CreateClientSocketConnection(
+  userToken: string,
+  dispatch: Dispatch
+) {
   if (MyClientSocket || CreatingConnection) {
     // should not create new socket connection if one already exists, or in process of creating one.
-    console.log('already connecting or connected.');
+    console.log("already connecting or connected.");
     return;
   }
-  
+
   // set creating = true, so subsequent calls while connecting are denied.
   CreatingConnection = true;
-  console.log('establishing socket connection with', import.meta.env.VITE_SERVER_SOCKET_URL);
+  console.log(
+    "establishing socket connection with",
+    import.meta.env.VITE_SERVER_SOCKET_URL
+  );
   const socket = io(import.meta.env.VITE_SERVER_SOCKET_URL, {
     auth: {
-      token: `Bearer ${userToken}`
-    }
+      token: `Bearer ${userToken}`,
+    },
   });
 
   let failedConnects = 0;
-  socket.on('connect_error', async () => {
+  socket.on("connect_error", async () => {
     failedConnects++;
     if (failedConnects >= MAX_FAILED_CONNECTION_ATTEMPTS) {
       socket.disconnect();
-      console.log('Failed to connect. Disconnecting');
+      console.log("Failed to connect. Disconnecting");
       return;
     }
-    console.log('failed to connect, trying again.', failedConnects);
+    console.log("failed to connect, trying again.", failedConnects);
   });
 
-  socket.once('connect', () => {
+  socket.once("connect", () => {
     MyClientSocket = new ClientSocket(socket, dispatch);
   });
 }
 
 type ClientMessagePayload = {
-  title?: string,
-  body?: string
+  title?: string;
+  body?: string;
 };
 
 type ClientCreateUserPayload = {
-  fName: string,
-  mName?: string,
-  lName: string,
-  username: string
+  fName: string;
+  mName?: string;
+  lName: string;
+  username: string;
 };
 
 export type ClientSocketUser = {
-  fName?: string,
-  mName?: string,
-  lName?: string,
-  username?: string,
-  id?: string,
-  socials?: ObjectAny[],
-  experience?: ObjectAny[],
-  education?: ObjectAny[],
-  certifications?: ObjectAny[],
-  projects?: ObjectAny[],
-  softSkills?: string[],
-  isMentor?: boolean,
-  isMentee?: boolean,
-  acceptingMentees?: boolean,
-  assessments?: string[],
-  menteeIDs?: string[],
-  mentorID?: string,
-  DisplayPictureURL?: string,
-  bio?: string
-}
+  fName?: string;
+  mName?: string;
+  lName?: string;
+  username?: string;
+  id?: string;
+  socials?: ObjectAny[];
+  experience?: ObjectAny[];
+  education?: ObjectAny[];
+  certifications?: ObjectAny[];
+  projects?: ObjectAny[];
+  softSkills?: string[];
+  isMentor?: boolean;
+  isMentee?: boolean;
+  acceptingMentees?: boolean;
+  assessments?: string[];
+  menteeIDs?: string[];
+  mentorID?: string;
+  DisplayPictureURL?: string;
+  bio?: string;
+  mentorshipRequests?: string[];
+};
 
-export type ClientDataPayloadType = 'initialData' | 'mentorshipRequest';
-export const ClientDataPayloadTypes = ['initialData', 'mentorshipRequest'];
+export type ClientDataPayloadType = "initialData" | "mentorshipRequest";
+export const ClientDataPayloadTypes = ["initialData", "mentorshipRequest"];
 
-export type SubmitAssessmentAction = 'create' | 'publish' | 'unpublish' | 'delete' | 'edit';
-export const SubmitAssessmentActions = ['create', 'publish', 'unpublish', 'delete', 'edit'];
+export type SubmitAssessmentAction =
+  | "create"
+  | "publish"
+  | "unpublish"
+  | "delete"
+  | "edit";
+export const SubmitAssessmentActions = [
+  "create",
+  "publish",
+  "unpublish",
+  "delete",
+  "edit",
+];
 export type SubmitAssessmentPayload = {
-  action?: SubmitAssessmentAction,
-  questions?: AssessmentQuestion[],
-  id?: string,
-  published?: boolean
+  action?: SubmitAssessmentAction;
+  questions?: AssessmentQuestion[];
+  id?: string;
+  published?: boolean;
 };
 
 type ClientDataPayload = {
-  type: ClientDataPayloadType,
-  data: Object
-}
+  type: ClientDataPayloadType;
+  data: Object;
+};
 
-export const ClientSocketStates = ['connecting', 'authed_nouser', 'authed_user'];
-export type ClientSocketState = 'connecting' | 'authed_nouser' | 'authed_user';
+export const ClientSocketStates = [
+  "connecting",
+  "authed_nouser",
+  "authed_user",
+];
+export type ClientSocketState = "connecting" | "authed_nouser" | "authed_user";
 class ClientSocket {
   dispatch: Dispatch;
   socket: Socket;
-  state: ClientSocketState = 'connecting';
+  state: ClientSocketState = "connecting";
   user: ClientSocketUser = {};
   assessments: string[] = [];
   mentorshipRequests: ObjectAny[] = [];
@@ -121,14 +161,14 @@ class ClientSocket {
     if (this.submitting) {
       return;
     }
-    const CreateAccountErrorHeader = 'Create Account Error';
-    if (this.state != 'authed_nouser') {
-      this.showDialog(CreateAccountErrorHeader, 'You already have an account');
+    const CreateAccountErrorHeader = "Create Account Error";
+    if (this.state != "authed_nouser") {
+      this.showDialog(CreateAccountErrorHeader, "You already have an account");
       return;
     }
 
-    if (typeof(params) != 'object') {
-      this.showDialog(CreateAccountErrorHeader, 'Params are invalid.');
+    if (typeof params != "object") {
+      this.showDialog(CreateAccountErrorHeader, "Params are invalid.");
       return;
     }
 
@@ -142,10 +182,14 @@ class ClientSocket {
     }
 
     this.submitting = true;
-    this.socket.emit('createUser', { fName, mName, lName, username }, (v: boolean) => {
-      callback && callback(v);
-      this.submitting = false;
-    });
+    this.socket.emit(
+      "createUser",
+      { fName, mName, lName, username },
+      (v: boolean) => {
+        callback && callback(v);
+        this.submitting = false;
+      }
+    );
   }
 
   updateProfile(params: ClientSocketUser, callback?: Function) {
@@ -153,9 +197,9 @@ class ClientSocket {
       callback && callback(false);
       return;
     }
-    console.log('updatingProfile', params);
+    console.log("updatingProfile", params);
     this.submitting = true;
-    this.socket.emit('updateProfile', params, (v: boolean) => {
+    this.socket.emit("updateProfile", params, (v: boolean) => {
       callback && callback(v);
       this.submitting = false;
 
@@ -169,17 +213,15 @@ class ClientSocket {
       return;
     }
     this.submitting = true;
-    this.socket.emit('getUser', this.user.id, (v: ObjectAny) => {
+    this.socket.emit("getUser", this.user.id, (v: ObjectAny) => {
       this.submitting = false;
       callback && callback(v);
       this.dispatch(setClientUser(v));
     });
   }
 
-  
-
   submitAssessment(payload: SubmitAssessmentPayload, callbackRaw?: Function) {
-    let callback = (callbackRaw || NothingFunction);
+    let callback = callbackRaw || NothingFunction;
     const { action, questions, id, published } = payload;
 
     if (this.submitting) {
@@ -187,26 +229,38 @@ class ClientSocket {
       return;
     }
 
-    
     if (!action || !isSubmitAssessmentAction(action)) {
       callback(false);
-      this.dispatch(setAlert({ title: 'Invalid Assessment Action', body: `Not sure what action ${action} is.` }));
+      this.dispatch(
+        setAlert({
+          title: "Invalid Assessment Action",
+          body: `Not sure what action ${action} is.`,
+        })
+      );
       return;
     }
-    
-    if (action == 'create') {
+
+    if (action == "create") {
       this.submitting = true;
-      this.socket.emit('submitAssessment', { action, questions }, (v: boolean | string) => {
-        callback(v);
-        this.submitting = false;
-      });
-    } else if (action == 'edit') {
-      console.log('editing');
+      this.socket.emit(
+        "submitAssessment",
+        { action, questions },
+        (v: boolean | string) => {
+          callback(v);
+          this.submitting = false;
+        }
+      );
+    } else if (action == "edit") {
+      console.log("editing");
       this.submitting = true;
-      this.socket.emit('submitAssessment', { action, questions, id }, (v: boolean | string) => {
-        callback(v);
-        this.submitting = false;
-      });
+      this.socket.emit(
+        "submitAssessment",
+        { action, questions, id },
+        (v: boolean | string) => {
+          callback(v);
+          this.submitting = false;
+        }
+      );
     }
     // this.dispatch(setAlert({ title: 'Yep', body: 'Alright' }));
 
@@ -215,63 +269,71 @@ class ClientSocket {
 
   private InstallBaseListeners() {
     this._cleanupSocketEvents();
-    this._addStateSocketEvent('state', (state: string) => {
-      console.log('state', state);
+    this._addStateSocketEvent("state", (state: string) => {
+      console.log("state", state);
       if (!isClientSocketState(state)) {
-        console.error('Invalid State', state);
+        console.error("Invalid State", state);
         return;
       }
       this.state = state;
       this.dispatch(setClientState(state));
     });
 
-    this._addStateSocketEvent('message', (messagePayload: ClientMessagePayload) => {
-      console.log('received message', messagePayload);
-      if (typeof(messagePayload) != 'object') {
-        console.error('Received a message with invalid format.', messagePayload);
-        return;
+    this._addStateSocketEvent(
+      "message",
+      (messagePayload: ClientMessagePayload) => {
+        console.log("received message", messagePayload);
+        if (typeof messagePayload != "object") {
+          console.error(
+            "Received a message with invalid format.",
+            messagePayload
+          );
+          return;
+        }
+        const { title, body } = messagePayload;
+        this.showDialog(title, body);
       }
-      const { title, body } = messagePayload;
-      this.showDialog(title, body);
-    });
+    );
 
-    this._addStateSocketEvent('data', (payload: ClientDataPayload) => {
-      console.log('received data', payload);
-      if (typeof(payload) != 'object') {
-        console.error('Received invalid payload');
+    this._addStateSocketEvent("data", (payload: ClientDataPayload) => {
+      console.log("received data", payload);
+      if (typeof payload != "object") {
+        console.error("Received invalid payload");
         return;
       }
       const { type, data } = payload;
       if (!type || !data) {
-        console.error('Payload is missing parameters');
+        console.error("Payload is missing parameters");
         return;
       }
 
       if (!isClientDataPayloadType(type)) {
-        console.error('Payload type is invalid.', type);
+        console.error("Payload type is invalid.", type);
         return;
       }
 
       let processFunc: Function;
-      if (type == 'initialData') {
+      if (type == "initialData") {
         processFunc = this._handleInitialData.bind(this);
-      } else if (type == 'mentorshipRequest') {
+      } else if (type == "mentorshipRequest") {
         processFunc = this._handleMentorshipRequests.bind(this);
       } else {
-        console.error('Unhandled data type:', type);
+        console.error("Unhandled data type:", type);
         return;
       }
       processFunc(data);
     });
-    this.dispatch(setClientReady(true));
+    setTimeout(() => {
+      this.dispatch(setClientReady(true));
+    }, 250);
   }
 
   GetAssessment(assessmentID: string, callbackRaw: Function) {
     const callback = callbackRaw || NothingFunction;
     this.submitting = true;
-    this.socket.emit('getAssessment', assessmentID, (v: Object | boolean) => {
+    this.socket.emit("getAssessment", assessmentID, (v: Object | boolean) => {
       this.submitting = false;
-      if (typeof(v) == 'boolean') {
+      if (typeof v == "boolean") {
         callback(false);
         return;
       }
@@ -282,9 +344,9 @@ class ClientSocket {
   GetUser(userID: string, callbackRaw: Function) {
     const callback = callbackRaw || NothingFunction;
     this.submitting = true;
-    this.socket.emit('getUser', userID, (v: Object | boolean) => {
+    this.socket.emit("getUser", userID, (v: Object | boolean) => {
       this.submitting = false;
-      if (typeof(v) == 'boolean') {
+      if (typeof v == "boolean") {
         callback(false);
         return;
       }
@@ -295,9 +357,9 @@ class ClientSocket {
   GetAllMentors(callbackRaw?: Function) {
     const callback = callbackRaw || NothingFunction;
     this.submitting = true;
-    this.socket.emit('getAllMentors', (v: Object | boolean) => {
+    this.socket.emit("getAllMentors", (v: Object | boolean) => {
       this.submitting = false;
-      if (typeof(v) == 'boolean') {
+      if (typeof v == "boolean") {
         callback(false);
         return;
       }
@@ -307,6 +369,30 @@ class ClientSocket {
 
   BecomeMentor(cb?: Function) {
     this.updateProfile({ isMentor: true, acceptingMentees: true }, cb);
+  }
+
+  SendMentorshipRequest(userID: string, callback?: Function) {
+    const cb = callback || NothingFunction;
+    this.submitting = true;
+    this.socket.emit(
+      "mentorshipRequest",
+      { action: "send", mentorID: userID },
+      (v: boolean) => {
+        cb(v);
+      }
+    );
+  }
+
+  GetMentorshipRequestBetweenMentorMentee(mentorID: string, menteeID: string, callback: AnyFunction) {
+    if (!mentorID || !menteeID) {
+      callback(false);
+      return;
+    }
+    this.socket.emit('getMentorshipRequestBetweenUsers', mentorID, menteeID, (v: ObjectAny | undefined) => {
+      setTimeout(() => {
+        callback(v);
+      }, 500);
+    });
   }
 
   /**
@@ -331,30 +417,103 @@ class ClientSocket {
   }
 
   private _handleInitialData(initialData: unknown) {
-    if (!initialData || typeof(initialData) != 'object') {
-      console.error('Expected initial data to be object', initialData);
+    if (!initialData || typeof initialData != "object") {
+      console.error("Expected initial data to be object", initialData);
       return;
     }
-    const { user, assessments, mentorshipRequests, assessmentQuestions } = initialData as ObjectAny;
+    const { user, assessments, assessmentQuestions } =
+      initialData as ObjectAny;
     if (!user) {
-      console.error('initialData is missing user payload', initialData);
+      console.error("initialData is missing user payload", initialData);
       return;
     }
     this.dispatch(setClientUser(user));
-    this.user = user;
+    this.user = { ...user };
     this.dispatch(setClientAssessments(assessments));
     this.assessments = assessments;
-    this.dispatch(setMentorshipRequests(mentorshipRequests));
-    this.mentorshipRequests = mentorshipRequests;
 
-    if(isAssessmentQuestions(assessmentQuestions)) {
+    if (isAssessmentQuestions(assessmentQuestions)) {
       this.dispatch(setAvailableAssessmentQuestions(assessmentQuestions));
     } else {
-      console.error("Received unexpected format for available assessment questions");
+      console.error(
+        "Received unexpected format for available assessment questions"
+      );
     }
   }
 
-  private _handleMentorshipRequests() {
+  private async _handleMentorshipRequests(
+    mentorshipRequestObj: MentorshipRequestObj
+  ) {
+    if (!isMentorshipRequestObject(mentorshipRequestObj)) {
+      console.error(
+        "Received mentorship object that was invalid",
+        mentorshipRequestObj
+      );
+      return;
+    }
 
+    if (!this.user.mentorshipRequests) {
+      this.user.mentorshipRequests = [];
+    }
+
+    const { id, mentorID, menteeID, action } = mentorshipRequestObj;
+    if (!mentorID || !id || !menteeID) {
+      console.error(
+        "Received mentorship object that was missing a parameter",
+        mentorshipRequestObj
+      );
+      return;
+    }
+
+    if (action) {
+      if (!this.user.mentorshipRequests) {
+        return;
+      }
+      this.user.mentorshipRequests.splice(this.user.mentorshipRequests.indexOf(id), 1);
+      if (
+        (action == "accepted" || action == "declined") &&
+        this.user.id == menteeID
+      ) {
+        let mentorObj = await new Promise((res) => {
+          this.GetUser(mentorID, (v: ObjectAny | boolean) => {
+            res(v);
+          });
+        });
+
+        if (!mentorObj || typeof mentorObj != "object") {
+          return;
+        }
+
+        const { fName, lName } = mentorObj as ObjectAny;
+        this.dispatch(
+          setAlert({
+            title: `Mentorship request ${action}`,
+            body: `${fName} ${lName} ${action} your request.`,
+          })
+        );
+      }
+    } else {
+      if (mentorID == this.user.id) {
+        let menteeObj = await new Promise((res) => {
+          this.GetUser(menteeID, (v: ObjectAny | boolean) => {
+            res(v);
+          });
+        });
+
+        if (!menteeObj || typeof menteeObj != "object") {
+          return;
+        }
+
+        const { fName, lName } = menteeObj as ObjectAny;
+        this.dispatch(
+          setAlert({
+            title: `Mentorship request received`,
+            body: `${fName} ${lName} sent you a mentorship request.`,
+          })
+        );
+      }
+      console.log('mentorshipRequests', this.user.mentorshipRequests);
+      this.user.mentorshipRequests.push(id);
+    }
   }
 }

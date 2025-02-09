@@ -301,6 +301,7 @@ export default function UserPage() {
           acceptingMentees={acceptingMentees}
           disabled={!CanMakeChanges}
           isCurrentUserMentor={currentUserMentorID == id}
+          mentorData={user}
         />
         <BioSection bio={bio} setBio={setBio} disabled={!CanMakeChanges} />
         <SocialSection
@@ -778,12 +779,14 @@ function MentorSection({
   isMentor,
   acceptingMentees,
   isCurrentUserMentor,
-}: // disabled = true,
-{
+  mentorData,
+  disabled = true,
+}: {
   isMentor?: boolean;
   acceptingMentees?: boolean;
   disabled?: boolean;
   isCurrentUserMentor?: boolean;
+  mentorData: ClientSocketUser;
 }) {
   return (
     <>
@@ -799,7 +802,7 @@ function MentorSection({
             isCurrentUserMentor ? (
               <span>This is your mentor</span>
             ) : (
-              <MenteeRequestSection />
+              disabled && <MentorshipRequestSection mentorData={mentorData} />
             )
           ) : (
             <span style={{ margin: 0 }}>Not accepting mentees</span>
@@ -1177,22 +1180,79 @@ function SoftSkill({
   );
 }
 
-function MenteeRequestSection() {
+function MentorshipRequestSection({
+  mentorData,
+}: {
+  mentorData: ClientSocketUser;
+}) {
+  const [requestExists, setRequestExists] = useState<boolean | undefined>(
+    undefined
+  );
+  const [requesting, setRequesting] = useState(false);
   const [params, _] = useSearchParams();
   const id = params.get("id");
-  const { user } = useSelector(
-    (store: ReduxRootState) => store.ClientSocket
-  );
+  const { user } = useSelector((store: ReduxRootState) => store.ClientSocket);
   const dispatch = useDispatch();
+
+  function CheckStatus() {
+    if (!user || !id || !user.id || !MyClientSocket) {
+      return;
+    }
+    MyClientSocket.GetMentorshipRequestBetweenMentorMentee(
+      id,
+      user.id,
+      (v: ObjectAny | undefined) => {
+        setRequestExists(v ? true : false);
+      }
+    );
+  }
+
+  useEffect(() => {
+    CheckStatus();
+  }, [mentorData, user]);
 
   if (!user || !id) {
     return;
   }
 
   function handleRequestMentorshipClick() {
-    dispatch(setDialog({
-      title: 'SKD'
-    }))
+    dispatch(
+      setDialog({
+        title: `Request Mentorship from ${mentorData.fName}`,
+        subtitle: `You sure you want to send a mentorship request to ${mentorData.fName} ${mentorData.lName}?`,
+        buttons: [
+          {
+            text: "Yes",
+            useDisableTill: true,
+            onClick: (_, enableCallback) => {
+              if (!MyClientSocket || !id) {
+                return;
+              }
+
+              dispatch(closeDialog());
+              setRequesting(true);
+              MyClientSocket.SendMentorshipRequest(id, (v: boolean) => {
+                setRequesting(false);
+                enableCallback && enableCallback();
+                if (v) {
+                  setTimeout(() => {
+                    dispatch(
+                      setAlert({
+                        title: "Request Sent!",
+                        body: `Your request has been set to ${user?.fName}`,
+                      })
+                    );
+                    setTimeout(() => {
+                      CheckStatus();
+                    }, 250);
+                  }, 250);
+                }
+              });
+            },
+          },
+        ],
+      })
+    );
   }
 
   return (
@@ -1205,7 +1265,21 @@ function MenteeRequestSection() {
         margin: 3,
       }}
     >
-      <MinimalisticButton onClick={handleRequestMentorshipClick} style={{ margin: 0, fontSize: "1rem" }}>Request Mentorship</MinimalisticButton>
+      <MinimalisticButton
+        disabled={
+          requesting || requestExists || typeof requestExists == "undefined"
+        }
+        onClick={handleRequestMentorshipClick}
+        style={{ margin: 0, fontSize: "1rem" }}
+      >
+        {requesting
+          ? "Requesting Mentorship..."
+          : typeof requestExists == "undefined"
+          ? "Checking..."
+          : requestExists
+          ? "Request Sent"
+          : "Request Mentorship"}
+      </MinimalisticButton>
     </div>
   );
 }
@@ -1434,14 +1508,14 @@ function ExperienceLikeSection({
               {start && (
                 <span>
                   {getMonthName(start[0])} {Math.abs(start[1])}{" "}
-                  {start[1] < 0 ? "B.C." : (start[1] < 1776 ? "A.D." : '')}
+                  {start[1] < 0 ? "B.C." : start[1] < 1776 ? "A.D." : ""}
                 </span>
               )}
               <span style={{ marginRight: "0.2rem" }}>-</span>
               <span>
                 {end
                   ? `${getMonthName(end[0])} ${Math.abs(end[1])} ${
-                      end[1] < 0 ? "B.C." : (end[1] < 1700 ? "A.D." : '')
+                      end[1] < 0 ? "B.C." : end[1] < 1700 ? "A.D." : ""
                     }`
                   : "Current"}
               </span>

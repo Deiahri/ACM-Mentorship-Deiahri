@@ -1,7 +1,7 @@
 import React from "react";
 import { AnyFunction } from "../../scripts/types";
 
-export default function MinimalisticButton({ children, onClick, style }: { children?: React.ReactNode, onClick?: AnyFunction, style?: React.CSSProperties }) {
+export default function MinimalisticButton({ children, onClick, style, disabled }: { children?: React.ReactNode, onClick?: AnyFunction, style?: React.CSSProperties, disabled?: boolean }) {
   return (
     <button
       style={{
@@ -13,9 +13,11 @@ export default function MinimalisticButton({ children, onClick, style }: { child
         paddingTop: 8,
         paddingBottom: 8,
         fontSize: "1rem",
+        opacity: disabled ? 0.5 : 1,
         ...style
       }}
-      onClick={onClick}
+      disabled={disabled}
+      onClick={() => !disabled && (onClick&&onClick())}
     >
       {children}
     </button>

@@ -61,3 +61,11 @@ export const Months = [
   'December'
 ];
 
+export type MentorshipRequestObj = {
+  menteeID?: string,
+  mentorID?: string
+  id?: string,
+  action?: MentorshipRequestAction
+};
+export type MentorshipRequestAction = 'accepted' | 'declined' | 'cancelled';
+export const MentorshipRequestActions = ['accepted', 'declined', 'cancelled'];

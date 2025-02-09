@@ -32,6 +32,9 @@ export default function App() {
         navigate('./home');
       }
     }
+    if (!isAuthenticated && !isLoading) {
+      navigate('/');
+    }
   }, [state]);
 
   if (isLoading) {
