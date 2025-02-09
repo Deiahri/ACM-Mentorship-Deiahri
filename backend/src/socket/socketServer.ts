@@ -62,6 +62,10 @@ export function StartSocketServer() {
       }
     });
     
+    io.on("connection", (socket) => {
+        console.log("New connection attempt:", socket.handshake);
+    });
+    
     // once server is online, saves them in respective variables
     // and calls function to add initial listeners.
     httpServer.on('listening', () => {
@@ -102,7 +106,7 @@ function _addInitialListenersToSocketIOServer() {
     throw new Error('Socket server is not ready. Cannot add listeners to socket server');
   }
 
-  
+
   // authentication middleware
   socketServer.use(async (socket, next) => {
     const tokenWithBearer = socket.handshake.auth.token;
