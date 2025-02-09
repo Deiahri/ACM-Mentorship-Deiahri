@@ -9,6 +9,7 @@ export function checkViteEnvironmentVariables(): void {
     "VITE_AUTH0_DOMAIN",
     "VITE_AUTH0_CLIENT_ID",
     "VITE_SERVER_SOCKET_URL",
+    "VITE_AUTH0_REDIRECT_URI_BASE"
   ];
 
   const missingVariables: string[] = [];
@@ -43,7 +44,7 @@ createRoot(document.getElementById("root")!).render(
       domain={import.meta.env.VITE_AUTH0_DOMAIN}
       clientId={import.meta.env.VITE_AUTH0_CLIENT_ID}
       authorizationParams={{
-        redirect_uri: 'http://localhost:5173/app',
+        redirect_uri: import.meta.env.VITE_AUTH0_REDIRECT_URI+'/app',
         audience: "uhdacm",
         scope: "openid profile email"
       }}
