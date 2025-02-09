@@ -2,7 +2,10 @@ import express from 'express';
 import { Express } from 'express';
 import dotenv from 'dotenv';
 import { auth } from 'express-oauth2-jwt-bearer';
+import cors from "cors";
 dotenv.config();
+
+
 
 let ExpressServer: Express;
 export function isExpressServerOnline() {
@@ -25,6 +28,12 @@ export function StartExpressServer() {
             const app = express();
             const PORT = process.env.EXPRESS_SERVER_PORT;
         
+            app.use(cors({
+                origin: ["*"],
+                methods: ["GET", "POST"],
+                allowedHeaders: ["Authorization", "Content-Type"]
+            }));
+
             app.use(express.json());
         
             const jwtCheck = auth({
