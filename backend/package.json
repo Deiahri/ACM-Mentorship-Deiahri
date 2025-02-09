@@ -4,7 +4,9 @@
   "main": "index.js",
   "scripts": {
     "test": "vitest",
-    "dev": "concurrently \"tsc --watch\" \"nodemon ./dist\""
+    "dev": "concurrently \"tsc --watch\" \"nodemon ./dist\"",
+    "build": "tsc -b",
+    "start": "node dist/index.js"
   },
   "keywords": [],
   "author": "",
