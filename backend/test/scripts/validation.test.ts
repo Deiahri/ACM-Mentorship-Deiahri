@@ -15,7 +15,8 @@ import {
   AssessmentQuestionObj,
   AnsweredAssessmentQuestionObj,
   isValidAnsweredAssessmentQuestion,
-  isValidAnsweredAssessmentQuestions
+  isValidAnsweredAssessmentQuestions,
+  isValidMonthYearRange_YearToo
 } from "../../src/scripts/validation";
 import { ObjectAny } from "../../src/types";
 
@@ -116,31 +117,31 @@ describe("Tests validation script", () => {
     it("should return false for invalid month-year ranges", () => {
       // Invalid month
       expect(
-        isValidMonthYearRange({
+        () => isValidMonthYearRange({
           start: [0, 2020],
           end: [12, 2021],
         })
-      ).toBe(false);
+      ).toThrowError();
       expect(
-        isValidMonthYearRange({
-          start: [13, 2020],
-          end: [12, 2021],
+        () => isValidMonthYearRange({
+          start: [13, isValidMonthYearRange_YearToo],
+          end: [12, isValidMonthYearRange_YearToo + 1],
         })
-      ).toBe(false);
+      ).toThrowError();
 
       // Invalid year
       expect(
-        isValidMonthYearRange({
-          start: [1, 1899],
+        () => isValidMonthYearRange({
+          start: [1, isValidMonthYearRange_YearToo - 1],
           end: [12, 2021],
         })
-      ).toBe(false);
+      ).toThrowError();
       expect(
-        isValidMonthYearRange({
+        () => isValidMonthYearRange({
           start: [1, 2020],
-          end: [12, 1899],
+          end: [12, isValidMonthYearRange_YearToo - 1],
         })
-      ).toBe(false);
+      ).toThrowError();
     });
   });
 

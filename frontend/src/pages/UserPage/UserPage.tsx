@@ -13,7 +13,14 @@ import {
   ObjectAny,
   SocialTypes,
 } from "../../scripts/types";
-import { Instagram, Pencil, Twitter, XIcon, Youtube } from "lucide-react";
+import {
+  Instagram,
+  Pencil,
+  Trash,
+  Twitter,
+  XIcon,
+  Youtube,
+} from "lucide-react";
 import {
   closeDialog,
   DialogInput,
@@ -215,7 +222,7 @@ export default function UserPage() {
     bio,
   } = user;
 
-  const { id: selfUserID } = self;
+  const { id: selfUserID, mentorID: currentUserMentorID } = self;
 
   const CanMakeChanges = selfUserID == id;
   console.log("us", user);
@@ -293,6 +300,7 @@ export default function UserPage() {
           isMentor={isMentor}
           acceptingMentees={acceptingMentees}
           disabled={!CanMakeChanges}
+          isCurrentUserMentor={currentUserMentorID == id}
         />
         <BioSection bio={bio} setBio={setBio} disabled={!CanMakeChanges} />
         <SocialSection
@@ -438,9 +446,12 @@ function SoftSkillSection({
 
   return (
     <>
-      <p style={{ color: "white", fontSize: "1.25rem", margin: 0 }}>
-        Soft Skills
-      </p>
+      <div style={{ display: "flex", alignItems: "center" }}>
+        <p style={{ color: "white", fontSize: "1.25rem", margin: 0 }}>
+          Soft Skills
+        </p>
+        {!disabled && <Pencil style={{ marginLeft: 5 }} size={"1rem"} />}
+      </div>
       <div
         style={{
           marginLeft: 10,
@@ -546,11 +557,24 @@ function ExperienceSection({
     setExperience(newExp);
   }
 
+  function removeExperience(eIndex: number) {
+    if (!setExperience || !experience) {
+      return;
+    }
+    const newExp = [...experience];
+    newExp.splice(eIndex, 1);
+    setExperience(newExp);
+  }
+
   return (
     <>
-      <p style={{ color: "white", fontSize: "1.25rem", margin: 0 }}>
-        Experience
-      </p>
+      <div style={{ display: "flex", alignItems: "center" }}>
+        <p style={{ color: "white", fontSize: "1.25rem", margin: 0 }}>
+          Experience
+        </p>
+
+        {!disabled && <Pencil style={{ marginLeft: 5 }} size={"1rem"} />}
+      </div>
       <div style={{ marginLeft: 10 }}>
         {experience?.map((experience, eIndex) => {
           const { company, position, description, range } = experience;
@@ -563,6 +587,7 @@ function ExperienceSection({
               range={range}
               onChange={(dat: ObjectAny) => handleExperienceChange(eIndex, dat)}
               disabled={disabled}
+              onDelete={() => removeExperience(eIndex)}
             />
           );
         })}
@@ -614,9 +639,24 @@ function ProjectSection({
     });
     setProjects(newExp);
   }
+
+  function deleteProject(cIndex: number) {
+    if (!setProjects || !projects) {
+      return;
+    }
+    const newProjects = [...projects];
+    newProjects.splice(cIndex, 1);
+    setProjects(newProjects);
+  }
+
   return (
     <>
-      <p style={{ color: "white", fontSize: "1.25rem", margin: 0 }}>Projects</p>
+      <div style={{ display: "flex", alignItems: "center" }}>
+        <p style={{ color: "white", fontSize: "1.25rem", margin: 0 }}>
+          Projects
+        </p>
+        {!disabled && <Pencil style={{ marginLeft: 5 }} size={"1rem"} />}
+      </div>
       <div style={{ marginLeft: 10 }}>
         {projects?.map((project, pIndex) => {
           const { name, position, description, range } = project;
@@ -629,6 +669,7 @@ function ProjectSection({
               range={range}
               onChange={(dat: ObjectAny) => handleProjectChange(pIndex, dat)}
               disabled={disabled}
+              onDelete={() => deleteProject(pIndex)}
             />
           );
         })}
@@ -682,11 +723,23 @@ function CertificationSection({
     setCertifications && setCertifications(newCerts);
   }
 
+  function deleteCertification(cIndex: number) {
+    if (!setCertifications || !certifications) {
+      return;
+    }
+    const newCerts = [...certifications];
+    newCerts.splice(cIndex, 1);
+    setCertifications(newCerts);
+  }
+
   return (
     <>
-      <p style={{ color: "white", fontSize: "1.25rem", margin: 0 }}>
-        Certifications
-      </p>
+      <div style={{ display: "flex", alignItems: "center" }}>
+        <p style={{ color: "white", fontSize: "1.25rem", margin: 0 }}>
+          Certifications
+        </p>
+        {!disabled && <Pencil style={{ marginLeft: 5 }} size={"1rem"} />}
+      </div>
       <div style={{ marginLeft: 10 }}>
         {certifications?.map((cert, cIndex) => {
           const { name, issuingOrg } = cert;
@@ -701,6 +754,7 @@ function CertificationSection({
               hideRange={true}
               hideDescription={true}
               disabled={disabled}
+              onDelete={() => deleteCertification(cIndex)}
             />
           );
         })}
@@ -723,17 +777,18 @@ function CertificationSection({
 function MentorSection({
   isMentor,
   acceptingMentees,
-  disabled = true,
-}: {
+  isCurrentUserMentor,
+}: // disabled = true,
+{
   isMentor?: boolean;
   acceptingMentees?: boolean;
   disabled?: boolean;
+  isCurrentUserMentor?: boolean;
 }) {
   return (
     <>
       <div
         style={{
-          backgroundColor: "#555",
           display: "flex",
           justifyContent: "start",
           width: "auto",
@@ -741,7 +796,11 @@ function MentorSection({
       >
         {isMentor ? (
           acceptingMentees ? (
-            <MenteeRequestSection />
+            isCurrentUserMentor ? (
+              <span>This is your mentor</span>
+            ) : (
+              <MenteeRequestSection />
+            )
           ) : (
             <span style={{ margin: 0 }}>Not accepting mentees</span>
           )
@@ -795,11 +854,23 @@ function EducationSection({
     setEducation(newEducation);
   }
 
+  function deleteEducation(eduIndex: number) {
+    if (!education || !setEducation) {
+      return;
+    }
+    const newEducation = [...education];
+    newEducation.splice(eduIndex, 1);
+    setEducation(newEducation);
+  }
+
   return (
     <>
-      <p style={{ color: "white", fontSize: "1.25rem", margin: 0 }}>
-        Education
-      </p>
+      <div style={{ display: "flex", alignItems: "center" }}>
+        <p style={{ color: "white", fontSize: "1.25rem", margin: 0 }}>
+          Education
+        </p>
+        {!disabled && <Pencil style={{ marginLeft: 5 }} size={"1rem"} />}
+      </div>
       <div style={{ marginLeft: 10 }}>
         {education?.map((edu, eduIndex) => {
           const { school, degree, fieldOfStudy, range } = edu;
@@ -813,6 +884,7 @@ function EducationSection({
               onChange={(dat: ObjectAny) =>
                 handleEducationOnChange(eduIndex, dat)
               }
+              onDelete={() => deleteEducation(eduIndex)}
               disabled={disabled}
             />
           );
@@ -980,7 +1052,12 @@ function SocialSection({
 
   return (
     <>
-      <p style={{ color: "white", fontSize: "1.25rem", margin: 0 }}>Socials</p>
+      <div style={{ display: "flex", alignItems: "center" }}>
+        <p style={{ color: "white", fontSize: "1.25rem", margin: 0 }}>
+          Socials
+        </p>
+        {!disabled && <Pencil style={{ marginLeft: 5 }} size={"1rem"} />}
+      </div>
       <div style={{ marginLeft: 10 }}>
         {socials?.map((social, socialIndex) => {
           const { type, url } = social;
@@ -1022,7 +1099,10 @@ function BioSection({
 }) {
   return (
     <>
-      <p style={{ color: "white", fontSize: "1.25rem", margin: 0 }}>Bio</p>
+      <div style={{ display: "flex", alignItems: "center" }}>
+        <p style={{ color: "white", fontSize: "1.25rem", margin: 0 }}>Bio</p>
+        {!disabled && <Pencil style={{ marginLeft: 5 }} size={"1rem"} />}
+      </div>
       {bio || !disabled ? (
         <textarea
           placeholder={disabled ? "No bio" : "Your bio"}
@@ -1098,7 +1178,36 @@ function SoftSkill({
 }
 
 function MenteeRequestSection() {
-  return <p>Mentee Request Sec</p>;
+  const [params, _] = useSearchParams();
+  const id = params.get("id");
+  const { user } = useSelector(
+    (store: ReduxRootState) => store.ClientSocket
+  );
+  const dispatch = useDispatch();
+
+  if (!user || !id) {
+    return;
+  }
+
+  function handleRequestMentorshipClick() {
+    dispatch(setDialog({
+      title: 'SKD'
+    }))
+  }
+
+  return (
+    <div
+      style={{
+        // padding: 10,
+        // borderRadius: 30,
+        // backgroundColor: "#444",
+        // border: "1px solid #fff2",
+        margin: 3,
+      }}
+    >
+      <MinimalisticButton onClick={handleRequestMentorshipClick} style={{ margin: 0, fontSize: "1rem" }}>Request Mentorship</MinimalisticButton>
+    </div>
+  );
 }
 
 const CreateDateRangeDialogInputs = (
@@ -1158,6 +1267,7 @@ function ExperienceLikeSection({
   hideRange,
   onChange,
   disabled = true,
+  onDelete,
 }: {
   title?: string;
   subtitle?: string;
@@ -1169,6 +1279,7 @@ function ExperienceLikeSection({
   hideSubtitle?: boolean;
   hideDescription?: boolean;
   hideRange?: boolean;
+  onDelete: AnyFunction;
 }) {
   const dispatch = useDispatch();
   const { start, end } = range || {};
@@ -1315,20 +1426,22 @@ function ExperienceLikeSection({
             </span>
             <div
               style={{
-                borderBottom: disabled ? 'none' : "1px solid #fff4",
+                borderBottom: disabled ? "none" : "1px solid #fff4",
                 cursor: !disabled ? "pointer" : "text",
               }}
               onClick={handleChangeRange}
             >
-              {start && <span>
-                {getMonthName(start[0])} {Math.abs(start[1])}{" "}
-                {start[1] < 0 ? "B.C." : ""}
-              </span>}
-              <span style={{marginRight: '0.2rem'}}>-</span>
+              {start && (
+                <span>
+                  {getMonthName(start[0])} {Math.abs(start[1])}{" "}
+                  {start[1] < 0 ? "B.C." : (start[1] < 1776 ? "A.D." : '')}
+                </span>
+              )}
+              <span style={{ marginRight: "0.2rem" }}>-</span>
               <span>
                 {end
                   ? `${getMonthName(end[0])} ${Math.abs(end[1])} ${
-                      end[1] < 0 ? "B.C." : ""
+                      end[1] < 0 ? "B.C." : (end[1] < 1700 ? "A.D." : '')
                     }`
                   : "Current"}
               </span>
@@ -1336,7 +1449,13 @@ function ExperienceLikeSection({
           </>
         )}
 
-        {!disabled && <Pencil style={{ marginLeft: 5 }} size={"1rem"} />}
+        {!disabled && (
+          <Trash
+            style={{ marginLeft: 5, cursor: "pointer" }}
+            size={"1.5rem"}
+            onClick={onDelete}
+          />
+        )}
       </div>
       {!hideDescription && (
         <div style={{ marginLeft: 0 }}>

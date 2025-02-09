@@ -70,7 +70,8 @@ type UserObj = {
   softSkills?: string[];
   acceptingMentees?: boolean;
   bio?: string;
-  testing?: boolean
+  testing?: boolean;
+  mentorshipRequests?: string[]
 };
 export default class AuthenticatedSocket {
   socket: Socket;
@@ -202,11 +203,9 @@ export default class AuthenticatedSocket {
     // const assessments = await GetUserAssessments(this.user.id);
     const availableAssessmentQuestions =
       await GetAvailableAssessmentQuestions();
-    const mentorshipRequests = await GetUserMentorshipRequests(this.user.id);
 
     this.sendClientData("initialData", {
       user: this.user,
-      mentorshipRequests: mentorshipRequests,
       assessmentQuestions: availableAssessmentQuestions,
     });
 
@@ -1089,21 +1088,7 @@ export default class AuthenticatedSocket {
 
         // by this point, request can be sent. Also send a copy to both mentor and mentee
         try {
-          const mentorshipRequestObj: ObjectAny = {
-            mentorID,
-            menteeID: this.user.id,
-          };
-          this.testing && (mentorshipRequestObj.testing = true);
-
-          const createRes = await DBCreate(
-            "mentorshipRequest",
-            mentorshipRequestObj
-          );
-          AuthenticatedSocket.SendClientsDataWithUserID(
-            [mentorID, this.user.id],
-            "mentorshipRequest",
-            [{ ...mentorshipRequestObj, id: createRes }]
-          );
+          await AuthenticatedSocket.addMentorshipRequest(mentorID, this.user.id, this.testing);
         } catch (err) {
           if (err instanceof Error) {
             ErrorCallback(handleMentorshipRequestErrorHeader + err.message);
@@ -1146,14 +1131,7 @@ export default class AuthenticatedSocket {
             "There is something wrong with this request. You cannot accept it."
           );
           // try deleting the request
-          try {
-            await DBDeleteWithID("mentorshipRequest", mentorshipRequestID);
-          } catch (err) {
-            console.error(
-              "problem with deleting malformed mentorship request",
-              err
-            );
-          }
+          await AuthenticatedSocket.removeMentorshipRequest(mentorshipRequestID, 'declined');
           return;
         }
         if (mentorshipRequestObj.mentorID != this.user.id) {
@@ -1164,18 +1142,8 @@ export default class AuthenticatedSocket {
         // delete request, send alert that it was accepted,
         // set mentee mentorID to this user's ID, and add mentee to this user's mentee list
         try {
+          await AuthenticatedSocket.removeMentorshipRequest(mentorshipRequestID, 'accepted');
           await AuthenticatedSocket.addMentorship(mentorID, menteeID);
-          AuthenticatedSocket.SendClientsDataWithUserID(
-            [mentorID, menteeID],
-            "mentorshipRequest",
-            [
-              {
-                ...mentorshipRequestObj,
-                id: mentorshipRequestID,
-                status: "accepted",
-              },
-            ]
-          );
         } catch (err) {
           if (err instanceof Error) {
             ErrorCallback(
@@ -1236,18 +1204,7 @@ export default class AuthenticatedSocket {
 
         // delete request, send alert that it was declined
         try {
-          await DBDeleteWithID("mentorshipRequest", mentorshipRequestID);
-          AuthenticatedSocket.SendClientsDataWithUserID(
-            [mentorID, menteeID],
-            "mentorshipRequest",
-            [
-              {
-                ...mentorshipRequestObj,
-                id: mentorshipRequestID,
-                status: "declined",
-              },
-            ]
-          );
+          await AuthenticatedSocket.removeMentorshipRequest(mentorshipRequestID, 'declined');
         } catch (err) {
           if (err instanceof Error) {
             ErrorCallback(
@@ -1308,18 +1265,7 @@ export default class AuthenticatedSocket {
 
         // delete request, send alert that it was cancelled
         try {
-          await DBDeleteWithID("mentorshipRequest", mentorshipRequestID);
-          AuthenticatedSocket.SendClientsDataWithUserID(
-            [mentorID, menteeID],
-            "mentorshipRequest",
-            [
-              {
-                ...mentorshipRequestObj,
-                id: mentorshipRequestID,
-                status: "cancelled",
-              },
-            ]
-          );
+          await AuthenticatedSocket.removeMentorshipRequest(mentorshipRequestID, 'cancelled');
         } catch (err) {
           if (err instanceof Error) {
             ErrorCallback(
@@ -1496,6 +1442,121 @@ export default class AuthenticatedSocket {
     menteeObj.menteeIDs = mentorMenteeList;
     await DBSetWithID("user", mentorID, { menteeIDs: mentorMenteeList }, true);
     console.log("removed mentorship relation", menteeObj, mentorObj);
+  }
+
+  private static async addMentorshipRequest(mentorID: string, menteeID: string, testing: boolean) {
+    const mentorshipRequestObj: ObjectAny = {
+      mentorID,
+      menteeID
+    };
+    testing && (mentorshipRequestObj.testing = true);
+
+    const mentorshipRequestID = await DBCreate(
+      "mentorshipRequest",
+      mentorshipRequestObj
+    );
+    
+    if (!mentorshipRequestID) {
+      return;
+    }
+
+    await AuthenticatedSocket.addMentorshipRequestToUser(mentorshipRequestID, mentorID);
+    await AuthenticatedSocket.addMentorshipRequestToUser(mentorshipRequestID, menteeID);
+
+    AuthenticatedSocket.SendClientsDataWithUserID(
+      [mentorID, menteeID],
+      "mentorshipRequest",
+      {
+        ...mentorshipRequestObj,
+        id: mentorshipRequestID,
+      }
+    );
+  }
+
+  private static async addMentorshipRequestToUser(mentorshipRequestID: string, userID: string) {
+    if (!userID) {
+      return;
+    }
+
+    const userData = await DBGetWithID('user', userID);
+    if (!userData) {
+      return;
+    }
+
+    let { mentorshipRequests } = userData;
+    if (!mentorshipRequests) {
+      mentorshipRequests = [];
+    } else if (mentorshipRequests && !(mentorshipRequests instanceof Array)) {
+      console.error(`Mentorship request for ${userID} is invalid.`);
+      mentorshipRequests = [];
+    }
+
+    try {
+      mentorshipRequests.push(mentorshipRequestID);
+      await DBSetWithID('user', userID, { mentorshipRequests }, true);
+    } catch (err) {
+      console.error('Tried to add mentorship request from user, but they did not have it. '+err.message);
+    }
+  }
+
+  private static async removeMentorshipRequest(mentorshipRequestID: string, alertStatus: string) {
+    if (!mentorshipRequestID) {
+      return;
+    }
+
+    const mentorshipRequestObj = await DBGetWithID('mentorshipRequest', mentorshipRequestID);
+    if (!mentorshipRequestObj || typeof(mentorshipRequestObj) != 'object') {
+      return;
+    }
+
+    await DBDeleteWithID('mentorshipRequest', mentorshipRequestID);
+
+    const { mentorID, menteeID } = mentorshipRequestObj;
+    if (!mentorID || !menteeID) {
+      console.error('Something was wrong with the mentorship request', JSON.stringify(mentorshipRequestObj));
+      return;
+    }
+
+    await AuthenticatedSocket.removeMentorshipRequestFromUser(mentorshipRequestID, mentorID);
+    await AuthenticatedSocket.removeMentorshipRequestFromUser(mentorshipRequestID, menteeID);
+
+    AuthenticatedSocket.SendClientsDataWithUserID(
+      [mentorID, menteeID],
+      "mentorshipRequest",
+        {
+          ...mentorshipRequestObj,
+          id: mentorshipRequestID,
+          status: alertStatus,
+        }
+    );
+  }
+
+  private static async removeMentorshipRequestFromUser(mentorshipRequestID: string, userID: string) {
+    if (!userID) {
+      return;
+    }
+
+    const userData = await DBGetWithID('user', userID);
+    if (!userData) {
+      return;
+    }
+
+    const { mentorshipRequests } = userData;
+    if (!mentorshipRequests) {
+      return;
+    }
+
+    if (!(mentorshipRequests instanceof Array)) {
+      console.error(`Mentorship request for ${userID} is invalid.`);
+      return;
+    }
+
+    try {
+      mentorshipRequests.splice(mentorshipRequests.indexOf(mentorshipRequestID));
+      await DBSetWithID('user', userID, { mentorshipRequests }, true);
+    } catch (err) {
+      console.error('Tried to remove mentorship request from user, but they did not have it. '+err.message);
+    }
   }
 
   sendClientData(type: string, data: any) {

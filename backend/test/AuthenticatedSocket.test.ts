@@ -86,7 +86,7 @@ describe("Tests authenticated Socket", () => {
         printDataError("Expected initial data to be object");
         return;
       }
-      const { user, assessments, mentorshipRequests } = data;
+      const { user, assessments } = data;
       if (!user) {
         printDataError("User or assessments is missing", user, assessments);
         return;
@@ -94,23 +94,17 @@ describe("Tests authenticated Socket", () => {
       targetSocketData.id = user.id;
       targetSocketData.user = user;
       targetSocketData.assessments = assessments;
-      targetSocketData.mentorshipRequests = mentorshipRequests;
     } else if (type == "mentorshipRequest") {
-      if (!(data instanceof Array)) {
-        printDataError("Expected mentorshipRequest data to come in array");
-        return;
+      if (!targetSocketData.user.mentorshipRequests) {
+        targetSocketData.user.mentorshipRequests = [];
       }
 
-      if (!targetSocketData.mentorshipRequests) {
-        targetSocketData.mentorshipRequests = {};
-      }
-
-      for (let mentorshipRequest of data) {
-        if (typeof mentorshipRequest != "object") {
+        if (typeof data != "object") {
           printDataError("Expected mentorshipRequest data to be objects");
-          continue;
+          return;
         }
-        const { mentorID, menteeID, id, status } = mentorshipRequest;
+
+        const { mentorID, menteeID, id, status } = data;
         if (status) {
           console.log(
             "removing mentorship request for",
@@ -118,22 +112,18 @@ describe("Tests authenticated Socket", () => {
             id,
             status
           );
-          delete targetSocketData.mentorshipRequests[id];
-          continue;
+          targetSocketData.user.mentorshipRequests.splice(targetSocketData.user.mentorshipRequests.indexOf(id), 1);
+          return;
         }
 
         if (!mentorID || !menteeID) {
           printDataError(
             "Missing some parameters for mentorshipRequest object"
           );
-          continue;
+          return;
         }
 
-        targetSocketData.mentorshipRequests[id] = {
-          mentorID,
-          menteeID,
-        };
-      }
+        targetSocketData.user.mentorshipRequests.push(id);
     } else {
       printDataError("Unexpected type", type, data);
     }
@@ -235,7 +225,7 @@ describe("Tests authenticated Socket", () => {
   function GetMentorshipRequestFromData(targetSocketData: ObjectAny) {
     // so this should get the mentorship request from our data correctly if it exists.
     try {
-      return Object.keys(targetSocketData.mentorshipRequests)[0];
+      return targetSocketData.user.mentorshipRequests[0];
     } catch {
       return undefined;
     }
@@ -1373,7 +1363,7 @@ describe("Tests authenticated Socket", () => {
           (success: boolean) => {
             success
               ? res(true)
-              : rej("Failed to decline mentorship request. [ER7]");
+              : rej("Failed to decline mentorship request. [ER7] "+mentorshipRequestID);
           }
         );
       });
@@ -1406,7 +1396,7 @@ describe("Tests authenticated Socket", () => {
           (success: boolean) => {
             success
               ? res(true)
-              : rej("Failed to cancel mentorship request. [ER10]");
+              : rej("Failed to cancel mentorship request. [ER10] "+mentorshipRequestID);
           }
         );
       });

@@ -1,5 +1,12 @@
 import { DBGet } from "../db";
-import { AssessmentAction, AssessmentActions, MentorshipRequestAction, MentorshipRequestActions, ObjectAny, SocialTypes } from "../types";
+import {
+  AssessmentAction,
+  AssessmentActions,
+  MentorshipRequestAction,
+  MentorshipRequestActions,
+  ObjectAny,
+  SocialTypes,
+} from "../types";
 
 export const MAX_NAME_LENGTH = 36;
 /**
@@ -128,11 +135,10 @@ export async function isValidUsername(usernameRaw: string) {
   return true;
 }
 
-
 export type Social = {
-  type: string,
-  url: string
-}
+  type: string;
+  url: string;
+};
 export function isValidSocial(social: ObjectAny): social is Social {
   if (typeof social != "object") {
     throw new Error("A social was not formatted correctly.");
@@ -162,63 +168,118 @@ export function isValidSocial(social: ObjectAny): social is Social {
  */
 
 export type Experience = {
-  company: string,
-  position: string,
-  description: string,
-  range: MonthYearDateRange
-}
-export function isValidExperience(experience: ObjectAny): experience is Experience {
-  if (typeof(experience) != 'object') {
+  company: string;
+  position: string;
+  description: string;
+  range: MonthYearDateRange;
+};
+export function isValidExperience(
+  experience: ObjectAny
+): experience is Experience {
+  if (typeof experience != "object") {
     throw new Error("Experience format was unexpected");
   }
   const { company, position, description, range } = experience;
-  if (!company || typeof(company) != 'string' || company.trim().length < 1) {
-    throw new Error('Company name is missing from experience.');
-  } else if (!position || typeof(position) != 'string' || position.trim().length < 1) {
-    throw new Error('Position was not provided');
-  } else if (description && typeof(description) != 'string' || description.trim().length < 1) {
-    throw new Error('Description was provided, but format was unexpected');
-  } else if (!range || !isValidMonthYearRange(range)) {
-    throw new Error('Range is not valid');
+  if (!company || typeof company != "string" || company.trim().length < 1) {
+    throw new Error("Company name is missing from experience.");
   }
+
+  const validExperienceErrorHeader = `Experience at ${company} | `;
+  if (!position || typeof position != "string" || position.trim().length < 1) {
+    throw new Error(validExperienceErrorHeader + " Position was not provided");
+  } else if (
+    (description && typeof description != "string") ||
+    description.trim().length < 1
+  ) {
+    throw new Error(
+      validExperienceErrorHeader +
+        " Description was provided, but format was unexpected"
+    );
+  } else if (!range || !isValidMonthYearRange(range)) {
+    throw new Error(validExperienceErrorHeader + " Range is not valid");
+  }
+
+  try {
+    if (!range || !isValidMonthYearRange(range)) {
+      throw new Error(validExperienceErrorHeader + " Range is not valid");
+    }
+  } catch (err) {
+    throw new Error(validExperienceErrorHeader + err.message);
+  }
+
   return true;
 }
 
 export type Project = {
-  name: string,
-  position: string,
-  description: string,
-  range: MonthYearDateRange
-}
+  name: string;
+  position: string;
+  description: string;
+  range: MonthYearDateRange;
+};
 export function isValidProject(project: ObjectAny): project is Project {
-  if (typeof(project) != 'object') {
-    throw new Error("Experience format was unexpected");
+  if (typeof project != "object") {
+    throw new Error("Project format was unexpected");
   }
   const { name, position, description, range } = project;
-  const mockExperience = { company: name, position, description, range };
-  isValidExperience(mockExperience);
+  if (!name || typeof name != "string" || name.trim().length < 1) {
+    throw new Error("Project name is missing from experience.");
+  }
+  const validProjectErrorHeader = `Project name: ${name} | `;
+  if (!position || typeof position != "string" || position.trim().length < 1) {
+    throw new Error(validProjectErrorHeader + " Position was not provided");
+  } else if (
+    (description && typeof description != "string") ||
+    description.trim().length < 1
+  ) {
+    throw new Error(
+      validProjectErrorHeader +
+        " Description was provided, but format was unexpected"
+    );
+  }
+
+  try {
+    if (!range || !isValidMonthYearRange(range)) {
+      throw new Error(validProjectErrorHeader + " Range is not valid");
+    }
+  } catch (err) {
+    throw new Error(validProjectErrorHeader + err.message);
+  }
   return true;
 }
 
 export type Education = {
-  school: string,
-  degree: string,
-  fieldOfStudy: string,
-  range: MonthYearDateRange
-}
+  school: string;
+  degree: string;
+  fieldOfStudy: string;
+  range: MonthYearDateRange;
+};
 export function isValidEducation(education: ObjectAny): education is Education {
-  if (typeof(education) != 'object') {
+  if (typeof education != "object") {
     throw new Error("Experience format was unexpected");
   }
   const { school, degree, fieldOfStudy, range } = education;
-  if (!school || typeof(school) != 'string' || school.trim().length < 1) {
-    throw new Error('Education name is missing from experience.');
-  } else if (!degree || typeof(degree) != 'string' || degree.trim().length < 1) {
-    throw new Error('Position was not provided');
-  } else if (!fieldOfStudy || typeof(fieldOfStudy) != 'string' || fieldOfStudy.trim().length < 1) {
-    throw new Error('Description was provided, but format was unexpected');
-  } else if (!range || !isValidMonthYearRange(range)) {
-    throw new Error('Range is not valid');
+  if (!school || typeof school != "string" || school.trim().length < 1) {
+    throw new Error("Education school is missing from experience.");
+  }
+  const educationErrorHeader = `Error processing education "${school}":`;
+  if (!degree || typeof degree != "string" || degree.trim().length < 1) {
+    throw new Error(educationErrorHeader + " Position was not provided");
+  } else if (
+    !fieldOfStudy ||
+    typeof fieldOfStudy != "string" ||
+    fieldOfStudy.trim().length < 1
+  ) {
+    throw new Error(
+      educationErrorHeader +
+        " Description was provided, but format was unexpected"
+    );
+  }
+  try {
+    if (!range || !isValidMonthYearRange(range)) {
+      throw new Error(educationErrorHeader + " Range is not valid");
+    }
+  } catch (err) {
+    throw new Error(educationErrorHeader + err.message);
   }
   return true;
 }
@@ -227,59 +288,86 @@ export function isValidMonthInteger(monthInteger: number) {
   return monthInteger > 0 && monthInteger < 13;
 }
 
-type MonthYearDateRange = { start: [number, number], end?: [number, number] }
-export function isValidMonthYearRange(range: ObjectAny): range is MonthYearDateRange {
-  if (!range || typeof range !== 'object' || !range.start || !Array.isArray(range.start) || range.start.length !== 2) {
-    return false;
+type MonthYearDateRange = { start: [number, number]; end?: [number, number] };
+export const isValidMonthYearRange_YearToo = -100000;
+const isValidMonthYearRange_YearTooOldError = `Oh imortal one, please reach out to HR, we've been meaning to speak with you`;
+export function isValidMonthYearRange(
+  range: ObjectAny
+): range is MonthYearDateRange {
+  if (
+    !range ||
+    typeof range !== "object" ||
+    !range.start ||
+    !Array.isArray(range.start) ||
+    range.start.length !== 2
+  ) {
+    throw new Error('Invalid range format');
   }
   const { start, end } = range;
 
   // Validate the start date
-  if (!isValidMonthInteger(start[0]) || start[1] < 1900) {
-    return false;
+  if (!isValidMonthInteger(start[0])) {
+    throw new Error("Invalid start month");
+  }
+
+  if (start[1] < isValidMonthYearRange_YearToo) {
+    throw new Error(isValidMonthYearRange_YearTooOldError);
   }
 
   // Validate the end date if provided
   if (end) {
     if (!Array.isArray(end) || end.length !== 2) {
-      return false;
+      throw new Error("End date format does not make sense.");
     }
-    if (!isValidMonthInteger(end[0]) || end[1] < 1900) {
-      return false;
+
+    if (!isValidMonthInteger(end[0])) {
+      throw new Error("Invalid end month");
+    }
+
+    if (end[1] < isValidMonthYearRange_YearToo) {
+      throw new Error(isValidMonthYearRange_YearTooOldError);
     }
   }
   return true;
 }
 
 export type Certification = {
-  name: string,
-  issuingOrg: string
-}
-export function isValidCertification(certification: ObjectAny): certification is Certification {
-  if (typeof(certification) != 'object') {
+  name: string;
+  issuingOrg: string;
+};
+export function isValidCertification(
+  certification: ObjectAny
+): certification is Certification {
+  if (typeof certification != "object") {
     throw new Error("Certification format was unexpected");
   }
   const { name, issuingOrg } = certification;
-  if (!name || typeof(name) != 'string' || name.trim().length < 1) {
-    throw new Error('Name format was unexpected');
-  } else if (!issuingOrg || typeof(issuingOrg) != 'string' || issuingOrg.trim().length < 1) {
+  if (!name || typeof name != "string" || name.trim().length < 1) {
+    throw new Error("Name format was unexpected");
+  } else if (
+    !issuingOrg ||
+    typeof issuingOrg != "string" ||
+    issuingOrg.trim().length < 1
+  ) {
     throw new Error('"Issuing Organization format was unexpected');
   }
   return true;
 }
 
-const AssessmentInputTypes = ['text', 'number', 'boolean'];
-export type AssessmentInputType = 'text' | 'number' | 'boolean';
+const AssessmentInputTypes = ["text", "number", "boolean"];
+export type AssessmentInputType = "text" | "number" | "boolean";
 export type AssessmentQuestionObj = {
-  question?: string,
-  inputType?: AssessmentInputType
-}
-export function isValidAssessmentQuestion(AQO: ObjectAny): AQO is AssessmentQuestionObj {
-  if (!AQO || typeof(AQO) != 'object') {
+  question?: string;
+  inputType?: AssessmentInputType;
+};
+export function isValidAssessmentQuestion(
+  AQO: ObjectAny
+): AQO is AssessmentQuestionObj {
+  if (!AQO || typeof AQO != "object") {
     return false;
   }
   const { question, inputType } = AQO;
-  if (typeof(question) != 'string') {
+  if (typeof question != "string") {
     return false;
   } else if (!AssessmentInputTypes.includes(inputType)) {
     return false;
@@ -288,34 +376,36 @@ export function isValidAssessmentQuestion(AQO: ObjectAny): AQO is AssessmentQues
 }
 
 export type AnsweredAssessmentQuestionObj = AssessmentQuestionObj & {
-  answer?: unknown
-}
-export function isValidAnsweredAssessmentQuestion(AAQO: ObjectAny): AAQO is AnsweredAssessmentQuestionObj {
+  answer?: unknown;
+};
+export function isValidAnsweredAssessmentQuestion(
+  AAQO: ObjectAny
+): AAQO is AnsweredAssessmentQuestionObj {
   if (!isValidAssessmentQuestion(AAQO)) {
     return false;
   }
 
   const { answer, inputType } = AAQO as ObjectAny;
   switch (inputType) {
-    case 'text':
-      return typeof answer === 'string';
-    case 'boolean':
-      return typeof answer === 'boolean';
-    case 'number':
-      return typeof answer === 'number';
+    case "text":
+      return typeof answer === "string";
+    case "boolean":
+      return typeof answer === "boolean";
+    case "number":
+      return typeof answer === "number";
     default:
       return false;
   }
 }
 
-export function isValidAnsweredAssessmentQuestions(AAQO: ObjectAny[]): AAQO is AnsweredAssessmentQuestionObj[] {
+export function isValidAnsweredAssessmentQuestions(
+  AAQO: ObjectAny[]
+): AAQO is AnsweredAssessmentQuestionObj[] {
   if (!(AAQO instanceof Array)) {
-    console.log('5193', 'not arr');
     return false;
   }
   for (let obj of AAQO) {
     if (!isValidAnsweredAssessmentQuestion(obj)) {
-      console.log('5193', 'not questions');
       return false;
     }
   }
@@ -326,7 +416,9 @@ export function isValidAssessmentAction(s: string): s is AssessmentAction {
   return AssessmentActions.includes(s);
 }
 
-export function isValidMentorshipRequestAction(s: string): s is MentorshipRequestAction {
+export function isValidMentorshipRequestAction(
+  s: string
+): s is MentorshipRequestAction {
   return MentorshipRequestActions.includes(s);
 }
 
