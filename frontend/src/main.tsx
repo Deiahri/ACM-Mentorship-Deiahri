@@ -44,7 +44,7 @@ createRoot(document.getElementById("root")!).render(
       domain={import.meta.env.VITE_AUTH0_DOMAIN}
       clientId={import.meta.env.VITE_AUTH0_CLIENT_ID}
       authorizationParams={{
-        redirect_uri: import.meta.env.VITE_AUTH0_REDIRECT_URI+'/app',
+        redirect_uri: import.meta.env.VITE_AUTH0_REDIRECT_URI_BASE+'/app',
         audience: "uhdacm",
         scope: "openid profile email"
       }}
