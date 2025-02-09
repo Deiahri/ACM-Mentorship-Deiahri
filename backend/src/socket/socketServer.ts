@@ -4,6 +4,7 @@ import http from 'http';
 
 import dotenv from 'dotenv';
 import AuthenticatedSocket from './AuthenticatedSocket';
+import { CreateExpressServer } from '../server/server';
 dotenv.config();
 
 let socketServerOnline = false;
@@ -48,20 +49,20 @@ export function getSocketHTTPServer() {
  * 
  * @returns `Promise<boolean | Error>`
  */
-export function StartSocketServer() {
+export function StartServer() {
   if (socketServerOnline) {
     throw new Error('attempted to create a new socket server when one already exists');
   }
 
   return new Promise((res: (b: boolean) => void, rej: (e: Error) => void) => {
-    const httpServer = http.createServer();
+    const httpServer = http.createServer(CreateExpressServer());
     const io = new SocketIOServer(httpServer, {
       cors: {
         origin: [process.env.CLIENT_ADDRESS],
         methods: ['GET', 'POST'],
       }
     });
-    
+
     io.on("connection", (socket) => {
         console.log("New connection attempt:", socket.handshake);
     });
@@ -75,8 +76,8 @@ export function StartSocketServer() {
       res(true);
     });
 
-    httpServer.listen(process.env.SOCKET_SERVER_PORT, () => {
-      console.log('socket server is online on port', process.env.SOCKET_SERVER_PORT);
+    httpServer.listen(process.env.SERVER_PORT, () => {
+      console.log('Server is online on port', process.env.SERVER_PORT);
     });
 
     interface NodeJSNetworkError extends Error {
@@ -152,7 +153,7 @@ function _addInitialListenersToSocketIOServer() {
     try {
       // console.log(`Veriyfing "${tokenWithBearer}" from http://localhost:${process.env.EXPRESS_SERVER_PORT}/verifyJWT`);
       // request fails if token is invalid.
-      const resRaw = (await fetch(`http://localhost:${process.env.EXPRESS_SERVER_PORT}/verifyJWT`, {
+      const resRaw = (await fetch(`http://localhost:${process.env.SERVER_PORT}/verifyJWT`, {
           method: 'POST',
           headers: {
               authorization: tokenWithBearer

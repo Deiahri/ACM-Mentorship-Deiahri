@@ -1,10 +1,10 @@
-import { StartSocketServer } from './socket/socketServer';
-import { StartExpressServer } from './server/server';
+import { StartServer } from './socket/socketServer';
 
 import dotenv from 'dotenv';
 dotenv.config();
 
-const REQUIRED_ENVS = ['FIRESTORE_APIKEY', 'SOCKET_SERVER_PORT', 'EXPRESS_SERVER_PORT', 'TESTING', 'SAMPLE_USER_ACCESS_TOKEN', 'CLIENT_ADDRESS']
+
+const REQUIRED_ENVS = ['FIRESTORE_APIKEY', 'SERVER_PORT', 'TESTING', 'SAMPLE_USER_ACCESS_TOKEN', 'CLIENT_ADDRESS']
 function ENV_VAR_CHECK() {
   for (let required_env of REQUIRED_ENVS) {
     if (!process.env[required_env]) {
@@ -17,12 +17,7 @@ ENV_VAR_CHECK();
 async function StartApp() {
   // starts express server
   try {
-      StartExpressServer();
-  } catch {}
-
-  // starts socket server.
-  try {
-      await StartSocketServer();
+      await StartServer();
   } catch {}
 }
 
