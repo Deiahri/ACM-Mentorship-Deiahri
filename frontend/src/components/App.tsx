@@ -45,6 +45,7 @@ export default function App() {
     return <p>Not authed</p>
   }
 
+  console.log('?spadk', path);
   return <>
     <Outlet/>
   </>
