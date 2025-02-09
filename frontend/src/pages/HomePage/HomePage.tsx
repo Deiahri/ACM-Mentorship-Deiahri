@@ -8,16 +8,16 @@ import {
 } from "../../features/ClientSocket/ClientSocket";
 import { Pencil } from "lucide-react";
 import { closeDialog, setDialog } from "../../features/Dialog/DialogSlice";
-import { ObjectAny } from "../../scripts/types";
 import { setAlert } from "../../features/Alert/AlertSlice";
 import { useNavigate } from "react-router-dom";
-import { NothingFunction } from "../../scripts/tools";
 import { useChangeUsernameWithDialog } from "../../hooks/UseChangeUsername";
 import MinimalisticButton from "../../components/MinimalisticButton/MinimalisticButton";
 
 type HomeSubPage = "view_mentor" | "view_mentees";
 export default function HomePage() {
-  const { user, ready } = useSelector((store: ReduxRootState) => store.ClientSocket);
+  const { user, ready } = useSelector(
+    (store: ReduxRootState) => store.ClientSocket
+  );
   const [subPage, setSubPage] = useState<HomeSubPage>("view_mentor");
 
   if (!user || !MyClientSocket || !ready) {
@@ -27,20 +27,20 @@ export default function HomePage() {
   function handleChangeSubpage(newSubPage: HomeSubPage) {
     setSubPage(newSubPage);
   }
-
+  
   const {
     username,
     fName,
     mName,
     lName,
-    id: userID,
-    socials,
-    experience,
-    education,
-    certifications,
-    projects,
-    softSkills,
-    isMentee,
+    id: userID,// @ts-ignore
+    socials,// @ts-ignore
+    experience,// @ts-ignore
+    education,// @ts-ignore
+    certifications,// @ts-ignore
+    projects,// @ts-ignore
+    softSkills,// @ts-ignore
+    isMentee,// @ts-ignore
     isMentor,
   } = user;
   return (
@@ -131,7 +131,7 @@ function ViewMenteesSection() {
   if (!user) {
     return <p>Waiting for user data...</p>;
   }
-
+// @ts-ignore
   const { isMentor, menteeIDs } = user;
 
   return (
@@ -155,7 +155,6 @@ const MAX_FILLED_SECTIONS = 5;
 function BecomeMentorSection() {
   const { user } = useSelector((store: ReduxRootState) => store.ClientSocket);
 
-  const navigate = useNavigate();
   const dispatch = useDispatch();
 
   if (!user) {
@@ -356,16 +355,16 @@ function CurrentMentorInfo() {
   }
 
   const {
-    username,
-    fName,
-    mName,
-    lName,
-    socials,
-    experience,
-    education,
-    certifications,
-    projects,
-    softSkills,
+    username, // @ts-ignore
+    fName, // @ts-ignore
+    mName, // @ts-ignore
+    lName, // @ts-ignore
+    socials, // @ts-ignore
+    experience, // @ts-ignore
+    education, // @ts-ignore
+    certifications, // @ts-ignore
+    projects, // @ts-ignore
+    softSkills, // @ts-ignore
   } = mentorObj;
   return <p>{username}</p>;
 }
@@ -399,7 +398,14 @@ function MentorSearchTool() {
         <p style={{ margin: 0, fontSize: "1.25rem" }}>No mentors available</p>
       )}
       {mentors.map((mentor) => {
-        const { fName, mName, lName, username, id } = mentor;
+        const {
+          // @ts-ignore
+          fName, // @ts-ignore
+          mName, // @ts-ignore
+          lName, // @ts-ignore
+          username, // @ts-ignore
+          id,
+        } = mentor;
         return <UserProfileCard key={`user_${id}`} user={mentor} />;
       })}
     </div>

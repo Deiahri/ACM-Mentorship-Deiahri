@@ -1,4 +1,3 @@
-import { useAuth0 } from "@auth0/auth0-react";
 import { useDispatch, useSelector } from "react-redux";
 import { ReduxRootState } from "../../store";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -214,10 +213,10 @@ export default function UserPage() {
     certifications,
     projects,
     softSkills,
-    isMentor,
+    isMentor,// @ts-ignore
     isMentee,
-    acceptingMentees,
-    assessments,
+    acceptingMentees,// @ts-ignore
+    assessments,// @ts-ignore
     DisplayPictureURL,
     bio,
   } = user;

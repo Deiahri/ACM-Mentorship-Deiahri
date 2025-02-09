@@ -4,7 +4,7 @@ import * as DialogRadix from "@radix-ui/react-dialog";
 import { closeDialog, DialogButton, DialogInput } from "./DialogSlice";
 import { useEffect, useState } from "react";
 import { AnyObject } from "../../types";
-import { CheckIcon, XIcon } from "lucide-react";
+import { XIcon } from "lucide-react";
 // import { Checkbox } from "@radix-ui/react-checkbox";
 import { Checkbox } from "radix-ui";
 

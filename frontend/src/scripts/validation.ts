@@ -1,5 +1,5 @@
 import { ClientDataPayloadType, ClientDataPayloadTypes, ClientSocketState, ClientSocketStates, SubmitAssessmentAction, SubmitAssessmentActions } from "../features/ClientSocket/ClientSocket";
-import { Assessment, AssessmentQuestion, AssessmentQuestionInputTypes, MentorshipRequestAction, MentorshipRequestActions, MentorshipRequestObj, Month, ObjectAny, SocialType, SocialTypes } from "./types";
+import { Assessment, AssessmentQuestion, AssessmentQuestionInputTypes, MentorshipRequestAction, MentorshipRequestActions, MentorshipRequestObj, Month, Months, ObjectAny, SocialType, SocialTypes } from "./types";
 
 export function isClientSocketState(s: string): s is ClientSocketState {
   return ClientSocketStates.includes(s);
@@ -69,7 +69,7 @@ export function isSocialType(s: string): s is SocialType {
 }
 
 export function isMonth(s: string): s is Month {
-  return false;
+  return Months.includes(s);
 }
 
 export function isMentorshipRequestObject(s: unknown): s is MentorshipRequestObj {

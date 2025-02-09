@@ -13,7 +13,6 @@ import {
   setClientReady,
   setClientState,
   setClientUser,
-  setMentorshipRequests,
 } from "./ClientSocketSlice";
 import {
   AnyFunction,
@@ -222,6 +221,7 @@ class ClientSocket {
 
   submitAssessment(payload: SubmitAssessmentPayload, callbackRaw?: Function) {
     let callback = callbackRaw || NothingFunction;
+    // @ts-ignore
     const { action, questions, id, published } = payload;
 
     if (this.submitting) {

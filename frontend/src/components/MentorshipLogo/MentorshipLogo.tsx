@@ -1,8 +1,7 @@
-import React from "react";
 import ACMLogoTriangle from "../../assets/ACM Orange.png";
 import style from './MentorshipLogo.module.css';
 
-export default function MentorshipLogo({scale = 1, hideText = false, bgColor='#010101'}: { scale?: number, hideText?: boolean, bgColor?: string }) {
+export default function MentorshipLogo({scale = 1, hideText = false}: { scale?: number, hideText?: boolean }) {
   let size = 0.7;
   return (
     <div style={{ display: "flex", alignItems: "center", transform: `scale(${scale})` }}>
