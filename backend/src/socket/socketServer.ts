@@ -102,9 +102,11 @@ function _addInitialListenersToSocketIOServer() {
     throw new Error('Socket server is not ready. Cannot add listeners to socket server');
   }
 
+  
   // authentication middleware
   socketServer.use(async (socket, next) => {
     const tokenWithBearer = socket.handshake.auth.token;
+    console.log('connecting token', tokenWithBearer);
     if (!tokenWithBearer) {
       next(new Error('No token provided'));
     }
