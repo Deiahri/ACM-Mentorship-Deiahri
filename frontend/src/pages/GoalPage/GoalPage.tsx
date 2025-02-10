@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { AnyFunction, GoalObj, TaskObj } from "../../scripts/types";
 import MinimalisticInput from "../../components/MinimalisticInput/MinimalisticInput";
-import { Pencil, Trash } from "lucide-react";
+import { Check, Pencil, Trash, X } from "lucide-react";
 import {
   ClientSocketUser,
   MyClientSocket,
@@ -13,6 +13,9 @@ import { setAlert } from "../../features/Alert/AlertSlice";
 import MinimalisticButton from "../../components/MinimalisticButton/MinimalisticButton";
 import { SaveButtonFixed } from "../../components/SaveButtonFixed/SaveButtonFixed";
 import { closeDialog, setDialog } from "../../features/Dialog/DialogSlice";
+import Calendar from "react-calendar";
+import { unixToDateString } from "../../scripts/tools";
+import MinimalisticTextArea from "../../components/MinimalisticTextArea/MinimalisticTextArea";
 
 export default function GoalPage() {
   const dispatch = useDispatch();
@@ -25,7 +28,7 @@ export default function GoalPage() {
   const id = params.get("id");
   const newParam = params.get("new");
   const isNew = newParam == "true";
-  const origin = params.get('origin');
+  const origin = params.get("origin");
   const { user: self, ready } = useSelector(
     (store: ReduxRootState) => store.ClientSocket
   );
@@ -41,8 +44,8 @@ export default function GoalPage() {
     if (isNew) {
       setGoalOwner(self);
       setGoal({
-        name: 'New Goal',
-        tasks: []
+        name: "New Goal",
+        tasks: [],
       });
       return;
     } else if (id) {
@@ -174,18 +177,20 @@ export default function GoalPage() {
 
   const { name, tasks } = goal;
   const { fName, mName, lName, id: ownerID } = goalOwner;
-  
+
   const handleOnBack = () => {
-    if (origin == 'user') {
+    if (origin == "user") {
       navigate(`/app/goals?id=${ownerID}`);
       return;
     }
-    navigate('/app/home');
-  }
+    navigate("/app/home");
+  };
 
-  let BackButtonText = '< Home';
-  if (origin == 'user') {
-    BackButtonText = `< ${fName} ${lName}${(lName!.charAt(lName!.length-1) == 's') ? "'" : "'s"} goals`;
+  let BackButtonText = "< Home";
+  if (origin == "user") {
+    BackButtonText = `< ${fName} ${lName}${
+      lName!.charAt(lName!.length - 1) == "s" ? "'" : "'s"
+    } goals`;
   }
 
   return (
@@ -209,7 +214,12 @@ export default function GoalPage() {
         show={changed}
         saving={saving}
       />
-      <MinimalisticButton style={{fontSize: '0.8rem', marginBottom: '0.5rem' }} onClick={handleOnBack}>{BackButtonText}</MinimalisticButton>
+      <MinimalisticButton
+        style={{ fontSize: "0.8rem", marginBottom: "0.5rem" }}
+        onClick={handleOnBack}
+      >
+        {BackButtonText}
+      </MinimalisticButton>
       <div style={{ display: "flex", flexDirection: "column" }}>
         <div style={{ display: "flex", alignItems: "center" }}>
           <MinimalisticInput
@@ -241,7 +251,10 @@ export default function GoalPage() {
         </div>
       </div>
       {(!selfIsOwner || isNew) && (
-        <MinimalisticButton onClick={handleOnSaveClick} style={{ marginTop: 10 }}>
+        <MinimalisticButton
+          onClick={handleOnSaveClick}
+          style={{ marginTop: 10 }}
+        >
           Create Assessment
         </MinimalisticButton>
       )}
@@ -295,7 +308,7 @@ function TasksSection({
           <div key={`task_${tIndex}`} style={{ margin: 5 }}>
             <Task
               task={task}
-              setTask={handleEditTask}
+              setTask={(task: TaskObj) => handleEditTask(tIndex, task)}
               onDelete={() => handleDeleteTask(tIndex)}
               disabled={disabled}
             />
@@ -321,10 +334,11 @@ function Task({
   disabled,
 }: {
   task: TaskObj;
-  setTask: AnyFunction;
+  setTask: (v: TaskObj) => any;
   onDelete: AnyFunction;
   disabled: boolean;
 }) {
+  const [openCalendar, setOpenCalendar] = useState(false);
   const { name, description, completitionDate } = task;
 
   function handleChangeName(newName: string) {
@@ -335,29 +349,112 @@ function Task({
     setTask({ name, description: newDesc, completitionDate });
   }
 
+  function handleChangeCompletionDate(newDate: number | undefined) {
+    if (newDate) {
+      setTask({ name, description, completitionDate: newDate });
+    } else {
+      setTask({ name, description });
+    }
+  }
+
+  function handleDaySelect(v?: Date) {
+    handleChangeCompletionDate(v?.getTime());
+    setOpenCalendar(false);
+  }
+
   return (
     <div style={{ display: "flex", flexDirection: "column" }}>
-      <div style={{ display: "flex" }}>
+      <div style={{ display: "flex", alignItems: 'end' }}>
         <MinimalisticInput
           disabled={disabled}
           onChange={handleChangeName}
           value={name || "New Task"}
+          style={{ minWidth: '3rem', fontWeight: 'bold', fontSize: '1.25rem' }}
         />
-        <span>Date</span>
+        <div style={{display: 'flex', marginLeft: '0.5rem' }}>
+          <span onClick={() => setOpenCalendar(true)} style={{ borderBottom: '1px #fff4 solid', cursor: 'pointer' }}>{ completitionDate ? unixToDateString(completitionDate) : 'Not Complete' }</span>
+          {completitionDate && <Check style={{marginLeft: '0.1rem'}} color={'#0a0'}/>}
+        </div>
         {!disabled && (
           <Trash
             onClick={onDelete}
             size={"1.25rem"}
-            style={{ marginLeft: "0.5rem", cursor: "pointer" }}
+            style={{ marginLeft: "0.5rem", cursor: "pointer", marginBottom: '0.2rem' }}
           />
         )}
       </div>
       <div style={{ marginLeft: 10 }}>
-        <MinimalisticInput
+        <MinimalisticTextArea
           disabled={disabled}
           onChange={handleChangeDescription}
-          value={description || "Task description"}
+          value={description}
+          placeholder="Task Description"
         />
+      </div>
+      {openCalendar && <SelectDayOverlay onClickDay={handleDaySelect} onCancel={() => setOpenCalendar(false)} />}
+    </div>
+  );
+}
+
+function SelectDayOverlay({ onClickDay, onCancel }: { onClickDay?: (d?: Date) => any, onCancel?: AnyFunction }) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        justifyContent: "center",
+        padding: 30,
+        boxSizing: "border-box",
+        alignItems: "center",
+        width: "100vw",
+        height: "100vh",
+        backgroundColor: "#0004",
+        position: "fixed",
+        inset: 0,
+        backdropFilter: "blur(2px)",
+        zIndex: 10,
+      }}
+    >
+      <div
+        style={{
+          boxSizing: "border-box",
+          maxWidth: "90vw",
+          padding: "1.25rem",
+          backgroundColor: "#444",
+          borderRadius: 10,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "end",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: "0.75rem",
+            width: "100%",
+          }}
+        >
+          <span style={{ fontSize: "1.5rem", textAlign: "start" }}>
+            Completition Date
+          </span>
+          <X size={"2rem"} style={{cursor: 'pointer'}} onClick={onCancel} />
+        </div>
+        <Calendar calendarType="hebrew" onClickDay={(v) => onClickDay&&onClickDay(v)} />
+        <button
+        onClick={() => onClickDay && onClickDay(undefined)}
+          style={{
+            marginTop: 10,
+            fontSize: "1.25rem",
+            width: "100%",
+            backgroundColor: "#777",
+            color: "#ddd",
+            borderTopLeftRadius: 0,
+            borderTopRightRadius: 0
+          }}
+        >
+          Not Complete
+        </button>
       </div>
     </div>
   );

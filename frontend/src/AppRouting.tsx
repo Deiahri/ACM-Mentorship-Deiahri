@@ -14,11 +14,16 @@ import AssessmentPage from "./pages/AssessmentPage/AssessmentPage";
 import Assessments from "./pages/Assessment/Assessments";
 import GoalPage from "./pages/GoalPage/GoalPage";
 import GoalsPage from "./pages/GoalsPage/GoalsPage";
+import Playground from "./pages/Playground/Playground";
 
 const router = createBrowserRouter([
   {
     path: '/',
     element: <LandingPage/>
+  },
+  {
+    path: '/playground',
+    element: <Playground/>
   },
   {
     path: '/app',

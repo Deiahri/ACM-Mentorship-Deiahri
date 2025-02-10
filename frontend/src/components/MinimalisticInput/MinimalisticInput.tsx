@@ -16,6 +16,7 @@ export default function MinimalisticInput({ value, onChange, style, disabled }: 
         borderBottom: disabled ? '0px' : "1px solid #fff4",
         textWrap: "wrap",
         minWidth: "10rem",
+        whiteSpace: 'pre-wrap',
         ...style
       }}
       contentEditable={!disabled}
