@@ -162,6 +162,7 @@ export default function GoalPage() {
                       body: `Successfully created goal`,
                     })
                   );
+                  setChanged(false);
                 }
               );
             },

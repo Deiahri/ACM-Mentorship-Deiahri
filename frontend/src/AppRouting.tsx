@@ -11,7 +11,7 @@ import UserPage from "./pages/UserPage/UserPage";
 import P404Page from "./pages/404Page/P404Page";
 import Alert from "./features/Alert/Alert";
 import AssessmentPage from "./pages/AssessmentPage/AssessmentPage";
-import Assessments from "./pages/MyAssessments/Assessments";
+import Assessments from "./pages/Assessment/Assessments";
 import GoalPage from "./pages/GoalPage/GoalPage";
 import GoalsPage from "./pages/GoalsPage/GoalsPage";
 

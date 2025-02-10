@@ -89,6 +89,7 @@ export default function GoalsPage() {
           !goals && <p style={{margin: 0, fontSize: '1.25rem'}}>No goals</p>
         }
       </div>
+      <MinimalisticButton onClick={() => navigate('/app/goal?new=true&origin=user')} style={{ marginTop: 10 }}>New Goal +</MinimalisticButton>
     </div>
   );
 }
@@ -106,7 +107,8 @@ function GoalCard({ name, id }: { name: string, id: string }) {
         justifyContent: "end",
         padding: 10,
         boxShadow: "4px 4px 10px rgba(0, 0, 0, 0.6)",
-        cursor: 'pointer'
+        cursor: 'pointer',
+        margin: 5
       }}
       onClick={() => navigate(`/app/goal?id=${id}&origin=user`)}
     >

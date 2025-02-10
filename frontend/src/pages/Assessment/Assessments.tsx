@@ -92,6 +92,7 @@ export default function Assessments() {
           !assessments && <p style={{margin: 0, fontSize: '1.25rem'}}>No assessments</p>
         }
       </div>
+      <MinimalisticButton style={{marginTop: 10}} onClick={() => navigate('/app/assessment?type=new')}>Add Assessment +</MinimalisticButton>
     </div>
   );
 }
@@ -109,9 +110,10 @@ function AssessmentCard({ dateUnix, id }: { dateUnix: number, id: string }) {
         justifyContent: "end",
         padding: 10,
         boxShadow: "4px 4px 10px rgba(0, 0, 0, 0.6)",
-        cursor: 'pointer'
+        cursor: 'pointer',
+        margin: 5
       }}
-      onClick={() => navigate(`/app/assessment?id=${id}`)}
+      onClick={() => navigate(`/app/assessment?id=${id}&origin=user`)}
     >
       <p
         style={{
