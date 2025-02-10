@@ -2159,17 +2159,19 @@ describe("Tests authenticated Socket", () => {
     });
 
     it("should successfully edit an existing goal", async () => {
+      await updateSelf(socket1, socket1Data, '0askc0Kca');
+      const goalID = Object.keys(socket1Data.user.goals)[0];
       await new Promise((res, rej) => {
         socket1.emit(
           "submitGoal",
           {
             action: "edit",
-            id: existingGoalID,
+            id: goalID,
             goal: { name: "Updated Goal", tasks: [] },
           },
           (success: boolean) => {
             if (success !== true) {
-              rej("Expected success but got failure.");
+              rej("Expected success but got failure [Hakcusnda].");
               return;
             }
             res(true);
@@ -2191,13 +2193,15 @@ describe("Tests authenticated Socket", () => {
     });
 
     it("should successfully delete a goal when a valid ID is provided", async () => {
+      await updateSelf(socket1, socket1Data, 'asc0aKSPCa');
+      const goalID = Object.keys(socket1Data.user.goals)[0];
       await new Promise((res, rej) => {
         socket1.emit(
           "submitGoal",
-          { action: "delete", id: existingGoalID },
+          { action: "delete", id: goalID },
           (success: boolean) => {
             if (success !== true) {
-              rej("Expected success but got failure.");
+              rej("Expected success but got failure [as0cjas].");
               return;
             }
             res(true);

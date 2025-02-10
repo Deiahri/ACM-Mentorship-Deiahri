@@ -7,7 +7,8 @@ import {
     DBGet, 
     DBSet, 
     DBSetWithID, 
-    DBGetWithID 
+    DBGetWithID, 
+    DBCreateWithID
 } from '../src/db';
 import { sleep } from '../src/scripts/tools';
 
@@ -146,6 +147,17 @@ describe('Firestore DB Functions', async () => {
         const modifiedObj2 = await DBGet(collection, [['_test_property', '==', nonsenseTestingValue + "!"]]);
         expect(modifiedObj2.length).toBe(1);
         expect(modifiedObj2[0].id).toBe(modifiedObj[0].id);
+    });
+
+    const createID = 'MachuPichu';
+    it('should create an object with a specific id', async ()=> {
+        const collection = Object.keys(currentTestObjects)[0] as collectionName;
+        const testObj = { _test_property: ')SCJa0sckalsod' };
+        
+        await DBCreateWithID(collection, testObj, createID);
+        const fetchedObj = await DBGetWithID(collection, createID);
+        expect(fetchedObj?.id).toBe(createID);
+        expect(fetchedObj?._test_property).toBe(testObj._test_property);
     });
 
     /**

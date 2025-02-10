@@ -36,8 +36,8 @@ initializeApp(firebaseConfig);
 const db = getFirestore();
 
 // list of all collection names
-export type collectionName = "user" | "assessment" | "mentorshipRequest" | 'assessmentQuestion' | 'goal';
-export const collectionsNames = ["user", "assessment", "mentorshipRequest", 'assessmentQuestion', 'goal'];
+export type collectionName = "user" | "assessment" | "mentorshipRequest" | 'assessmentQuestion' | 'goal' | 'metrics';
+export const collectionsNames = ["user", "assessment", "mentorshipRequest", 'assessmentQuestion', 'goal', 'metrics'];
 
 type comparisonOperator =
   | "<"
@@ -57,8 +57,10 @@ type orderDirection = "asc" | "desc";
 type orderTuple = [string, orderDirection];
 export type DBObj = { id: string; [key: string]: any };
 
+
+type NonHitCacheState = 'Nonexistent';
 const DBCacheMaxItems = 15000; // currently optimized for 512 mb of ram.
-const DBCache = new LRUCache<string, DBObj>({ max: DBCacheMaxItems });
+const DBCache = new LRUCache<string, DBObj | NonHitCacheState>({ max: DBCacheMaxItems });
 
 export async function DBGetWithID(
   collectionName: collectionName,
@@ -67,13 +69,17 @@ export async function DBGetWithID(
   try {
     // try fetching from cache first.
     const cacheRes = CacheGet(collectionName, id);
-    if (cacheRes) {
+    if (cacheRes == 'Nonexistent') {
+      return undefined;
+    } else if (cacheRes) {
       return { ...cacheRes }; // avoids mutations
     }
 
     // if cache is empty, fetch from db
     const res = (await getDoc(doc(db, collectionName, id))).data();
     if (!res) {
+      // if no db hit, then mark in cache that this item does not exist.
+      CacheSet(collectionName, id, 'Nonexistent');
       return undefined;
     }
     const resComb = { ...res, id };
@@ -186,14 +192,19 @@ export async function DBSetWithID(
     newObj = value;
   }
 
-  CacheSet(collectionName, id, { ...newObj, id });
   await setDoc(doc(db, collectionName, id), newObj);
+  CacheSet(collectionName, id, { ...newObj, id });
 }
 
 export async function DBCreate(collectionName: collectionName, value: object) {
   const resID = (await addDoc(collection(db, collectionName), value)).id;
   CacheSet(collectionName, resID, { ...value, id: resID });
   return resID;
+}
+
+export async function DBCreateWithID(collectionName: collectionName, value: object, id: string) {
+  (await setDoc(doc(collection(db, collectionName), id), value));
+  CacheSet(collectionName, id, { ...value, id });
 }
 
 export async function DBDelete(
@@ -222,12 +233,12 @@ function CacheGet(collection: collectionName, id: string) {
   return DBCache.get(collection + id);
 }
 
-function CacheSet(collection: collectionName, id: string, val: DBObj) {
+function CacheSet(collection: collectionName, id: string, val: DBObj | NonHitCacheState) {
   DBCache.set(collection + id, val);
 }
 
 function CacheDelete(collection: collectionName, id: string) {
   // this is done so subsequent get requests don't need to check DB to see item was deleted.
-  DBCache.set(collection + id, undefined);
+  DBCache.set(collection + id, 'Nonexistent');
 }
 
