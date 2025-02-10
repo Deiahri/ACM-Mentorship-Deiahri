@@ -1,5 +1,5 @@
 import { ClientDataPayloadType, ClientDataPayloadTypes, ClientSocketState, ClientSocketStates, SubmitAssessmentAction, SubmitAssessmentActions } from "../features/ClientSocket/ClientSocket";
-import { Assessment, AssessmentQuestion, AssessmentQuestionInputTypes, MentorshipRequestAction, MentorshipRequestActions, MentorshipRequestObj, Month, Months, ObjectAny, SocialType, SocialTypes } from "./types";
+import { Assessment, AssessmentQuestion, AssessmentQuestionInputTypes, MentorshipRequestStatuses, MentorshipRequestStatus, MentorshipRequestObj, MentorshipRequestResponseAction, MentorshipRequestResponseActions, Month, Months, ObjectAny, SocialType, SocialTypes, SubmitGoalAction, SubmitGoalActions, GoalObj } from "./types";
 
 export function isClientSocketState(s: string): s is ClientSocketState {
   return ClientSocketStates.includes(s);
@@ -79,7 +79,7 @@ export function isMentorshipRequestObject(s: unknown): s is MentorshipRequestObj
 
   const mentorshipRequest = s as MentorshipRequestObj; // Type assertion after checks
 
-  const { mentorID, menteeID, action, id } = mentorshipRequest; // Destructure here
+  const { mentorID, menteeID, status, id } = mentorshipRequest; // Destructure here
 
   if (!id || typeof id !== 'string') {
     return false;
@@ -93,17 +93,31 @@ export function isMentorshipRequestObject(s: unknown): s is MentorshipRequestObj
     return false;
   }
 
-  if (action && !isMentorshipRequestAction(action)) {
+  if (status && !isMentorshipRequestStatus(status)) {
     return false;
   }
 
   return true;
 }
 
-export function isMentorshipRequestAction(s: unknown): s is MentorshipRequestAction {
+export function isMentorshipRequestStatus(s: unknown): s is MentorshipRequestStatus {
   if (!s || typeof(s) != 'string') {
     return false;
   }
-  return MentorshipRequestActions.includes(s);
+  return MentorshipRequestStatuses.includes(s);
+}
+
+export function isMentorshipRequestResponseAction(s: unknown): s is MentorshipRequestResponseAction {
+  if (!s || typeof(s) != 'string') {
+    return false;
+  }
+  return MentorshipRequestResponseActions.includes(s);
+}
+
+export function isSubmitGoalAction(s: unknown): s is SubmitGoalAction {
+  if (!s || typeof(s) != 'string') {
+    return false;
+  }
+  return SubmitGoalActions.includes(s);
 }
 

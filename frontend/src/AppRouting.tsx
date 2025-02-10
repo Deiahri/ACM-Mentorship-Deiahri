@@ -11,6 +11,9 @@ import UserPage from "./pages/UserPage/UserPage";
 import P404Page from "./pages/404Page/P404Page";
 import Alert from "./features/Alert/Alert";
 import AssessmentPage from "./pages/AssessmentPage/AssessmentPage";
+import Assessments from "./pages/MyAssessments/Assessments";
+import GoalPage from "./pages/GoalPage/GoalPage";
+import GoalsPage from "./pages/GoalsPage/GoalsPage";
 
 const router = createBrowserRouter([
   {
@@ -40,6 +43,18 @@ const router = createBrowserRouter([
       {
         path: 'assessment',
         element: <AssessmentPage/>
+      },
+      {
+        path: 'assessments',
+        element: <Assessments/>
+      },
+      {
+        path: 'goals',
+        element: <GoalsPage/>
+      },
+      {
+        path: 'goal',
+        element: <GoalPage/>
       }
     ]
   },

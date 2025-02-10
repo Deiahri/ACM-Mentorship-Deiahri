@@ -1,11 +1,11 @@
 /**
  * Function used in combination with await to sleep for some amount of time.
- * 
+ *
  * e.g.: await(sleep)
  * @param ms length of time to sleep in ms
  */
 export function sleep(ms: number) {
-    return new Promise((res) => setTimeout(res, ms));
+  return new Promise((res) => setTimeout(res, ms));
 }
 
 export function getMonthName(monthNumber: number): string | undefined {
@@ -39,9 +39,8 @@ export function getMonthName(monthNumber: number): string | undefined {
   }
 }
 
-
 export function getMonthNumber(monthName: string): number | undefined {
-  if (typeof monthName !== 'string') {
+  if (typeof monthName !== "string") {
     return undefined; // Or throw an error: throw new Error("Invalid input: Month name must be a string.");
   }
 
@@ -78,8 +77,18 @@ export function getMonthNumber(monthName: string): number | undefined {
 }
 
 /**
- * This function does nothing. 
- * 
+ * This function does nothing.
+ *
  * Good for when you want a function that does a little less than something.
  */
 export function NothingFunction(..._: any[]) {}
+
+const options: Intl.DateTimeFormatOptions = {
+  year: "numeric",
+  month: "long",
+  day: "numeric",
+};
+export function unixToDateString(unixTimestamp: number): string {
+  const date = new Date(unixTimestamp);
+  return date.toLocaleDateString("en-US", options);
+}

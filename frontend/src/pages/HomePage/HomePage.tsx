@@ -289,24 +289,35 @@ function ViewMentorSection() {
 }
 
 function MenteeInformation() {
+  const navigate = useNavigate();
+  const { user } = useSelector((store: ReduxRootState) => store.ClientSocket)
+  if (!user || !user.id) {
+    return null;
+  }
+
   return (
     <div>
       <p style={{ color: "white", fontSize: "1.5rem", margin: 0 }}>
         Your Stuff
       </p>
-      <div style={{ display: "flex", marginLeft: 10 }}>
-        <button
+      <div style={{ display: "flex", marginLeft: 10, paddingTop: 5 }}>
+        <MinimalisticButton
           style={{
-            border: "2px solid #fff",
-            backgroundColor: "transparent",
-            color: "white",
-            borderRadius: 30,
-            marginTop: 5,
             fontSize: "0.8rem",
           }}
+          onClick={() => navigate(`/app/assessments?id=${user.id}&origin=home`)}
         >
           Assessments {">"}
-        </button>
+        </MinimalisticButton>
+        <MinimalisticButton
+          style={{
+            marginLeft: 10,
+            fontSize: "0.8rem",
+          }}
+          onClick={() => navigate(`/app/goals?id=${user.id}&origin=home`)}
+        >
+          Goals {">"}
+        </MinimalisticButton>
       </div>
 
       <p style={{ color: "white", fontSize: "1.5rem", margin: 0 }}>

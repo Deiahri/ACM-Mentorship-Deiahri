@@ -8,6 +8,8 @@ import {
 } from "../../features/ClientSocket/ClientSocket";
 import {
   AnyFunction,
+  MentorshipRequestObj,
+  MentorshipRequestResponseAction,
   Months,
   ObjectAny,
   SocialTypes,
@@ -31,6 +33,8 @@ import MinimalisticInput from "../../components/MinimalisticInput/MinimalisticIn
 import MinimalisticButton from "../../components/MinimalisticButton/MinimalisticButton";
 import { setAlert } from "../../features/Alert/AlertSlice";
 import { useChangeUsernameWithDialog } from "../../hooks/UseChangeUsername";
+import { isMentorshipRequestResponseAction } from "../../scripts/validation";
+import { SaveButtonFixed } from "../../components/SaveButtonFixed/SaveButtonFixed";
 
 export default function UserPage() {
   const [changed, setChanged] = useState(false);
@@ -213,10 +217,10 @@ export default function UserPage() {
     certifications,
     projects,
     softSkills,
-    isMentor,// @ts-ignore
+    isMentor, // @ts-ignore
     isMentee,
-    acceptingMentees,// @ts-ignore
-    assessments,// @ts-ignore
+    acceptingMentees, // @ts-ignore
+    assessments, // @ts-ignore
     DisplayPictureURL,
     bio,
   } = user;
@@ -224,7 +228,7 @@ export default function UserPage() {
   const { id: selfUserID, mentorID: currentUserMentorID } = self;
 
   const CanMakeChanges = selfUserID == id;
-  console.log("us", user);
+  console.log("currentUser", user);
   return (
     <div
       style={{
@@ -241,7 +245,7 @@ export default function UserPage() {
       }}
     >
       {CanMakeChanges && (
-        <SaveButton
+        <SaveButtonFixed
           disabled={!CanMakeChanges}
           saving={saving}
           show={changed}
@@ -295,13 +299,35 @@ export default function UserPage() {
             <Pencil style={{ marginLeft: "0.5rem" }} size={"1rem"} />
           )}
         </div>
-        <MentorSection
+        <div style={{ display: "flex", marginLeft: 10, paddingTop: 5 }}>
+          <MinimalisticButton
+            style={{
+              fontSize: "0.8rem",
+            }}
+            onClick={() =>
+              navigate(`/app/assessments?id=${user.id}&origin=user`)
+            }
+          >
+            Assessments {">"}
+          </MinimalisticButton>
+          <MinimalisticButton
+            style={{
+              marginLeft: 10,
+              fontSize: "0.8rem",
+            }}
+            onClick={() => navigate(`/app/goals?id=${user.id}&origin=user`)}
+          >
+            Goals {">"}
+          </MinimalisticButton>
+        </div>
+        <RequestMentorSection
           isMentor={isMentor}
           acceptingMentees={acceptingMentees}
           disabled={!CanMakeChanges}
           isCurrentUserMentor={currentUserMentorID == id}
           mentorData={user}
         />
+        <AcceptMentorshipRequestSection user={user} />
         <BioSection bio={bio} setBio={setBio} disabled={!CanMakeChanges} />
         <SocialSection
           socials={socials}
@@ -774,7 +800,7 @@ function CertificationSection({
   );
 }
 
-function MentorSection({
+function RequestMentorSection({
   isMentor,
   acceptingMentees,
   isCurrentUserMentor,
@@ -799,7 +825,7 @@ function MentorSection({
         {isMentor ? (
           acceptingMentees ? (
             isCurrentUserMentor ? (
-              <span>This is your mentor</span>
+              <span style={{ marginLeft: 5 }}>This is your mentor</span>
             ) : (
               disabled && <MentorshipRequestSection mentorData={mentorData} />
             )
@@ -812,6 +838,146 @@ function MentorSection({
       </div>
     </>
   );
+}
+
+function AcceptMentorshipRequestSection({ user }: { user: ClientSocketUser }) {
+  const { user: self, ready } = useSelector(
+    (store: ReduxRootState) => store.ClientSocket
+  );
+  const [params, _] = useSearchParams();
+  const id = params.get("id");
+  const [pendingMentorshipRequest, setPendingMentorshipRequest] = useState<
+    MentorshipRequestObj | undefined
+  >(undefined);
+  const [isMentee, setIsMentee] = useState(false);
+  const dispatch = useDispatch();
+
+  useEffect(() => {
+    if (!MyClientSocket || !self || !self.id || !id || id == self.id) {
+      return;
+    }
+    MyClientSocket.GetMentorshipRequestBetweenMentorMentee(
+      self.id,
+      id,
+      (v: ObjectAny) => {
+        if (typeof v == "boolean") {
+          setPendingMentorshipRequest(undefined);
+          return;
+        }
+        setPendingMentorshipRequest(v);
+      }
+    );
+    const { menteeIDs } = self;
+    if (!menteeIDs || !menteeIDs.includes(id)) {
+      setIsMentee(false);
+    } else {
+      setIsMentee(true);
+    }
+  }, [self, ready, id]);
+
+  function handleAcceptMentorshipRequest() {
+    if (!pendingMentorshipRequest) {
+      return;
+    }
+    dispatch(
+      setDialog({
+        title: "Accept mentorship request",
+        subtitle: `${user.fName} ${user.lName} is requesting your mentorship`,
+        subTitleStyle: { minHeight: "3rem" },
+        buttons: [
+          {
+            text: "Decline",
+            onClick: (_, cb) => {
+              handleRespondToRequest("decline", cb);
+              dispatch(closeDialog());
+            },
+          },
+          {
+            text: "Accept",
+            onClick: (_, cb) => {
+              handleRespondToRequest("accept", cb);
+              dispatch(closeDialog());
+            },
+          },
+        ],
+        buttonContainerStyle: {
+          justifyContent: "space-between",
+          width: "100%",
+        },
+      })
+    );
+  }
+
+  function handleRespondToRequest(
+    response: MentorshipRequestResponseAction,
+    callback?: Function
+  ) {
+    if (
+      !isMentorshipRequestResponseAction(response) ||
+      !MyClientSocket ||
+      !pendingMentorshipRequest ||
+      !pendingMentorshipRequest.id
+    ) {
+      callback && callback(false);
+      console.log(
+        "handleRespondToRequest",
+        response,
+        pendingMentorshipRequest,
+        MyClientSocket
+      );
+      setTimeout(() => {
+        dispatch(
+          setAlert({ title: "Action failed", body: "Couldn't do that." })
+        );
+      }, 250);
+      return;
+    }
+
+    MyClientSocket.DoMentorshipRequestAction(
+      pendingMentorshipRequest.id,
+      response
+    );
+  }
+
+  if (!self || !MyClientSocket || !id) {
+    return;
+  }
+
+  if (pendingMentorshipRequest) {
+    return (
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          marginTop: 10,
+          marginLeft: 5,
+          marginBottom: 10,
+        }}
+      >
+        <p style={{ color: "#9ff", margin: 0, marginBottom: 5 }}>
+          This user is requesting your mentorship
+        </p>
+        <MinimalisticButton onClick={handleAcceptMentorshipRequest}>
+          View Mentorship Request
+        </MinimalisticButton>
+      </div>
+    );
+  } else if (isMentee) {
+    return (
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          marginTop: 0,
+          marginLeft: 5,
+        }}
+      >
+        <p style={{ color: "#9ff", margin: 0, marginBottom: 0 }}>
+          This is one of your mentees
+        </p>
+      </div>
+    );
+  }
 }
 
 function EducationSection({
@@ -1194,7 +1360,7 @@ function MentorshipRequestSection({
   const dispatch = useDispatch();
 
   function CheckStatus() {
-    if (!user || !id || !user.id || !MyClientSocket) {
+    if (!user || !id || !user.id || !MyClientSocket || id == user.id) {
       return;
     }
     MyClientSocket.GetMentorshipRequestBetweenMentorMentee(
@@ -1210,7 +1376,7 @@ function MentorshipRequestSection({
     CheckStatus();
   }, [mentorData, user]);
 
-  if (!user || !id) {
+  if (!user || !id || id == user.id) {
     return;
   }
 
@@ -1666,63 +1832,5 @@ function SocialTile({
         />
       )}
     </>
-  );
-}
-
-function SaveButton({
-  show = false,
-  saving,
-  onSave,
-  disabled = true,
-}: {
-  show?: boolean;
-  onSave?: AnyFunction;
-  saving?: boolean;
-  disabled?: boolean;
-}) {
-  if (!show || disabled) {
-    return;
-  }
-  return (
-    <div
-      style={{
-        position: "fixed",
-        left: 0,
-        bottom: 0,
-        width: "100vw",
-        zIndex: 10,
-      }}
-    >
-      <div
-        style={{
-          maxWidth: "90vw",
-          width: "20rem",
-          backgroundColor: "#333",
-          display: "flex",
-          alignItems: "center",
-          marginLeft: 10,
-          marginBottom: 10,
-          padding: 8,
-          borderRadius: 10,
-          border: "1px solid #fff4",
-        }}
-      >
-        <button
-          disabled={saving}
-          style={{
-            backgroundColor: "#26610E",
-            color: "#ddd",
-            fontSize: "1rem",
-            opacity: saving ? 0.5 : 1,
-          }}
-          onClick={onSave}
-        >
-          {!saving ? "Save" : "Saving..."}
-        </button>
-        <span style={{ marginLeft: "0.5rem", fontSize: "1rem" }}>
-          You have unsaved changes.
-        </span>
-      </div>
-    </div>
   );
 }

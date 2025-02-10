@@ -6,19 +6,24 @@ import {
   isClientSocketState,
   isMentorshipRequestObject,
   isSubmitAssessmentAction,
+  isSubmitGoalAction,
 } from "../../scripts/validation";
 import {
   setAvailableAssessmentQuestions,
-  setClientAssessments,
   setClientReady,
   setClientState,
   setClientUser,
 } from "./ClientSocketSlice";
 import {
   AnyFunction,
+  AssessmentPreviewMap,
   AssessmentQuestion,
+  GoalObj,
+  GoalPreviewMap,
   MentorshipRequestObj,
+  MentorshipRequestResponseAction,
   ObjectAny,
+  SubmitGoalAction,
 } from "../../scripts/types";
 import { setAlert } from "../Alert/AlertSlice";
 import { NothingFunction } from "../../scripts/tools";
@@ -98,12 +103,13 @@ export type ClientSocketUser = {
   isMentor?: boolean;
   isMentee?: boolean;
   acceptingMentees?: boolean;
-  assessments?: string[];
+  assessments?: AssessmentPreviewMap;
   menteeIDs?: string[];
   mentorID?: string;
   DisplayPictureURL?: string;
   bio?: string;
   mentorshipRequests?: string[];
+  goals?: GoalPreviewMap;
 };
 
 export type ClientDataPayloadType = "initialData" | "mentorshipRequest";
@@ -145,7 +151,6 @@ class ClientSocket {
   socket: Socket;
   state: ClientSocketState = "connecting";
   user: ClientSocketUser = {};
-  assessments: string[] = [];
   mentorshipRequests: ObjectAny[] = [];
   currentSocketStateEvents: { [key: string]: (...args: any[]) => void } = {};
   submitting: boolean = false; // this is used to prevent this socket from emitting more than one event at a time.
@@ -259,14 +264,93 @@ class ClientSocket {
         "submitAssessment",
         { action, questions, id },
         (v: boolean | string) => {
-          callback(v);
           this.submitting = false;
+          callback(v);
         }
       );
     }
     // this.dispatch(setAlert({ title: 'Yep', body: 'Alright' }));
 
     callback(true);
+    this.requestUpdateSelf();
+  }
+
+  SubmitGoal(
+    {
+      action,
+      goal,
+      id,
+    }: { action?: SubmitGoalAction; goal?: GoalObj; id?: string },
+    cb?: (v: string | boolean) => any
+  ) {
+    const callback = cb || NothingFunction;
+    if (!isSubmitGoalAction(action)) {
+      callback(false);
+      return;
+    }
+
+    switch (action) {
+      case "create":
+        if (!goal || typeof goal != "object") {
+          return;
+        }
+        this.submitting = true;
+        this.socket.emit(
+          "submitGoal",
+          { goal, action: "create" },
+          (v: boolean | string) => {
+            this.submitting = false;
+            callback(v);
+            if (v) {
+              this.requestUpdateSelf();
+            }
+          }
+        );
+        break;
+      case "edit":
+        if (!goal || typeof goal != "object") {
+          callback(false);
+          return;
+        } else if (!id || typeof id != "string") {
+          callback(false);
+          return;
+        }
+        this.submitting = true;
+        this.socket.emit(
+          "submitGoal",
+          { goal, action: "edit", id },
+          (v: boolean) => {
+            this.submitting = false;
+            callback(v);
+            if (v) {
+              this.requestUpdateSelf();
+            }
+          }
+        );
+        break;
+      case "delete":
+        if (!id || typeof id != "string") {
+          callback(false);
+          return;
+        }
+        this.submitting = true;
+        this.socket.emit(
+          "submitGoal",
+          { id, action: "delete" },
+          (v: boolean) => {
+            this.submitting = false;
+            callback(v);
+            if (v) {
+              this.requestUpdateSelf();
+            }
+          }
+        );
+        break;
+      default:
+        console.error("unhandled submit goal action:", action);
+        callback(false);
+        return;
+    }
   }
 
   private InstallBaseListeners() {
@@ -369,6 +453,22 @@ class ClientSocket {
     });
   }
 
+  GetGoal(goalID: string, cb: Function) {
+    const callback = cb || NothingFunction;
+
+    if (!goalID) {
+      console.error("Can't call getGoal without goal ID");
+      callback(false);
+      return;
+    }
+
+    this.submitting = true;
+    this.socket.emit("getGoal", goalID, (v: boolean | GoalObj) => {
+      this.submitting = false;
+      cb(v);
+    });
+  }
+
   BecomeMentor(cb?: Function) {
     this.updateProfile({ isMentor: true, acceptingMentees: true }, cb);
   }
@@ -380,6 +480,7 @@ class ClientSocket {
       "mentorshipRequest",
       { action: "send", mentorID: userID },
       (v: boolean) => {
+        this.submitting = false;
         cb(v);
       }
     );
@@ -402,6 +503,35 @@ class ClientSocket {
         setTimeout(() => {
           callback(v);
         }, 500);
+      }
+    );
+  }
+
+  DoMentorshipRequestAction(
+    requestID: string,
+    mentorshipRequestAction: MentorshipRequestResponseAction,
+    callback?: Function
+  ) {
+    console.log(
+      "DoMentorshipRequestAction",
+      requestID,
+      mentorshipRequestAction,
+      this.submitting
+    );
+    if (this.submitting) {
+      callback && callback(false);
+      return;
+    }
+    this.submitting = true;
+    this.socket.emit(
+      "mentorshipRequest",
+      { action: mentorshipRequestAction, mentorshipRequestID: requestID },
+      (v: boolean) => {
+        callback && callback(v);
+        this.submitting = false;
+        if (v) {
+          this.requestUpdateSelf();
+        }
       }
     );
   }
@@ -432,21 +562,22 @@ class ClientSocket {
       console.error("Expected initial data to be object", initialData);
       return;
     }
-    const { user, assessments, assessmentQuestions } = initialData as ObjectAny;
+    const { user, availableAssessmentQuestions } = initialData as ObjectAny;
     if (!user) {
       console.error("initialData is missing user payload", initialData);
       return;
     }
     this.dispatch(setClientUser(user));
-    this.user = { ...user };
-    this.dispatch(setClientAssessments(assessments));
-    this.assessments = assessments;
+    this.user = user;
 
-    if (isAssessmentQuestions(assessmentQuestions)) {
-      this.dispatch(setAvailableAssessmentQuestions(assessmentQuestions));
+    if (isAssessmentQuestions(availableAssessmentQuestions)) {
+      this.dispatch(
+        setAvailableAssessmentQuestions(availableAssessmentQuestions)
+      );
     } else {
       console.error(
-        "Received unexpected format for available assessment questions"
+        "Received unexpected format for available assessment questions",
+        availableAssessmentQuestions
       );
     }
   }
@@ -462,11 +593,7 @@ class ClientSocket {
       return;
     }
 
-    if (!this.user.mentorshipRequests) {
-      this.user.mentorshipRequests = [];
-    }
-
-    const { id, mentorID, menteeID, action } = mentorshipRequestObj;
+    const { id, mentorID, menteeID, status } = mentorshipRequestObj;
     if (!mentorID || !id || !menteeID) {
       console.error(
         "Received mentorship object that was missing a parameter",
@@ -475,37 +602,30 @@ class ClientSocket {
       return;
     }
 
-    if (action) {
-      if (!this.user.mentorshipRequests) {
-        return;
-      }
-      this.user.mentorshipRequests.splice(
-        this.user.mentorshipRequests.indexOf(id),
-        1
-      );
-      if (
-        (action == "accepted" || action == "declined") &&
-        this.user.id == menteeID
-      ) {
+    if (status) {
+      if (status == "accepted" || status == "declined") {
+        this.requestUpdateSelf();
         let mentorObj = await new Promise((res) => {
           this.GetUser(mentorID, (v: ObjectAny | boolean) => {
             res(v);
           });
         });
-
         if (!mentorObj || typeof mentorObj != "object") {
           return;
         }
 
-        const { fName, lName } = mentorObj as ObjectAny;
-        this.dispatch(
-          setAlert({
-            title: `Mentorship request ${action}`,
-            body: `${fName} ${lName} ${action} your request.`,
-          })
-        );
+        if (this.user.id == menteeID) {
+          const { fName, lName } = mentorObj as ObjectAny;
+          this.dispatch(
+            setAlert({
+              title: `Mentorship request ${status}`,
+              body: `${fName} ${lName} ${status} your request.`,
+            })
+          );
+        }
       }
     } else {
+      this.requestUpdateSelf();
       if (mentorID == this.user.id) {
         let menteeObj = await new Promise((res) => {
           this.GetUser(menteeID, (v: ObjectAny | boolean) => {
@@ -525,8 +645,6 @@ class ClientSocket {
           })
         );
       }
-      console.log("mentorshipRequests", this.user.mentorshipRequests);
-      this.user.mentorshipRequests.push(id);
     }
   }
 }

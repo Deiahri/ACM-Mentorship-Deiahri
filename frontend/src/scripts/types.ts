@@ -65,7 +65,44 @@ export type MentorshipRequestObj = {
   menteeID?: string,
   mentorID?: string
   id?: string,
-  action?: MentorshipRequestAction
+  status?: MentorshipRequestStatus
 };
-export type MentorshipRequestAction = 'accepted' | 'declined' | 'cancelled';
-export const MentorshipRequestActions = ['accepted', 'declined', 'cancelled'];
+export type MentorshipRequestStatus = 'accepted' | 'declined' | 'cancelled';
+export const MentorshipRequestStatuses = ['accepted', 'declined', 'cancelled'];
+
+export type MentorshipRequestResponseAction = 'accept' | 'decline' | 'cancel';
+export const MentorshipRequestResponseActions = ['accept', 'decline', 'cancel'];
+
+export type AssessmentPreviewMap = {
+  [key: string]: AssessmentPreviewObj
+}
+
+export type AssessmentPreviewObj = {
+  /**  ID of assessment */
+  date: number
+};
+
+export type GoalPreviewMap = {
+  [key: string]: GoalPreviewObj
+};
+
+export type GoalPreviewObj = {
+  name: string
+};
+
+export type GoalObj = {
+  name?: string;
+  tasks?: TaskObj[];
+  id?: string;
+  testing?: boolean;
+  userID?: string;
+};
+
+export type TaskObj = {
+  name?: string,
+  description?: string,
+  completitionDate?: number
+};
+
+export type SubmitGoalAction = 'create' | 'edit' | 'delete';
+export const SubmitGoalActions = ['create', 'edit', 'delete'];
