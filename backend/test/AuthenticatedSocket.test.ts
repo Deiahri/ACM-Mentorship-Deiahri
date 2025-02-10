@@ -2,15 +2,8 @@ import { expect, it, describe, afterAll } from "vitest";
 import { io, ManagerOptions, Socket, SocketOptions } from "socket.io-client";
 import { sleep } from "../src/scripts/tools";
 
-import {
-  isSocketServerOnline,
-  StartSocketServer,
-} from "../src/socket/socketServer";
+import { isSocketServerOnline, StartServer } from "../src/socket/socketServer";
 
-import {
-  StartExpressServer,
-  isExpressServerOnline,
-} from "../src/server/server";
 import { DBDelete, DBDeleteWithID, DBGet, DBGetWithID } from "../src/db";
 import { ObjectAny } from "../src/types";
 import AuthenticatedSocket from "../src/socket/AuthenticatedSocket";
@@ -99,31 +92,32 @@ describe("Tests authenticated Socket", () => {
         targetSocketData.user.mentorshipRequests = [];
       }
 
-        if (typeof data != "object") {
-          printDataError("Expected mentorshipRequest data to be objects");
-          return;
-        }
+      if (typeof data != "object") {
+        printDataError("Expected mentorshipRequest data to be objects");
+        return;
+      }
 
-        const { mentorID, menteeID, id, status } = data;
-        if (status) {
-          console.log(
-            "removing mentorship request for",
-            targetSocketData.id,
-            id,
-            status
-          );
-          targetSocketData.user.mentorshipRequests.splice(targetSocketData.user.mentorshipRequests.indexOf(id), 1);
-          return;
-        }
+      const { mentorID, menteeID, id, status } = data;
+      if (status) {
+        console.log(
+          "removing mentorship request for",
+          targetSocketData.id,
+          id,
+          status
+        );
+        targetSocketData.user.mentorshipRequests.splice(
+          targetSocketData.user.mentorshipRequests.indexOf(id),
+          1
+        );
+        return;
+      }
 
-        if (!mentorID || !menteeID) {
-          printDataError(
-            "Missing some parameters for mentorshipRequest object"
-          );
-          return;
-        }
+      if (!mentorID || !menteeID) {
+        printDataError("Missing some parameters for mentorshipRequest object");
+        return;
+      }
 
-        targetSocketData.user.mentorshipRequests.push(id);
+      targetSocketData.user.mentorshipRequests.push(id);
     } else {
       printDataError("Unexpected type", type, data);
     }
@@ -180,10 +174,7 @@ describe("Tests authenticated Socket", () => {
     opts?: ManagerOptions | SocketOptions
   ) {
     return new Promise<Socket>((res, rej) => {
-      const tempSocket = io(
-        `http://localhost:${process.env.SOCKET_SERVER_PORT}`,
-        opts
-      );
+      const tempSocket = io(`ws://localhost:${process.env.SERVER_PORT}`, opts);
       tempSocket.on("connect_error", () => {
         succeed ? rej("Expected success |" + errorMessage) : res(tempSocket);
       });
@@ -291,21 +282,10 @@ describe("Tests authenticated Socket", () => {
   }
 
   it("Should activate server correctly", async () => {
-    if (!isExpressServerOnline()) {
-      try {
-        await StartExpressServer();
-      } catch (err) {
-        console.log(
-          "================== Express Server is already online ================ ",
-          err
-        );
-      }
-    }
-
     // ensures socket server is online
     if (!isSocketServerOnline()) {
       try {
-        await StartSocketServer();
+        await StartServer();
       } catch {
         console.log(
           "======================== seems server is already online. ======================="
@@ -1363,7 +1343,10 @@ describe("Tests authenticated Socket", () => {
           (success: boolean) => {
             success
               ? res(true)
-              : rej("Failed to decline mentorship request. [ER7] "+mentorshipRequestID);
+              : rej(
+                  "Failed to decline mentorship request. [ER7] " +
+                    mentorshipRequestID
+                );
           }
         );
       });
@@ -1396,7 +1379,10 @@ describe("Tests authenticated Socket", () => {
           (success: boolean) => {
             success
               ? res(true)
-              : rej("Failed to cancel mentorship request. [ER10] "+mentorshipRequestID);
+              : rej(
+                  "Failed to cancel mentorship request. [ER10] " +
+                    mentorshipRequestID
+                );
           }
         );
       });
@@ -1664,7 +1650,7 @@ describe("Tests authenticated Socket", () => {
       await updateSelf(socket1, socket1Data, "0sadjs0aid");
 
       // then retrieve socket1 assessmentID from there.
-      const existingAssessmentID = socket1Data.user.assessments[0];
+      const existingAssessmentID = Object.keys(socket1Data.user.assessments)[0];
       const existingAssessment = {
         id: existingAssessmentID,
         action: "edit",
@@ -1722,7 +1708,8 @@ describe("Tests authenticated Socket", () => {
 
     it("should successfully publish an assessment", async () => {
       // at this point, this assessment was just created, and initially all assessments are unpublished
-      const existingAssessmentID = socket1Data.user.assessments[0];
+      await updateSelf(socket1, socket1Data, 'asc0C_acs');
+      const existingAssessmentID = Object.keys(socket1Data.user.assessments)[0];
       const publishRequest = {
         id: existingAssessmentID,
         action: "publish",
@@ -1739,7 +1726,8 @@ describe("Tests authenticated Socket", () => {
 
     it("should fail to publish an assessment that is already published", async () => {
       // in the previous test, the assessment was just published.
-      const existingAssessmentID = socket1Data.user.assessments[0];
+      await updateSelf(socket1, socket1Data, 'o)S)Cisasc');
+      const existingAssessmentID = Object.keys(socket1Data.user.assessments)[0];
       const alreadyPublishedRequest = {
         id: existingAssessmentID,
         action: "publish",
@@ -1786,7 +1774,8 @@ describe("Tests authenticated Socket", () => {
     });
 
     it("should successfully delete an existing assessment", async () => {
-      const existingAssessmentID = socket1Data.user.assessments[0];
+      await updateSelf(socket1, socket1Data, 'as0cja0sckas');
+      const existingAssessmentID = Object.keys(socket1Data.user.assessments)[0];
       const deleteRequest = {
         id: existingAssessmentID,
         action: "delete",
@@ -1881,7 +1870,7 @@ describe("Tests authenticated Socket", () => {
       await updateSelf(socket1, socket1Data, "D*AH0d9v");
 
       // then retrieve socket1 assessmentID from there.
-      const existingAssessmentID = socket1Data.user.assessments[0];
+      const existingAssessmentID = Object.keys(socket1Data.user.assessments)[0];
       const assessment = await new Promise((res, rej) => {
         socket1.emit(
           "getAssessment",
@@ -1941,7 +1930,7 @@ describe("Tests authenticated Socket", () => {
       await updateSelf(socket2, socket2Data, "LarryC_C_");
 
       // then retrieve socket1 assessmentID from there.
-      const existingAssessmentID = socket1Data.user.assessments[0];
+      const existingAssessmentID = Object.keys(socket1Data.user.assessments)[0];
       const assessment = await new Promise((res, rej) => {
         socket2.emit(
           "getAssessment",
@@ -2014,7 +2003,7 @@ describe("Tests authenticated Socket", () => {
       await updateSelf(socket2, socket2Data, "LarryC_C_");
 
       // then retrieve socket1 assessmentID, but fail because lack permissions
-      const existingAssessmentID = socket1Data.user.assessments[0];
+      const existingAssessmentID = Object.keys(socket1Data.user.assessments)[0];
       await new Promise((res, rej) => {
         socket2.emit(
           "getAssessment",
@@ -2044,7 +2033,7 @@ describe("Tests authenticated Socket", () => {
       await updateSelf(socket2, socket2Data, "LarryC_C_");
 
       // then retrieve socket1 assessmentID, but fail because lack permissions
-      const existingAssessmentID = socket1Data.user.assessments[0];
+      const existingAssessmentID = Object.keys(socket1Data.user.assessments)[0];
       await new Promise((res, rej) => {
         socket2.emit(
           "getAssessment",
@@ -2057,12 +2046,307 @@ describe("Tests authenticated Socket", () => {
     });
   });
 
+  describe("handleSubmitGoal", () => {
+    it("should return an error when no callback is provided", async () => {
+      await new Promise((res, rej) => {
+        socket1.emit("submitGoal", { action: "create", goal: {} }, undefined); // No callback function
+        setTimeout(() => {
+          res(true);
+        }, 1000);
+      });
+    });
+
+    it("should return an error when data parameter is missing", async () => {
+      await new Promise((res, rej) => {
+        socket1.emit("submitGoal", null, (success: boolean) => {
+          if (success !== false) {
+            rej(
+              "Expected failure due to missing data parameter, but got success."
+            );
+            return;
+          }
+          res(true);
+        });
+      });
+    });
+
+    it("should return an error when action is invalid", async () => {
+      await new Promise((res, rej) => {
+        socket1.emit(
+          "submitGoal",
+          { action: "invalid_action" },
+          (success: boolean) => {
+            if (success !== false) {
+              rej("Expected failure due to invalid action, but got success.");
+              return;
+            }
+            res(true);
+          }
+        );
+      });
+    });
+
+    it("should return an error when creating a goal without goal data", async () => {
+      await new Promise((res, rej) => {
+        socket1.emit("submitGoal", { action: "create" }, (success: boolean) => {
+          if (success !== false) {
+            rej("Expected failure due to missing goal data, but got success.");
+            return;
+          }
+          res(true);
+        });
+      });
+    });
+
+    let existingGoalID: string; // should be set after the following test
+    it("should successfully create a goal when valid data is provided", async () => {
+      await new Promise((res, rej) => {
+        console.log('GVD', `{ name: "New Goal", tasks: [] }`);
+        socket1.emit(
+          "submitGoal",
+          { action: "create", goal: { name: "New Goal", tasks: [] } },
+          (goalID: string | boolean) => {
+            if (!goalID || typeof goalID !== "string") {
+              rej("Expected goal ID but got: " + JSON.stringify(goalID));
+              return;
+            }
+            existingGoalID = goalID;
+            res(true);
+          }
+        );
+      });
+    });
+
+    it("should return an error when editing a goal without required parameters", async () => {
+      await new Promise((res, rej) => {
+        console.log('GVD', `{ action: "edit", goal: {} }`);
+        socket1.emit(
+          "submitGoal",
+          { action: "edit", goal: {} },
+          (success: boolean) => {
+            if (success !== false) {
+              rej("Expected failure due to missing goal ID, but got success.");
+              return;
+            }
+            res(true);
+          }
+        );
+      });
+    });
+
+    it("should return an error when editing a non-existent goal", async () => {
+      await new Promise((res, rej) => {
+        const nonEx = {
+          action: "edit",
+          id: "nonExistentID",
+          goal: { name: "Updated Goal", tasks: [] },
+        };
+        console.log('GVD', JSON.stringify(nonEx, null, 2));
+        socket1.emit(
+          "submitGoal",
+          nonEx,
+          (success: boolean) => {
+            if (success !== false) {
+              rej(
+                "Expected failure due to non-existent goal, but got success."
+              );
+              return;
+            }
+            res(true);
+          }
+        );
+      });
+    });
+
+    it("should successfully edit an existing goal", async () => {
+      await new Promise((res, rej) => {
+        socket1.emit(
+          "submitGoal",
+          {
+            action: "edit",
+            id: existingGoalID,
+            goal: { name: "Updated Goal", tasks: [] },
+          },
+          (success: boolean) => {
+            if (success !== true) {
+              rej("Expected success but got failure.");
+              return;
+            }
+            res(true);
+          }
+        );
+      });
+    });
+
+    it("should return an error when deleting a goal without an ID", async () => {
+      await new Promise((res, rej) => {
+        socket1.emit("submitGoal", { action: "delete" }, (success: boolean) => {
+          if (success !== false) {
+            rej("Expected failure due to missing goal ID, but got success.");
+            return;
+          }
+          res(true);
+        });
+      });
+    });
+
+    it("should successfully delete a goal when a valid ID is provided", async () => {
+      await new Promise((res, rej) => {
+        socket1.emit(
+          "submitGoal",
+          { action: "delete", id: existingGoalID },
+          (success: boolean) => {
+            if (success !== true) {
+              rej("Expected success but got failure.");
+              return;
+            }
+            res(true);
+          }
+        );
+      });
+    });
+
+    it("should return an error when goal name is too short", async () => {
+      await new Promise((res, rej) => {
+        socket1.emit(
+          "submitGoal",
+          { action: "create", goal: { name: "ab", tasks: [] } },
+          (success: boolean) => {
+            if (success !== false) {
+              rej("Expected failure due to short goal name, but got success.");
+              return;
+            }
+            res(true);
+          }
+        );
+      });
+    });
+
+    it("should return an error when a task has an invalid completion date", async () => {
+      await new Promise((res, rej) => {
+        const invld = {
+          action: "create",
+          goal: {
+            name: "Valid Goal",
+            tasks: [
+              {
+                name: "Task 1",
+                description: "Desc",
+                completitionDate: "invalidDate __??",
+              },
+            ],
+          },
+        };
+        socket1.emit(
+          "submitGoal",
+          invld,
+          (success: boolean) => {
+            if (success !== false) {
+              rej(
+                "Expected failure due to invalid completion date, but got success."
+              );
+              return;
+            }
+            res(true);
+          }
+        );
+      });
+    });
+
+    let meeMeeGoalID: string; // used in test after the following
+    const meeMeeGoal = {
+      action: "create",
+      goal: {
+        name: "Valid Goal",
+        tasks: [
+          {
+            name: "Task500",
+            description: "Descrpeasid",
+          },
+        ],
+      },
+    };
+    it("should succeed if a task has an valid date, name, and description", async () => {
+      await new Promise((res, rej) => {
+        const validSubmitPayload = {
+          action: "create",
+          goal: {
+            name: "Valid Goal ICh9sc",
+            tasks: [
+              {
+                name: "Task500??0sj0",
+                description: "De_____asid",
+                completitionDate: Date.now(),
+              }
+            ],
+          },
+        };
+        socket1.emit(
+          "submitGoal",
+          validSubmitPayload,
+          (success: boolean) => {
+            if (!success) {
+              rej("Expected success asd9j2d");
+              return;
+            }
+            res(true);
+          }
+        );
+      });
+
+      // date can be undefined too
+      await new Promise((res, rej) => {
+        socket1.emit(
+          "submitGoal",
+          meeMeeGoal,
+          (success: string | boolean) => {
+            if (typeof(success) == 'boolean') {
+              rej("Expected success. [-sC)k3]");
+              return;
+            }
+            meeMeeGoalID = success;
+            res(true);
+          }
+        );
+      });
+    });
+
+    it('should get existing goal using getGoal', async ()=> {
+      await new Promise((res, rej) => {
+        socket1.emit('getGoal', meeMeeGoalID, (v: boolean | ObjectAny) => {
+          if (typeof(v) == 'boolean') {
+            rej('expected to get goal data successfully [asd0i]');
+            return;
+          }
+          console.log('getGoalRes', v);
+          const goal = v;
+          if (!goal || typeof(goal) != 'object') {
+            rej('Goal was not formatted as expected. [0asd] '+JSON.stringify(goal, null, 2));
+            return;
+          }
+          
+          console.log('rec_', goal);
+          console.log('meme_', meeMeeGoal.goal);
+          const { name, tasks } = goal;
+          expect(name).toBe(meeMeeGoal.goal.name);
+          expect(tasks.length).toBe(meeMeeGoal.goal.tasks.length);
+          for (let taskIndex in tasks) {
+            expect(tasks[taskIndex].name).toBe(meeMeeGoal.goal.tasks[taskIndex].name);
+            expect(tasks[taskIndex].description).toBe(meeMeeGoal.goal.tasks[taskIndex].description);
+            expect(tasks[taskIndex].completionDate).toBe(meeMeeGoal.goal.tasks[taskIndex].completionDate);
+          }
+          res(true);
+        });
+      });
+    });
+  });
+
   afterAll(async () => {
     // delete everything with testing
 
     // give server time to finalize actions
-    await updateSelf(socket1, socket1Data, "LarryC_C_sxas");
-    await updateSelf(socket2, socket2Data, "LarryC_C_sxa");
+    // await updateSelf(socket1, socket1Data, "LarryC_C_sxas");
+    // await updateSelf(socket2, socket2Data, "LarryC_C_sxa");
     await sleep(2000);
 
     // give server time to do any post disconnect processing.
@@ -2085,6 +2369,7 @@ describe("Tests authenticated Socket", () => {
       await DBDelete("assessment", [["testing", "==", true]]);
       await DBDelete("user", [["testing", "==", true]]);
       await DBDelete("mentorshipRequest", [["testing", "==", true]]);
+      await DBDelete("goal", [["testing", "==", true]]);
     } catch {}
     // give server time to handle disconnections
     await sleep(4000);

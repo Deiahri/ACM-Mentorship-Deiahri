@@ -16,9 +16,12 @@ import {
   AnsweredAssessmentQuestionObj,
   isValidAnsweredAssessmentQuestion,
   isValidAnsweredAssessmentQuestions,
-  isValidMonthYearRange_YearToo
+  isValidMonthYearRange_YearToo,
+  isValidGoal,
+  isSubmitGoalAction,
+  isTaskObj,
 } from "../../src/scripts/validation";
-import { ObjectAny } from "../../src/types";
+import { ObjectAny, SubmitGoalActions } from "../../src/types";
 
 describe("Tests validation script", () => {
   describe("isValidNames", () => {
@@ -116,28 +119,28 @@ describe("Tests validation script", () => {
 
     it("should return false for invalid month-year ranges", () => {
       // Invalid month
-      expect(
-        () => isValidMonthYearRange({
+      expect(() =>
+        isValidMonthYearRange({
           start: [0, 2020],
           end: [12, 2021],
         })
       ).toThrowError();
-      expect(
-        () => isValidMonthYearRange({
+      expect(() =>
+        isValidMonthYearRange({
           start: [13, isValidMonthYearRange_YearToo],
           end: [12, isValidMonthYearRange_YearToo + 1],
         })
       ).toThrowError();
 
       // Invalid year
-      expect(
-        () => isValidMonthYearRange({
+      expect(() =>
+        isValidMonthYearRange({
           start: [1, isValidMonthYearRange_YearToo - 1],
           end: [12, 2021],
         })
       ).toThrowError();
-      expect(
-        () => isValidMonthYearRange({
+      expect(() =>
+        isValidMonthYearRange({
           start: [1, 2020],
           end: [12, isValidMonthYearRange_YearToo - 1],
         })
@@ -277,7 +280,7 @@ describe("Tests validation script", () => {
       };
       expect(isValidAssessmentQuestion(validQuestion)).toBe(true);
     });
-  
+
     it("should return false if question is missing or not a string", () => {
       const invalidQuestion1: ObjectAny = {
         inputType: "text",
@@ -289,7 +292,7 @@ describe("Tests validation script", () => {
       expect(isValidAssessmentQuestion(invalidQuestion1)).toBe(false);
       expect(isValidAssessmentQuestion(invalidQuestion2)).toBe(false);
     });
-  
+
     it("should return false if inputType is missing or invalid", () => {
       const invalidQuestion1 = {
         question: "What is your age?",
@@ -302,7 +305,7 @@ describe("Tests validation script", () => {
       expect(isValidAssessmentQuestion(invalidQuestion2)).toBe(false);
     });
   });
-  
+
   describe("isValidAnsweredAssessmentQuestion", () => {
     it("should return true for valid answered assessment questions", () => {
       const validTextAnswer: ObjectAny = {
@@ -320,12 +323,12 @@ describe("Tests validation script", () => {
         inputType: "boolean",
         answer: true,
       };
-  
+
       expect(isValidAnsweredAssessmentQuestion(validTextAnswer)).toBe(true);
       expect(isValidAnsweredAssessmentQuestion(validNumberAnswer)).toBe(true);
       expect(isValidAnsweredAssessmentQuestion(validBooleanAnswer)).toBe(true);
     });
-  
+
     it("should return false if answer does not match inputType", () => {
       const invalidTextAnswer: ObjectAny = {
         question: "What is your name?",
@@ -342,12 +345,16 @@ describe("Tests validation script", () => {
         inputType: "boolean",
         answer: "yes", // Should be a boolean
       };
-  
+
       expect(isValidAnsweredAssessmentQuestion(invalidTextAnswer)).toBe(false);
-      expect(isValidAnsweredAssessmentQuestion(invalidNumberAnswer)).toBe(false);
-      expect(isValidAnsweredAssessmentQuestion(invalidBooleanAnswer)).toBe(false);
+      expect(isValidAnsweredAssessmentQuestion(invalidNumberAnswer)).toBe(
+        false
+      );
+      expect(isValidAnsweredAssessmentQuestion(invalidBooleanAnswer)).toBe(
+        false
+      );
     });
-  
+
     it("should return false if the object is missing required properties", () => {
       const missingAnswer: AnsweredAssessmentQuestionObj = {
         question: "What is your name?",
@@ -361,7 +368,7 @@ describe("Tests validation script", () => {
         question: "What is your name?",
         answer: "John Doe",
       };
-  
+
       expect(isValidAnsweredAssessmentQuestion(missingAnswer)).toBe(false);
       expect(isValidAnsweredAssessmentQuestion(missingQuestion)).toBe(false);
       expect(isValidAnsweredAssessmentQuestion(missingInputType)).toBe(false);
@@ -387,10 +394,10 @@ describe("Tests validation script", () => {
           answer: true,
         },
       ];
-  
+
       expect(isValidAnsweredAssessmentQuestions(validQuestions)).toBe(true);
     });
-  
+
     it("should return false if at least one object has an invalid answer type", () => {
       const invalidQuestions: ObjectAny[] = [
         {
@@ -409,10 +416,10 @@ describe("Tests validation script", () => {
           answer: true,
         },
       ];
-  
+
       expect(isValidAnsweredAssessmentQuestions(invalidQuestions)).toBe(false);
     });
-  
+
     it("should return false if at least one object is missing required properties", () => {
       const missingProperties: ObjectAny[] = [
         {
@@ -430,24 +437,24 @@ describe("Tests validation script", () => {
           answer: true,
         },
       ];
-  
+
       expect(isValidAnsweredAssessmentQuestions(missingProperties)).toBe(false);
     });
-  
+
     it("should return true for an empty array", () => {
       expect(isValidAnsweredAssessmentQuestions([])).toBe(true);
     });
-  
+
     it("should return false if the input is not an array", () => {
       const notAnArray: any = {
         question: "What is your name?",
         inputType: "text",
         answer: "John Doe",
       };
-  
+
       expect(isValidAnsweredAssessmentQuestions(notAnArray)).toBe(false);
     });
-  
+
     it("should return false if the array contains a non-object element", () => {
       const mixedArray: any[] = [
         {
@@ -457,9 +464,123 @@ describe("Tests validation script", () => {
         },
         "invalid string",
       ];
-  
+
       expect(isValidAnsweredAssessmentQuestions(mixedArray)).toBe(false);
     });
   });
-  
+
+  describe("isValidGoal", () => {
+    it("should not throw an error for a valid goal", () => {
+      const validGoal = {
+        name: "Learn TypeScript",
+        tasks: [
+          {
+            name: "Read docs",
+            description: "Read TypeScript documentation",
+            completitionDate: Date.now(),
+          },
+          { name: "Practice", description: "Build a project using TypeScript" },
+        ],
+      };
+      expect(() => isValidGoal(validGoal)).not.toThrowError();
+    });
+
+    it("should throw an error for invalid goal objects", () => {
+      const invalidGoals = [
+        null,
+        "invalid",
+        123,
+        {},
+        { tasks: [] },
+        { name: "", tasks: [] },
+        { name: "a", tasks: [] },
+        { name: "Valid Name" },
+        { name: "Valid Name", tasks: "notAnArray" },
+        {
+          name: "Learn TypeScript",
+          tasks: [{ name: "Read docs", description: "" }],
+        },
+      ];
+
+      invalidGoals.forEach((goal) => {
+        expect(() => isValidGoal(goal)).toThrowError();
+      });
+    });
+  });
+  describe("isSubmitGoalAction", () => {
+    it("should return true for valid submit goal actions", () => {
+      SubmitGoalActions.forEach((action) => {
+        expect(isSubmitGoalAction(action)).toBe(true);
+      });
+    });
+
+    it("should return false for invalid submit goal actions", () => {
+      const invalidActions = [null, "invalidAction", 123, {}, []];
+      invalidActions.forEach((action) => {
+        expect(isSubmitGoalAction(action)).toBe(false);
+      });
+    });
+  });
+  describe("isTaskObj", () => {
+    it("should not throw an error for a valid task object", () => {
+      const validTask = {
+        name: "Read docs",
+        description: "Read TypeScript documentation",
+        completitionDate: Date.now(),
+      };
+      expect(() => isTaskObj(validTask)).not.toThrowError();
+    });
+
+    it("should throw an error for invalid task objects", () => {
+      const invalidTasks = [
+        null,
+        "invalid",
+        123,
+        {},
+        { description: "Some description" },
+        { name: "Task name" },
+        { name: "a", description: "Valid description" },
+        { name: "Valid Name", description: "a" },
+        { name: 123, description: "Valid description" },
+        { name: "Valid Name", description: 123 },
+        {
+          name: "Valid Task",
+          description: "Valid Description",
+          completitionDate: "invalidDate",
+        },
+        {
+          name: "Valid Task",
+          description: "Valid Description",
+          completitionDate: NaN,
+        },
+        {
+          name: "Valid Task",
+          description: "Valid Description",
+          completitionDate: {},
+        },
+      ];
+
+      invalidTasks.forEach((task) => {
+        console.log(task);
+        expect(() => isTaskObj(task)).toThrowError();
+      });
+    });
+
+    it("should not throw an error if completionDate is undefined", () => {
+      const validTask = {
+        name: "Valid Task",
+        description: "Valid Description",
+      };
+      expect(() => isTaskObj(validTask)).not.toThrowError();
+    });
+
+    it("should not throw an error if completionDate is a valid timestamp", () => {
+      const validTask = {
+        name: "Valid Task",
+        description: "Valid Description",
+        completitionDate: Date.now(),
+      };
+      expect(() => isTaskObj(validTask)).not.toThrowError();
+    });
+  });
 });

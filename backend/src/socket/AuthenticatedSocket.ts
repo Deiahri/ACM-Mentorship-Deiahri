@@ -8,17 +8,19 @@ import {
   DBObj,
   DBSetWithID,
 } from "../db";
-import { ObjectAny } from "../types";
+import { AssessmentPreviewMap, GoalPreviewMap, ObjectAny } from "../types";
 import {
   Certification,
   Education,
   Experience,
+  isSubmitGoalAction,
   isValidAnsweredAssessmentQuestions,
   isValidAssessmentAction,
   isValidCertification,
   isValidEducation,
   isValidExperience,
   isValidFirstName,
+  isValidGoal,
   isValidLastName,
   isValidMentorshipRequestAction,
   isValidMiddleName,
@@ -55,7 +57,7 @@ type UserObj = {
   OAuthSubID?: string;
   email?: string;
   isMentee?: boolean;
-  assessments?: string[];
+  assessments?: AssessmentPreviewMap;
   username?: string;
   usernameLower?: string;
   menteeIDs?: string[];
@@ -72,6 +74,7 @@ type UserObj = {
   bio?: string;
   testing?: boolean;
   mentorshipRequests?: string[];
+  goals?: GoalPreviewMap;
 };
 export default class AuthenticatedSocket {
   socket: Socket;
@@ -192,10 +195,12 @@ export default class AuthenticatedSocket {
   }
 
   private async _enter_authed_user_state(userID: string) {
+    console.log('HEYYY!!! AUTHED DAMN IT!!!');
+    this._cleanupSocketEvents();
     this.user = await GetUserData(userID);
+    console.log('self__1', this.user);
 
     this.addSelfToSocketMap();
-    this._cleanupSocketEvents();
     this._setState("authed_user");
 
     // // send user its own data, userID, and assessment data.
@@ -205,7 +210,7 @@ export default class AuthenticatedSocket {
 
     this.sendClientData("initialData", {
       user: this.user,
-      assessmentQuestions: availableAssessmentQuestions,
+      availableAssessmentQuestions: availableAssessmentQuestions,
     });
 
     this._addStateSocketEvent(
@@ -223,24 +228,28 @@ export default class AuthenticatedSocket {
       this.handleSubmitAssessment.bind(this)
     );
 
+    this._addStateSocketEvent("submitGoal", this._handleSubmitGoal.bind(this));
+    
     this._addStateSocketEvent(
       "mentorshipRequest",
       this.handleMentorshipRequest.bind(this)
     );
-
+    
     this._addStateSocketEvent("getUser", this._getUser.bind(this));
-
+    
     this._addStateSocketEvent("getAssessment", this._getAssessment.bind(this));
-
+    
     this._addStateSocketEvent(
       "getAvailableAssessmentQuestions",
       this.handleGetAvailableAssessmentQuestions.bind(this)
     );
-
+    
     this._addStateSocketEvent(
       "getMentorshipRequestBetweenUsers",
       this.getFindMentorshipRequestBetweenUsers.bind(this)
     );
+
+    this._addStateSocketEvent("getGoal", this.handleGetGoal.bind(this));
   }
 
   private _setState(state: AuthenticatedSocketState) {
@@ -792,9 +801,8 @@ export default class AuthenticatedSocket {
    */
   async handleSubmitAssessment(dataRaw: unknown, callback: unknown) {
     await this._updateSelf();
-    console.log("this.user.assessments", this.user.assessments);
     if (!this.user.assessments) {
-      this.user.assessments = [];
+      this.user.assessments = {};
     }
     const handleSubmitAssessmentHeader =
       "Problem trying to submit assessment: ";
@@ -842,13 +850,13 @@ export default class AuthenticatedSocket {
 
         // create assessment, send assessment to user after creation
         let createdAssessmentID: string;
+        const assessmentObj: ObjectAny = {
+          questions,
+          userID: this.user.id,
+          date: Date.now(),
+          published: false,
+        };
         try {
-          const assessmentObj: ObjectAny = {
-            questions,
-            userID: this.user.id,
-            date: Date.now(),
-            published: false,
-          };
           this.testing && (assessmentObj.testing = true);
           createdAssessmentID = await DBCreate("assessment", assessmentObj);
         } catch (err: unknown) {
@@ -862,7 +870,9 @@ export default class AuthenticatedSocket {
 
         // enable isMentee if not enabled, and add assessment to assessments array
         try {
-          this.user.assessments.push(createdAssessmentID);
+          this.user.assessments[createdAssessmentID] = {
+            date: assessmentObj.date
+          };
           this.user.isMentee = true;
           await DBSetWithID(
             "user",
@@ -947,7 +957,8 @@ export default class AuthenticatedSocket {
 
         // remove assessment from account
         try {
-          this.user.assessments.splice(this.user.assessments.indexOf(id), 1);
+          delete this.user.assessments[id];
+          await DBSetWithID('user', this.user.id, { assessments: this.user.assessments }, true);
         } catch (err) {
           if (err instanceof Error) {
             ErrorCallback(err.message);
@@ -1014,6 +1025,112 @@ export default class AuthenticatedSocket {
         handleSubmitAssessmentHeader +
           "Something went wrong while handling mentorship request"
       );
+      return;
+    }
+  }
+
+  async _handleSubmitGoal(dataRaw: unknown, callback: unknown) {
+    const handleSubmitGoalErrorHeader = "Error while submitting goal:";
+    const SendErrorMessage = (msg: string) => {
+      this.sendClientMessage("Error", handleSubmitGoalErrorHeader + ' ' + msg);
+    }
+    try {
+      if (!callback || typeof(callback) != 'function') {
+        SendErrorMessage('Callback was not provided or was invalid');
+        return;
+      }
+
+      const ErrorCallback = (msg: string) => {
+        SendErrorMessage(msg);
+        callback(false);
+      }
+
+      if (!dataRaw || typeof(dataRaw) != 'object') {
+        ErrorCallback('Missing data parameter.');
+        return;
+      }
+
+      const data: ObjectAny = dataRaw;
+
+      const { action, goal, id } = data;
+      if (!action || !isSubmitGoalAction(action)) {
+        ErrorCallback('Submit goal action is invalid.');
+        return;
+      }
+
+      switch (action) {
+        case 'create':
+          if (!goal) {
+            ErrorCallback('No goal data provided');
+            return;
+          }
+
+          try {
+            const createdGoalID = await AuthenticatedSocket.CreateGoalForUser(this.user.id, goal, this.testing);
+            callback(createdGoalID);
+          } catch (err) {
+            ErrorCallback(err.message);
+            return;
+          }
+          break;
+        case 'edit':
+          if (!goal || !id) {
+            ErrorCallback('Cannot edit, a parameter is missing');
+            return;
+          }
+
+          try {
+            isValidGoal(goal);
+          } catch (err) {
+            ErrorCallback(err.message);
+            return;
+          }
+
+          try {
+            const existingGoal = await DBGetWithID('goal', id);
+            if (!existingGoal) {
+              ErrorCallback('Goal does not exist.');
+              return;
+            }
+          } catch (err) {
+            ErrorCallback('Something went wrong while validating goal existence');
+            return;
+          }
+
+          // everything good, update goal
+          try {
+            const { goals } = this.user;
+            if (!goals || !goals[id]) {
+              ErrorCallback('This goal does not exist on your account.');
+              return;
+            }
+            goals[id] = { name: goal.name };
+            await DBSetWithID('goal', id, goal, false);
+            await DBSetWithID('user', this.user.id, { goals: goals }, true); // update self preview too
+          } catch (err) {
+            ErrorCallback('Something went wrong while updating goal');
+            return;
+          }
+          callback(true);
+          break;
+        case 'delete':
+          if (!id) {
+            ErrorCallback('Cannot delete, no goalID provided');
+            return;
+          }
+
+          try {
+            await AuthenticatedSocket.DeleteGoalFromUser(this.user.id, id);
+            callback(true);
+          } catch (err) {
+            ErrorCallback(err.message);
+            return;
+          }
+          break;
+      }
+
+    } catch (err) {
+      SendErrorMessage('Something went wrong while handling goal request '+err.message);
       return;
     }
   }
@@ -1128,6 +1245,10 @@ export default class AuthenticatedSocket {
         }
       } else if (action == "accept") {
         // determine if mentorshipRequest exists, and if the current user is the mentor
+        if (!mentorshipRequestID) {
+          ErrorCallback('No menorship request ID was passed');
+          return;
+        }
         let mentorshipRequestObj: ObjectAny;
         try {
           mentorshipRequestObj = await DBGetWithID(
@@ -1388,51 +1509,67 @@ export default class AuthenticatedSocket {
     }
   }
 
-  private async getFindMentorshipRequestBetweenUsers(mentorID: unknown, menteeID: unknown, callback: unknown) {
-    const handleFindMentorshipRequestErrorHeaderBetween = 'Error while looking up mentorship status: ';
-    function SendErrorMessage(msg: string) {
+  private async getFindMentorshipRequestBetweenUsers(
+    mentorID: unknown,
+    menteeID: unknown,
+    callback: unknown
+  ) {
+    const handleFindMentorshipRequestErrorHeaderBetween =
+      "Error while looking up mentorship status: ";
+    const SendErrorMessage = (msg: string) => {
       this.sendClientMessage(
         "Error",
-        handleFindMentorshipRequestErrorHeaderBetween +
-          msg
+        handleFindMentorshipRequestErrorHeaderBetween + msg
       );
       return;
     }
 
     try {
-      if (!callback || typeof(callback) != 'function') {
-        SendErrorMessage('No callback provided');
+      if (!callback || typeof callback != "function") {
+        SendErrorMessage("No callback provided");
         return;
       }
       const ErrorCallback = (msg: string) => {
         callback(false);
         SendErrorMessage(msg);
         return;
-      }
+      };
 
       if (!mentorID || !menteeID) {
-        ErrorCallback('Missing mentorID or menteeID');
+        ErrorCallback("Missing mentorID or menteeID");
         return;
-      } else if (typeof(mentorID) != 'string' || typeof(menteeID) != 'string') {
-        ErrorCallback('MentorID or menteeID format incorrect.');
+      } else if (typeof mentorID != "string" || typeof menteeID != "string") {
+        ErrorCallback("MentorID or menteeID format incorrect.");
+        return;
+      } else if (mentorID == menteeID) {
+        ErrorCallback("Mentor and mentee cannot be the same person.");
+        return;
+      } else if (mentorID != this.user.id && menteeID != this.user.id) {
+        ErrorCallback(
+          "You cannot request for a mentorship status that doesn't involve you."
+        );
         return;
       }
-      
-      const res = await AuthenticatedSocket.FindMentorshipRequestBetweenMentorMentee(mentorID, menteeID);
+
+      const res =
+        await AuthenticatedSocket.FindMentorshipRequestBetweenMentorMentee(
+          mentorID,
+          menteeID
+        );
       callback(res);
     } catch (err) {
       if (err instanceof Error) {
         SendErrorMessage(err.message);
         return;
       }
-      SendErrorMessage('Something went wrong.');
+      SendErrorMessage("Something went wrong.");
     }
   }
 
   private async handleGetAvailableAssessmentQuestions(callback: unknown) {
     const hGAAQErrorHeader =
       "Problem while getting available assessment questions: ";
-    function SendErrorMessage(msg: string) {
+    const SendErrorMessage = (msg: string) => {
       this.sendClientMessage("Error", hGAAQErrorHeader + msg);
     }
     try {
@@ -1461,6 +1598,41 @@ export default class AuthenticatedSocket {
         return;
       }
     } catch (err) {}
+  }
+
+  private async handleGetGoal(goalID: string, callback: unknown) {
+    const handleGetGoalErrorHeader = 'Error while getting goal:';
+    const SendErrorMessage = (msg: string) => {
+      this.sendClientMessage('Error', handleGetGoalErrorHeader +' '+ msg);
+    }
+    try {
+      if (!callback || typeof(callback) != 'function') {
+        SendErrorMessage('Callback null or not provided.');
+        return;
+      }
+      const ErrorCallback = (msg: string) => {
+        SendErrorMessage(msg);
+        callback(false);
+      }
+
+      if (!goalID) {
+        ErrorCallback('No goalID provided');
+        return;
+      }
+
+      try {
+        const goalObj = await this._getGoal(goalID);
+        if (!goalObj) {
+          ErrorCallback('Goal does not exist.');
+          return;
+        }
+        callback(goalObj);
+      } catch (err) {
+        ErrorCallback('Something went wrong: '+err.message);
+      }
+    } catch (err) {
+      SendErrorMessage(err.message);
+    }
   }
 
   private static async addMentorship(mentorID: string, menteeID: string) {
@@ -1691,7 +1863,7 @@ export default class AuthenticatedSocket {
     mentorID: string,
     menteeID: string
   ) {
-    if (!mentorID || !menteeID) {
+    if (!mentorID || !menteeID || mentorID == menteeID) {
       return;
     }
 
@@ -1887,6 +2059,11 @@ export default class AuthenticatedSocket {
     }
   }
 
+  private async _getGoal(goalID: string) {
+    // currently all users can see a user's goals.
+    return await DBGetWithID('goal', goalID);
+  }
+
   /**
    * adds event function pair to socket.
    * also adds it to `currentSocketStateEvents` to keep track of current socket events (used by ``_cleanupSocketEvents``).
@@ -1955,6 +2132,7 @@ export default class AuthenticatedSocket {
       AuthenticatedSocket.AllSockets.set(this.user.id, [this]);
     }
     this.inAllSockets = true;
+    console.log('Added', this.user.id, this.user.username, 'to socket map');
   }
 
   private removeSelfFromSocketMap() {
@@ -2039,6 +2217,101 @@ export default class AuthenticatedSocket {
 
   private addSelfToAcceptingMentorIDsList() {
     AuthenticatedSocket.AllAcceptingMentorIDs.add(this.user.id);
+  }
+
+  static async CreateGoalForUser(userID: string, goal: unknown, testing?: boolean) {
+    if (!userID) {
+      throw new Error('No userID was provided');
+    }
+
+    let userObj: UserObj;
+    try {
+      userObj = await DBGetWithID('user', userID);
+      if (!userObj) {
+        throw new Error('User does not exist.');
+      }
+    } catch (err) {
+      console.error('Something went wrong while creating goal', err);
+      throw new Error('Something went wrong while verifying profile to create goal');
+    }
+
+    // unnecessary, but needed to make ts and vite happy
+    // an error will be throw here if goal is invalid
+    if (!isValidGoal(goal)) {
+      return;
+    }
+
+    if (testing) {
+      goal.testing = true;
+    }
+
+    goal.userID = userID;
+    let goalID: string;
+    try {
+      goalID = await DBCreate('goal', goal);
+    } catch (err) {
+      console.error('Something went wrong while creating goal', err);
+      throw new Error('Something went wrong while creating goal');
+    }
+
+    let { goals } = userObj;
+    if (!goals) {
+      goals = {};
+    }
+    goals[goalID] = {
+      name: goal.name
+    };
+    try {
+      await DBSetWithID('user', userID, { goals }, true);
+    } catch (err) {
+      console.error('Something went wrong while updating profile to create goal', err);
+      throw new Error('Something went wrong while updating profile after creating goal');
+    }
+    return goalID;
+  }
+
+  static async DeleteGoalFromUser(userID: string, goalID: string) {
+    if (!userID) {
+      throw new Error('No userID was provided');
+    } else if (!goalID) {
+      throw new Error('No goalID was provided');
+    }
+
+    let userObj: UserObj;
+    try {
+      userObj = await DBGetWithID('user', userID);
+      if (!userObj) {
+        throw new Error('User does not exist.');
+      }
+    } catch (err) {
+      console.error('Something went wrong while creating goal', err);
+      throw new Error('Something went wrong while verifying profile to create goal');
+    }
+
+    let { goals } = userObj;
+    if (!goals) {
+      throw new Error('This user does not have any goals to remove.');
+    }
+
+    // remove goalID from goals list
+    delete goals[goalID];
+    try {
+      await DBSetWithID('user', userID, { goals }, true);
+    } catch (err) {
+      console.error('Something went wrong while updating profile to removing goal', err);
+      throw new Error('Something went wrong while updating profile after removing goal');
+    }
+
+    try {
+      const goalObj = await DBGetWithID('goal', goalID);
+      if (!goalObj) {
+        throw new Error('Goal does not exist');
+      }
+      await DBDeleteWithID('goal', goalID);
+    } catch (err) {
+      console.error('Something went wrong while deleting goal', err);
+      throw new Error('Something went wrong while deleting goal');
+    }
   }
 }
 

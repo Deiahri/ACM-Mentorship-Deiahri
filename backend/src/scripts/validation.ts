@@ -2,10 +2,14 @@ import { DBGet } from "../db";
 import {
   AssessmentAction,
   AssessmentActions,
+  GoalObj,
   MentorshipRequestAction,
   MentorshipRequestActions,
   ObjectAny,
   SocialTypes,
+  SubmitGoalAction,
+  SubmitGoalActions,
+  TaskObj,
 } from "../types";
 
 export const MAX_NAME_LENGTH = 36;
@@ -423,3 +427,88 @@ export function isValidMentorshipRequestAction(
 }
 
 export const MAX_BIO_LENGTH = 200;
+
+/**
+ * Checks if a goal is valid.
+ * 
+ * Throws error with message if invalid, true otherwise.
+ * 
+ * mutates goal, trimming strings for space.
+ * @param s 
+ * @returns 
+ */
+export function isValidGoal(s: unknown): s is GoalObj {
+  if (!s || typeof(s) != 'object') {
+    throw new Error('Goal object is invalid');
+  }
+
+  const { tasks, name } = s as GoalObj;
+  if (!name) {
+    throw new Error('Name is missing from goal')
+  }
+
+  if (typeof(name) != 'string') {
+    throw new Error('Name is invalid');
+  }
+
+  if (name.trim().length < 3) {
+    throw new Error('Name is too short');
+  }
+
+  s['name'] = name.trim();
+
+  if (!tasks || !(tasks instanceof Array)) {
+    throw new Error('Format of tasks array is invalid');
+  }
+
+  for (let item of tasks) {
+    try {
+      isTaskObj(item);
+    } catch (err) {
+      throw new Error(`For task: ${name}: ${err.message}.`);
+    }
+    item.name = item.name.trim();
+    item.description = item.description.trim();
+  }
+  return true;
+}
+
+export function isSubmitGoalAction(s: unknown): s is SubmitGoalAction {
+  if (!s || typeof(s) != 'string') {
+    return false;
+  }
+  return SubmitGoalActions.includes(s);
+}
+
+
+export const MIN_TASK_NAME_LENGTH = 3;
+export const MIN_DESCRIPTION_NAME_LENGTH = 3;
+export function isTaskObj(s: unknown): s is TaskObj {
+  if (!s || typeof(s) != 'object') {
+    throw new Error('Task object is invalid');
+  }
+
+  const { name, description, completitionDate } = s as TaskObj;
+
+  if (!name || !description) {
+    throw new Error('Name, description, or completitionDate is missing');
+  }
+
+  if (typeof(name) != 'string') {
+    throw new Error('Task Name is invalid');
+  } else if (name.trim().length < MIN_TASK_NAME_LENGTH) {
+    throw new Error('Task name is too short');
+  }
+
+  if (typeof(description) != 'string') {
+    throw new Error('Description is invalid');
+  } else if (description.trim().length < MIN_DESCRIPTION_NAME_LENGTH) {
+    throw new Error('Description is too short');
+  }
+
+  if ((completitionDate != undefined || completitionDate != null) && (typeof(completitionDate) != 'number' || isNaN(new Date(completitionDate).getTime()))) {
+    throw new Error('Completion date is invalid');
+  }
+
+  return true;
+}
