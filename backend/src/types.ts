@@ -81,3 +81,6 @@ export type GoalPreviewMap = {
 export type GoalPreviewObj = {
   name: string
 };
+
+export type SendMessageAction = 'send' | 'create';
+export const SendMessageActions = ['send', 'create'];

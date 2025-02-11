@@ -6,6 +6,8 @@ import {
   MentorshipRequestAction,
   MentorshipRequestActions,
   ObjectAny,
+  SendMessageAction,
+  SendMessageActions,
   SocialTypes,
   SubmitGoalAction,
   SubmitGoalActions,
@@ -510,5 +512,30 @@ export function isTaskObj(s: unknown): s is TaskObj {
     throw new Error('Completion date is invalid');
   }
 
+  return true;
+}
+
+export function isSendMessageAction(s: unknown): s is SendMessageAction {
+  if (!s || typeof(s) != 'string') {
+    return false;
+  }
+  return SendMessageActions.includes(s);
+}
+
+
+/**
+ * Checks s is valid message.
+ * 
+ * Throws descriptive error if invalid. Returns true otherwise.
+ * @param s 
+ * @returns 
+ */
+export function isValidMessageContent(s: unknown): s is string {
+  if (!s || typeof(s) != 'string') {
+    throw new Error('No message content was provided');
+  }
+  if (s.trim().length == 0) {
+    throw new Error('Message content is too short');
+  }
   return true;
 }

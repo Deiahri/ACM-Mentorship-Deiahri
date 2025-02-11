@@ -1,15 +1,18 @@
 import { expect, it, describe, afterAll } from "vitest";
 import { io, ManagerOptions, Socket, SocketOptions } from "socket.io-client";
-import { sleep } from "../src/scripts/tools";
+import { sleep } from "../../src/scripts/tools";
 
-import { isSocketServerOnline, StartServer } from "../src/socket/socketServer";
+import {
+  isSocketServerOnline,
+  StartServer,
+} from "../../src/socket/socketServer";
 
-import { DBDelete, DBDeleteWithID, DBGet, DBGetWithID } from "../src/db";
-import { ObjectAny } from "../src/types";
-import AuthenticatedSocket from "../src/socket/AuthenticatedSocket";
-import { MAX_BIO_LENGTH } from "../src/scripts/validation";
+import { DBDelete, DBDeleteWithID, DBGet, DBGetWithID } from "../../src/db";
+import { ObjectAny } from "../../src/types";
+import AuthenticatedSocket from "../../src/socket/AuthenticatedSocket";
+import { MAX_BIO_LENGTH } from "../../src/scripts/validation";
 
-async function ExpectNoUsersWithTestingTokenOrUsername(
+export async function ExpectNoUsersWithTestingTokenOrUsername(
   token: string,
   username: string
 ) {
@@ -28,6 +31,86 @@ async function ExpectNoUsersWithTestingTokenOrUsername(
     return false;
   }
   return true;
+}
+
+// this function should not be used until after handleGetUser test has been validated.
+export async function updateSelf(
+  socket: Socket,
+  targetSocketData: ObjectAny,
+  errorMessage: string
+) {
+  if (!targetSocketData || !targetSocketData.id) {
+    throw new Error(
+      "Expected targetSocketData to be defined, " +
+        errorMessage +
+        " " +
+        JSON.stringify(targetSocketData)
+    );
+  }
+  const data = await GetUser(socket, targetSocketData.id, errorMessage);
+  targetSocketData.user = data;
+}
+
+export async function GetUser(
+  socket: Socket,
+  targetUserID: string,
+  errorMessage: string
+): Promise<Object> {
+  return await new Promise((res, rej) => {
+    socket.emit("getUser", targetUserID, (data: boolean | Object) => {
+      if (typeof data != "object") {
+        rej("Expected to get user data successfully " + errorMessage);
+        return;
+      }
+      res(data);
+    });
+  });
+}
+
+// creates socket that fails to connect without testing token
+export function ConnectWithParams(
+  succeed: boolean,
+  errorMessage: string,
+  opts?: ManagerOptions | SocketOptions
+) {
+  return new Promise<Socket>((res, rej) => {
+    const tempSocket = io(`ws://localhost:${process.env.SERVER_PORT}`, opts);
+    tempSocket.on("connect_error", () => {
+      succeed ? rej("Expected success |" + errorMessage) : res(tempSocket);
+    });
+    tempSocket.on("connect", () =>
+      succeed ? res(tempSocket) : rej("expected failure | " + errorMessage)
+    );
+    tempSocket.onAny((param) => {
+      console.log("any_", errorMessage, param);
+    });
+  });
+}
+
+export function CreateUser(
+  targetSocket: Socket,
+  params: Object | undefined,
+  succeed: boolean,
+  errorMessage: string
+) {
+  return new Promise((res, rej) => {
+    targetSocket.emit("createUser", params, (v: boolean) => {
+      v
+        ? succeed
+          ? res(true)
+          : rej("Expected failure" + errorMessage)
+        : succeed
+        ? rej("Expected success" + errorMessage)
+        : res(true);
+    });
+    setTimeout(
+      () =>
+        rej(
+          "create user request did not respond quick enough, " + errorMessage
+        ),
+      4000
+    );
+  });
 }
 
 describe("Tests authenticated Socket", () => {
@@ -167,52 +250,6 @@ describe("Tests authenticated Socket", () => {
     });
   }
 
-  // creates socket that fails to connect without testing token
-  function ConnectWithParams(
-    succeed: boolean,
-    errorMessage: string,
-    opts?: ManagerOptions | SocketOptions
-  ) {
-    return new Promise<Socket>((res, rej) => {
-      const tempSocket = io(`ws://localhost:${process.env.SERVER_PORT}`, opts);
-      tempSocket.on("connect_error", () => {
-        succeed ? rej("Expected success |" + errorMessage) : res(tempSocket);
-      });
-      tempSocket.on("connect", () =>
-        succeed ? res(tempSocket) : rej("expected failure | " + errorMessage)
-      );
-      tempSocket.onAny((param) => {
-        console.log("any_", errorMessage, param);
-      });
-    });
-  }
-
-  function CreateUser(
-    targetSocket: Socket,
-    params: Object | undefined,
-    succeed: boolean,
-    errorMessage: string
-  ) {
-    return new Promise((res, rej) => {
-      targetSocket.emit("createUser", params, (v: boolean) => {
-        v
-          ? succeed
-            ? res(true)
-            : rej("Expected failure" + errorMessage)
-          : succeed
-          ? rej("Expected success" + errorMessage)
-          : res(true);
-      });
-      setTimeout(
-        () =>
-          rej(
-            "create user request did not respond quick enough, " + errorMessage
-          ),
-        4000
-      );
-    });
-  }
-
   function GetMentorshipRequestFromData(targetSocketData: ObjectAny) {
     // so this should get the mentorship request from our data correctly if it exists.
     try {
@@ -244,40 +281,6 @@ describe("Tests authenticated Socket", () => {
         }
         await sleep(200);
       }
-    });
-  }
-
-  // this function should not be used until after handleGetUser test has been validated.
-  async function updateSelf(
-    socket: Socket,
-    targetSocketData: ObjectAny,
-    errorMessage: string
-  ) {
-    if (!targetSocketData || !targetSocketData.id) {
-      throw new Error(
-        "Expected targetSocketData to be defined, " +
-          errorMessage +
-          " " +
-          JSON.stringify(targetSocketData)
-      );
-    }
-    const data = await GetUser(socket, targetSocketData.id, errorMessage);
-    targetSocketData.user = data;
-  }
-
-  async function GetUser(
-    socket: Socket,
-    targetUserID: string,
-    errorMessage: string
-  ): Promise<Object> {
-    return await new Promise((res, rej) => {
-      socket.emit("getUser", targetUserID, (data: boolean | Object) => {
-        if (typeof data != "object") {
-          rej("Expected to get user data successfully " + errorMessage);
-          return;
-        }
-        res(data);
-      });
     });
   }
 
@@ -1708,7 +1711,7 @@ describe("Tests authenticated Socket", () => {
 
     it("should successfully publish an assessment", async () => {
       // at this point, this assessment was just created, and initially all assessments are unpublished
-      await updateSelf(socket1, socket1Data, 'asc0C_acs');
+      await updateSelf(socket1, socket1Data, "asc0C_acs");
       const existingAssessmentID = Object.keys(socket1Data.user.assessments)[0];
       const publishRequest = {
         id: existingAssessmentID,
@@ -1726,7 +1729,7 @@ describe("Tests authenticated Socket", () => {
 
     it("should fail to publish an assessment that is already published", async () => {
       // in the previous test, the assessment was just published.
-      await updateSelf(socket1, socket1Data, 'o)S)Cisasc');
+      await updateSelf(socket1, socket1Data, "o)S)Cisasc");
       const existingAssessmentID = Object.keys(socket1Data.user.assessments)[0];
       const alreadyPublishedRequest = {
         id: existingAssessmentID,
@@ -1774,7 +1777,7 @@ describe("Tests authenticated Socket", () => {
     });
 
     it("should successfully delete an existing assessment", async () => {
-      await updateSelf(socket1, socket1Data, 'as0cja0sckas');
+      await updateSelf(socket1, socket1Data, "as0cja0sckas");
       const existingAssessmentID = Object.keys(socket1Data.user.assessments)[0];
       const deleteRequest = {
         id: existingAssessmentID,
@@ -2101,7 +2104,7 @@ describe("Tests authenticated Socket", () => {
     let existingGoalID: string; // should be set after the following test
     it("should successfully create a goal when valid data is provided", async () => {
       await new Promise((res, rej) => {
-        console.log('GVD', `{ name: "New Goal", tasks: [] }`);
+        console.log("GVD", `{ name: "New Goal", tasks: [] }`);
         socket1.emit(
           "submitGoal",
           { action: "create", goal: { name: "New Goal", tasks: [] } },
@@ -2119,7 +2122,7 @@ describe("Tests authenticated Socket", () => {
 
     it("should return an error when editing a goal without required parameters", async () => {
       await new Promise((res, rej) => {
-        console.log('GVD', `{ action: "edit", goal: {} }`);
+        console.log("GVD", `{ action: "edit", goal: {} }`);
         socket1.emit(
           "submitGoal",
           { action: "edit", goal: {} },
@@ -2141,25 +2144,19 @@ describe("Tests authenticated Socket", () => {
           id: "nonExistentID",
           goal: { name: "Updated Goal", tasks: [] },
         };
-        console.log('GVD', JSON.stringify(nonEx, null, 2));
-        socket1.emit(
-          "submitGoal",
-          nonEx,
-          (success: boolean) => {
-            if (success !== false) {
-              rej(
-                "Expected failure due to non-existent goal, but got success."
-              );
-              return;
-            }
-            res(true);
+        console.log("GVD", JSON.stringify(nonEx, null, 2));
+        socket1.emit("submitGoal", nonEx, (success: boolean) => {
+          if (success !== false) {
+            rej("Expected failure due to non-existent goal, but got success.");
+            return;
           }
-        );
+          res(true);
+        });
       });
     });
 
     it("should successfully edit an existing goal", async () => {
-      await updateSelf(socket1, socket1Data, '0askc0Kca');
+      await updateSelf(socket1, socket1Data, "0askc0Kca");
       const goalID = Object.keys(socket1Data.user.goals)[0];
       await new Promise((res, rej) => {
         socket1.emit(
@@ -2193,7 +2190,7 @@ describe("Tests authenticated Socket", () => {
     });
 
     it("should successfully delete a goal when a valid ID is provided", async () => {
-      await updateSelf(socket1, socket1Data, 'asc0aKSPCa');
+      await updateSelf(socket1, socket1Data, "asc0aKSPCa");
       const goalID = Object.keys(socket1Data.user.goals)[0];
       await new Promise((res, rej) => {
         socket1.emit(
@@ -2241,19 +2238,15 @@ describe("Tests authenticated Socket", () => {
             ],
           },
         };
-        socket1.emit(
-          "submitGoal",
-          invld,
-          (success: boolean) => {
-            if (success !== false) {
-              rej(
-                "Expected failure due to invalid completion date, but got success."
-              );
-              return;
-            }
-            res(true);
+        socket1.emit("submitGoal", invld, (success: boolean) => {
+          if (success !== false) {
+            rej(
+              "Expected failure due to invalid completion date, but got success."
+            );
+            return;
           }
-        );
+          res(true);
+        });
       });
     });
 
@@ -2281,63 +2274,64 @@ describe("Tests authenticated Socket", () => {
                 name: "Task500??0sj0",
                 description: "De_____asid",
                 completitionDate: Date.now(),
-              }
+              },
             ],
           },
         };
-        socket1.emit(
-          "submitGoal",
-          validSubmitPayload,
-          (success: boolean) => {
-            if (!success) {
-              rej("Expected success asd9j2d");
-              return;
-            }
-            res(true);
+        socket1.emit("submitGoal", validSubmitPayload, (success: boolean) => {
+          if (!success) {
+            rej("Expected success asd9j2d");
+            return;
           }
-        );
+          res(true);
+        });
       });
 
       // date can be undefined too
       await new Promise((res, rej) => {
-        socket1.emit(
-          "submitGoal",
-          meeMeeGoal,
-          (success: string | boolean) => {
-            if (typeof(success) == 'boolean') {
-              rej("Expected success. [-sC)k3]");
-              return;
-            }
-            meeMeeGoalID = success;
-            res(true);
+        socket1.emit("submitGoal", meeMeeGoal, (success: string | boolean) => {
+          if (typeof success == "boolean") {
+            rej("Expected success. [-sC)k3]");
+            return;
           }
-        );
+          meeMeeGoalID = success;
+          res(true);
+        });
       });
     });
 
-    it('should get existing goal using getGoal', async ()=> {
+    it("should get existing goal using getGoal", async () => {
       await new Promise((res, rej) => {
-        socket1.emit('getGoal', meeMeeGoalID, (v: boolean | ObjectAny) => {
-          if (typeof(v) == 'boolean') {
-            rej('expected to get goal data successfully [asd0i]');
+        socket1.emit("getGoal", meeMeeGoalID, (v: boolean | ObjectAny) => {
+          if (typeof v == "boolean") {
+            rej("expected to get goal data successfully [asd0i]");
             return;
           }
-          console.log('getGoalRes', v);
+          console.log("getGoalRes", v);
           const goal = v;
-          if (!goal || typeof(goal) != 'object') {
-            rej('Goal was not formatted as expected. [0asd] '+JSON.stringify(goal, null, 2));
+          if (!goal || typeof goal != "object") {
+            rej(
+              "Goal was not formatted as expected. [0asd] " +
+                JSON.stringify(goal, null, 2)
+            );
             return;
           }
-          
-          console.log('rec_', goal);
-          console.log('meme_', meeMeeGoal.goal);
+
+          console.log("rec_", goal);
+          console.log("meme_", meeMeeGoal.goal);
           const { name, tasks } = goal;
           expect(name).toBe(meeMeeGoal.goal.name);
           expect(tasks.length).toBe(meeMeeGoal.goal.tasks.length);
           for (let taskIndex in tasks) {
-            expect(tasks[taskIndex].name).toBe(meeMeeGoal.goal.tasks[taskIndex].name);
-            expect(tasks[taskIndex].description).toBe(meeMeeGoal.goal.tasks[taskIndex].description);
-            expect(tasks[taskIndex].completionDate).toBe(meeMeeGoal.goal.tasks[taskIndex].completionDate);
+            expect(tasks[taskIndex].name).toBe(
+              meeMeeGoal.goal.tasks[taskIndex].name
+            );
+            expect(tasks[taskIndex].description).toBe(
+              meeMeeGoal.goal.tasks[taskIndex].description
+            );
+            expect(tasks[taskIndex].completionDate).toBe(
+              meeMeeGoal.goal.tasks[taskIndex].completionDate
+            );
           }
           res(true);
         });

@@ -13,6 +13,7 @@ import {
   Certification,
   Education,
   Experience,
+  isSendMessageAction,
   isSubmitGoalAction,
   isValidAnsweredAssessmentQuestions,
   isValidAssessmentAction,
@@ -23,6 +24,7 @@ import {
   isValidGoal,
   isValidLastName,
   isValidMentorshipRequestAction,
+  isValidMessageContent,
   isValidMiddleName,
   isValidNames,
   isValidProject,
@@ -62,7 +64,7 @@ type UserObj = {
   usernameLower?: string;
   menteeIDs?: string[];
   mentorID?: string;
-  DisplayPictureURL?: string;
+  displayPictureURL?: string;
   socials?: string[];
   experience?: Experience[];
   certifications?: Certification[];
@@ -101,7 +103,7 @@ export default class AuthenticatedSocket {
     this.user = {
       OAuthSubID: userSubID,
       email: userEmail,
-      DisplayPictureURL: pfp,
+      displayPictureURL: pfp,
     };
     this._processAdditionalSettings(additional);
     this.addUnconditionalEvents();
@@ -195,10 +197,10 @@ export default class AuthenticatedSocket {
   }
 
   private async _enter_authed_user_state(userID: string) {
-    console.log('HEYYY!!! AUTHED DAMN IT!!!');
+    console.log("HEYYY!!! AUTHED DAMN IT!!!");
     this._cleanupSocketEvents();
     this.user = await GetUserData(userID);
-    console.log('self__1', this.user);
+    console.log("self__1", this.user);
 
     this.addSelfToSocketMap();
     this._setState("authed_user");
@@ -229,21 +231,21 @@ export default class AuthenticatedSocket {
     );
 
     this._addStateSocketEvent("submitGoal", this._handleSubmitGoal.bind(this));
-    
+
     this._addStateSocketEvent(
       "mentorshipRequest",
       this.handleMentorshipRequest.bind(this)
     );
-    
+
     this._addStateSocketEvent("getUser", this._getUser.bind(this));
-    
+
     this._addStateSocketEvent("getAssessment", this._getAssessment.bind(this));
-    
+
     this._addStateSocketEvent(
       "getAvailableAssessmentQuestions",
       this.handleGetAvailableAssessmentQuestions.bind(this)
     );
-    
+
     this._addStateSocketEvent(
       "getMentorshipRequestBetweenUsers",
       this.getFindMentorshipRequestBetweenUsers.bind(this)
@@ -330,7 +332,7 @@ export default class AuthenticatedSocket {
       // remove any surrounding stuff from username.
       const usernameProcessed = (username as string).trim();
 
-      const { DisplayPictureURL, OAuthSubID, email } = this.user;
+      const { displayPictureURL, OAuthSubID, email } = this.user;
       const userData: UserObj = {
         username: usernameProcessed,
         usernameLower: usernameProcessed.toLowerCase(),
@@ -338,7 +340,7 @@ export default class AuthenticatedSocket {
         mName: mName || null,
         lName,
         OAuthSubID: OAuthSubID,
-        DisplayPictureURL: DisplayPictureURL,
+        displayPictureURL: displayPictureURL,
         email: email,
       };
       this.testing && (userData.testing = true);
@@ -871,7 +873,7 @@ export default class AuthenticatedSocket {
         // enable isMentee if not enabled, and add assessment to assessments array
         try {
           this.user.assessments[createdAssessmentID] = {
-            date: assessmentObj.date
+            date: assessmentObj.date,
           };
           this.user.isMentee = true;
           await DBSetWithID(
@@ -958,7 +960,12 @@ export default class AuthenticatedSocket {
         // remove assessment from account
         try {
           delete this.user.assessments[id];
-          await DBSetWithID('user', this.user.id, { assessments: this.user.assessments }, true);
+          await DBSetWithID(
+            "user",
+            this.user.id,
+            { assessments: this.user.assessments },
+            true
+          );
         } catch (err) {
           if (err instanceof Error) {
             ErrorCallback(err.message);
@@ -1032,21 +1039,21 @@ export default class AuthenticatedSocket {
   async _handleSubmitGoal(dataRaw: unknown, callback: unknown) {
     const handleSubmitGoalErrorHeader = "Error while submitting goal:";
     const SendErrorMessage = (msg: string) => {
-      this.sendClientMessage("Error", handleSubmitGoalErrorHeader + ' ' + msg);
-    }
+      this.sendClientMessage("Error", handleSubmitGoalErrorHeader + " " + msg);
+    };
     try {
-      if (!callback || typeof(callback) != 'function') {
-        SendErrorMessage('Callback was not provided or was invalid');
+      if (!callback || typeof callback != "function") {
+        SendErrorMessage("Callback was not provided or was invalid");
         return;
       }
 
       const ErrorCallback = (msg: string) => {
         SendErrorMessage(msg);
         callback(false);
-      }
+      };
 
-      if (!dataRaw || typeof(dataRaw) != 'object') {
-        ErrorCallback('Missing data parameter.');
+      if (!dataRaw || typeof dataRaw != "object") {
+        ErrorCallback("Missing data parameter.");
         return;
       }
 
@@ -1054,28 +1061,32 @@ export default class AuthenticatedSocket {
 
       const { action, goal, id } = data;
       if (!action || !isSubmitGoalAction(action)) {
-        ErrorCallback('Submit goal action is invalid.');
+        ErrorCallback("Submit goal action is invalid.");
         return;
       }
 
       switch (action) {
-        case 'create':
+        case "create":
           if (!goal) {
-            ErrorCallback('No goal data provided');
+            ErrorCallback("No goal data provided");
             return;
           }
 
           try {
-            const createdGoalID = await AuthenticatedSocket.CreateGoalForUser(this.user.id, goal, this.testing);
+            const createdGoalID = await AuthenticatedSocket.CreateGoalForUser(
+              this.user.id,
+              goal,
+              this.testing
+            );
             callback(createdGoalID);
           } catch (err) {
             ErrorCallback(err.message);
             return;
           }
           break;
-        case 'edit':
+        case "edit":
           if (!goal || !id) {
-            ErrorCallback('Cannot edit, a parameter is missing');
+            ErrorCallback("Cannot edit, a parameter is missing");
             return;
           }
 
@@ -1087,13 +1098,15 @@ export default class AuthenticatedSocket {
           }
 
           try {
-            const existingGoal = await DBGetWithID('goal', id);
+            const existingGoal = await DBGetWithID("goal", id);
             if (!existingGoal) {
-              ErrorCallback('Goal does not exist.');
+              ErrorCallback("Goal does not exist.");
               return;
             }
           } catch (err) {
-            ErrorCallback('Something went wrong while validating goal existence');
+            ErrorCallback(
+              "Something went wrong while validating goal existence"
+            );
             return;
           }
 
@@ -1101,21 +1114,21 @@ export default class AuthenticatedSocket {
           try {
             const { goals } = this.user;
             if (!goals || !goals[id]) {
-              ErrorCallback('This goal does not exist on your account.');
+              ErrorCallback("This goal does not exist on your account.");
               return;
             }
             goals[id] = { name: goal.name };
-            await DBSetWithID('goal', id, goal, false);
-            await DBSetWithID('user', this.user.id, { goals: goals }, true); // update self preview too
+            await DBSetWithID("goal", id, goal, false);
+            await DBSetWithID("user", this.user.id, { goals: goals }, true); // update self preview too
           } catch (err) {
-            ErrorCallback('Something went wrong while updating goal');
+            ErrorCallback("Something went wrong while updating goal");
             return;
           }
           callback(true);
           break;
-        case 'delete':
+        case "delete":
           if (!id) {
-            ErrorCallback('Cannot delete, no goalID provided');
+            ErrorCallback("Cannot delete, no goalID provided");
             return;
           }
 
@@ -1128,9 +1141,10 @@ export default class AuthenticatedSocket {
           }
           break;
       }
-
     } catch (err) {
-      SendErrorMessage('Something went wrong while handling goal request '+err.message);
+      SendErrorMessage(
+        "Something went wrong while handling goal request " + err.message
+      );
       return;
     }
   }
@@ -1246,7 +1260,7 @@ export default class AuthenticatedSocket {
       } else if (action == "accept") {
         // determine if mentorshipRequest exists, and if the current user is the mentor
         if (!mentorshipRequestID) {
-          ErrorCallback('No menorship request ID was passed');
+          ErrorCallback("No menorship request ID was passed");
           return;
         }
         let mentorshipRequestObj: ObjectAny;
@@ -1509,6 +1523,75 @@ export default class AuthenticatedSocket {
     }
   }
 
+  async handleSendMessage(dataRaw: unknown, callback: unknown) {
+    const handleSendMessageErrorHeader = "Error while sending message:";
+    const SendErrorMessage = (msg: string) => {
+      this.sendClientMessage("Error", handleSendMessageErrorHeader + " " + msg);
+    };
+
+    try {
+      if (!callback || typeof callback != "function") {
+        SendErrorMessage("No callback provided");
+        return;
+      }
+
+      const ErrorCallback = (msg: string) => {
+        SendErrorMessage(msg);
+        callback(false);
+      };
+
+      if (!dataRaw || typeof dataRaw != "object") {
+        ErrorCallback("Parameters are invalid");
+        return;
+      }
+
+      const { action, message, targetUserIDs, chatID } = dataRaw as ObjectAny;
+      if (!isSendMessageAction(action)) {
+        ErrorCallback("Action is invalid: " + action);
+        return;
+      } else if (!message) {
+        ErrorCallback("No message content was provided");
+        return;
+      }
+
+      try {
+        if (!isValidMessageContent(message)) {
+          // this should never execute. Used to satisfy tsc (and prove message type to string)
+          ErrorCallback("Message content is invalid");
+          return;
+        }
+      } catch (err) {
+        ErrorCallback(err.message);
+        return;
+      }
+
+      switch (action) {
+        case "create":
+          if (!(targetUserIDs instanceof Array)) {
+            ErrorCallback("TargetUserIDs is invalid");
+            return;
+          }
+          await AuthenticatedSocket.CreateChat(
+            targetUserIDs,
+            this.user.id,
+            message
+          );
+        case "send":
+        default:
+          ErrorCallback("Unhandled Action");
+          console.error("Unhandled Action", action);
+          return;
+      }
+    } catch (err) {
+      if (err instanceof Error) {
+        SendErrorMessage(err.message);
+        return;
+      }
+      SendErrorMessage("Something went wrong");
+      return;
+    }
+  }
+
   private async getFindMentorshipRequestBetweenUsers(
     mentorID: unknown,
     menteeID: unknown,
@@ -1522,7 +1605,7 @@ export default class AuthenticatedSocket {
         handleFindMentorshipRequestErrorHeaderBetween + msg
       );
       return;
-    }
+    };
 
     try {
       if (!callback || typeof callback != "function") {
@@ -1571,7 +1654,7 @@ export default class AuthenticatedSocket {
       "Problem while getting available assessment questions: ";
     const SendErrorMessage = (msg: string) => {
       this.sendClientMessage("Error", hGAAQErrorHeader + msg);
-    }
+    };
     try {
       if (!callback || typeof callback != "function") {
         SendErrorMessage("No callback provided");
@@ -1601,34 +1684,34 @@ export default class AuthenticatedSocket {
   }
 
   private async handleGetGoal(goalID: string, callback: unknown) {
-    const handleGetGoalErrorHeader = 'Error while getting goal:';
+    const handleGetGoalErrorHeader = "Error while getting goal:";
     const SendErrorMessage = (msg: string) => {
-      this.sendClientMessage('Error', handleGetGoalErrorHeader +' '+ msg);
-    }
+      this.sendClientMessage("Error", handleGetGoalErrorHeader + " " + msg);
+    };
     try {
-      if (!callback || typeof(callback) != 'function') {
-        SendErrorMessage('Callback null or not provided.');
+      if (!callback || typeof callback != "function") {
+        SendErrorMessage("Callback null or not provided.");
         return;
       }
       const ErrorCallback = (msg: string) => {
         SendErrorMessage(msg);
         callback(false);
-      }
+      };
 
       if (!goalID) {
-        ErrorCallback('No goalID provided');
+        ErrorCallback("No goalID provided");
         return;
       }
 
       try {
         const goalObj = await this._getGoal(goalID);
         if (!goalObj) {
-          ErrorCallback('Goal does not exist.');
+          ErrorCallback("Goal does not exist.");
           return;
         }
         callback(goalObj);
       } catch (err) {
-        ErrorCallback('Something went wrong: '+err.message);
+        ErrorCallback("Something went wrong: " + err.message);
       }
     } catch (err) {
       SendErrorMessage(err.message);
@@ -2061,7 +2144,7 @@ export default class AuthenticatedSocket {
 
   private async _getGoal(goalID: string) {
     // currently all users can see a user's goals.
-    return await DBGetWithID('goal', goalID);
+    return await DBGetWithID("goal", goalID);
   }
 
   /**
@@ -2132,7 +2215,7 @@ export default class AuthenticatedSocket {
       AuthenticatedSocket.AllSockets.set(this.user.id, [this]);
     }
     this.inAllSockets = true;
-    console.log('Added', this.user.id, this.user.username, 'to socket map');
+    console.log("Added", this.user.id, this.user.username, "to socket map");
   }
 
   private removeSelfFromSocketMap() {
@@ -2219,20 +2302,26 @@ export default class AuthenticatedSocket {
     AuthenticatedSocket.AllAcceptingMentorIDs.add(this.user.id);
   }
 
-  static async CreateGoalForUser(userID: string, goal: unknown, testing?: boolean) {
+  static async CreateGoalForUser(
+    userID: string,
+    goal: unknown,
+    testing?: boolean
+  ) {
     if (!userID) {
-      throw new Error('No userID was provided');
+      throw new Error("No userID was provided");
     }
 
     let userObj: UserObj;
     try {
-      userObj = await DBGetWithID('user', userID);
+      userObj = await DBGetWithID("user", userID);
       if (!userObj) {
-        throw new Error('User does not exist.');
+        throw new Error("User does not exist.");
       }
     } catch (err) {
-      console.error('Something went wrong while creating goal', err);
-      throw new Error('Something went wrong while verifying profile to create goal');
+      console.error("Something went wrong while creating goal", err);
+      throw new Error(
+        "Something went wrong while verifying profile to create goal"
+      );
     }
 
     // unnecessary, but needed to make ts and vite happy
@@ -2248,10 +2337,10 @@ export default class AuthenticatedSocket {
     goal.userID = userID;
     let goalID: string;
     try {
-      goalID = await DBCreate('goal', goal);
+      goalID = await DBCreate("goal", goal);
     } catch (err) {
-      console.error('Something went wrong while creating goal', err);
-      throw new Error('Something went wrong while creating goal');
+      console.error("Something went wrong while creating goal", err);
+      throw new Error("Something went wrong while creating goal");
     }
 
     let { goals } = userObj;
@@ -2259,59 +2348,333 @@ export default class AuthenticatedSocket {
       goals = {};
     }
     goals[goalID] = {
-      name: goal.name
+      name: goal.name,
     };
     try {
-      await DBSetWithID('user', userID, { goals }, true);
+      await DBSetWithID("user", userID, { goals }, true);
     } catch (err) {
-      console.error('Something went wrong while updating profile to create goal', err);
-      throw new Error('Something went wrong while updating profile after creating goal');
+      console.error(
+        "Something went wrong while updating profile to create goal",
+        err
+      );
+      throw new Error(
+        "Something went wrong while updating profile after creating goal"
+      );
     }
     return goalID;
   }
 
   static async DeleteGoalFromUser(userID: string, goalID: string) {
     if (!userID) {
-      throw new Error('No userID was provided');
+      throw new Error("No userID was provided");
     } else if (!goalID) {
-      throw new Error('No goalID was provided');
+      throw new Error("No goalID was provided");
     }
 
     let userObj: UserObj;
     try {
-      userObj = await DBGetWithID('user', userID);
+      userObj = await DBGetWithID("user", userID);
       if (!userObj) {
-        throw new Error('User does not exist.');
+        throw new Error("User does not exist.");
       }
     } catch (err) {
-      console.error('Something went wrong while creating goal', err);
-      throw new Error('Something went wrong while verifying profile to create goal');
+      console.error("Something went wrong while creating goal", err);
+      throw new Error(
+        "Something went wrong while verifying profile to create goal"
+      );
     }
 
     let { goals } = userObj;
     if (!goals) {
-      throw new Error('This user does not have any goals to remove.');
+      throw new Error("This user does not have any goals to remove.");
     }
 
     // remove goalID from goals list
     delete goals[goalID];
     try {
-      await DBSetWithID('user', userID, { goals }, true);
+      await DBSetWithID("user", userID, { goals }, true);
     } catch (err) {
-      console.error('Something went wrong while updating profile to removing goal', err);
-      throw new Error('Something went wrong while updating profile after removing goal');
+      console.error(
+        "Something went wrong while updating profile to removing goal",
+        err
+      );
+      throw new Error(
+        "Something went wrong while updating profile after removing goal"
+      );
     }
 
     try {
-      const goalObj = await DBGetWithID('goal', goalID);
+      const goalObj = await DBGetWithID("goal", goalID);
       if (!goalObj) {
-        throw new Error('Goal does not exist');
+        throw new Error("Goal does not exist");
       }
-      await DBDeleteWithID('goal', goalID);
+      await DBDeleteWithID("goal", goalID);
     } catch (err) {
-      console.error('Something went wrong while deleting goal', err);
-      throw new Error('Something went wrong while deleting goal');
+      console.error("Something went wrong while deleting goal", err);
+      throw new Error("Something went wrong while deleting goal");
     }
+  }
+
+  /**
+   * @returns current user's metrics
+   */
+  async getMetrics() {
+    return await DBGetWithID("metrics", this.user.id);
+  }
+
+  static async CreateChat(
+    targetUserIDs: string[],
+    requestingUserID: string,
+    firstMessage: string
+  ) {
+    if (!requestingUserID) {
+      throw new Error("Requesting UserID was not provided");
+    } else if (!targetUserIDs) {
+      throw new Error("TargetUserIDs were not provided");
+    } else if (!firstMessage) {
+      throw new Error("Cannot create chat, no message was provided");
+    }
+
+    // ensure requesting user exists
+    const requestingUserObj = await DBGetWithID("user", requestingUserID);
+    if (!requestingUserObj) {
+      throw new Error("Requesting user's account does not exist");
+    }
+
+    // determine if chat exists if every user has a chatID in common
+    // if current user doesn't have a chats array, then a common chatID cannot exist, and thus the chat does not exist
+    let chatDoesNotExist = requestingUserObj.chats ? false : true;
+
+    let chatIDCounts = new Map<string, number>();
+    for (let chatID of requestingUserObj.chats) {
+      chatIDCounts.set(chatID, 1);
+    }
+
+    // ensure targetUserIDs are valid
+    const targetUserIDSet = new Map<string, DBObj>();
+    for (let userID of targetUserIDs) {
+      // ensure userID is valid, and user exists.
+      if (typeof userID != "string") {
+        throw new Error("A target userID is invalid");
+      }
+      const targetUser = await DBGetWithID("user", userID);
+      if (!targetUser) {
+        throw new Error("User with userID " + userID + " does not exist.");
+      }
+      targetUserIDSet.set(userID, targetUser);
+
+      if (chatDoesNotExist) {
+        continue;
+      }
+      const { chats } = targetUser;
+      if (!chats) {
+        chatDoesNotExist = true;
+        continue;
+      } else if (!(chats instanceof Array)) {
+        // very weird. Should never happen. Override chats property with an array
+        console.error(
+          "A user has a chats property that isn't an array. " +
+            userID +
+            " - " +
+            JSON.stringify(chats)
+        );
+        await DBSetWithID("user", userID, { chats: [] }, true);
+        continue;
+      } else {
+        // process each chatID current user has
+        for (let chatID of chats) {
+          // count only the ones the initial user had
+          const chatIDCount = chatIDCounts.get(chatID);
+          if (chatIDCount) {
+            chatIDCounts.set(chatID, chatIDCount + 1);
+          }
+        }
+      }
+    }
+    // add requesting user to set.
+    targetUserIDSet.set(requestingUserID, requestingUserObj);
+
+    // ensure no chats with current members exist
+    const userCount = targetUserIDs.length + 1;
+    if (!chatDoesNotExist) {
+      // search for existing chat, ensuring on doesn't already exist.
+      for (let [chatID, count] of chatIDCounts) {
+        if (count == userCount) {
+          // end up here if every user has current chatID in common
+          const existingChatObj = await DBGetWithID("chat", chatID);
+          if (!existingChatObj) {
+            console.error(
+              "Uh oh, every user had chatID",
+              chatID,
+              "but chatID doesn't exist"
+            );
+            continue;
+          }
+          const { users } = existingChatObj;
+          if (!users || typeof users != "object") {
+            console.error(
+              "Chat",
+              chatID,
+              "had no users, or users were invalid",
+              users
+            );
+            // TODO: delete chat
+            continue;
+          } else if (Object.keys(users).length == userCount) {
+            // existing chat was found.
+            return chatID;
+          }
+        }
+      }
+      // provides no real substance. Cannot pass this section if chat exists.
+      chatDoesNotExist = true;
+    }
+
+    // chat does not exist. Go ahead and create
+    const users = {};
+    for (let [userID, userObj] of targetUserIDSet) {
+      users[userID] = {
+        username: userObj.username || "[no username]",
+        fName: userObj.fName || "",
+        mName: userObj.mName || "",
+        lName: userObj.lName || "",
+        displayPictureURL: userObj.displayPicture || "",
+      };
+    }
+    let createdChatID: string;
+    try {
+      createdChatID = await DBCreate("chat", {
+        users,
+        messages: [],
+      });
+    } catch (err) {
+      console.error(
+        "Something went wrong while creating chat",
+        err,
+        JSON.stringify(users, null, 2)
+      );
+      throw new Error("Something went wrong while creating chat");
+    }
+
+    // update every user's chat to contain this chat
+    for (let [userID, userObj] of targetUserIDSet) {
+      const { chats } = userObj;
+      let newChats: string[];
+      if (!chats || !(chats instanceof Array)) {
+        newChats = [createdChatID];
+      } else {
+        newChats = [...chats, createdChatID];
+      }
+
+      try {
+        await DBSetWithID("user", userID, { chats: newChats }, true);
+      } catch (err) {
+        console.error(
+          "Error while updating user chat array",
+          err,
+          JSON.stringify(newChats)
+        );
+      }
+    }
+
+    // now send message in chat.
+    await AuthenticatedSocket.SendChatMessage(
+      firstMessage,
+      createdChatID,
+      requestingUserID
+    );
+
+    // note: no need to notify users here, as sending message will do that for us.
+  }
+
+  static ChatMessageCountLimit = 50;
+  static async SendChatMessage(
+    contents: string,
+    chatID: string,
+    requestingUserID: string
+  ) {
+    if (!requestingUserID || !chatID) {
+      throw new Error("Cannot send message: No requesting userID was provided");
+    }
+
+    isValidMessageContent(contents);
+
+    // verify requesting user exists
+    const userObj = await DBGetWithID("user", requestingUserID);
+    if (!userObj) {
+      throw new Error("Cannot send message: Requesting user does not exist");
+    }
+
+    const { chats } = userObj;
+    // verify user is part of chat on their side
+    if (
+      !chats ||
+      !(chats instanceof Array) ||
+      !chats.includes(chatID)
+    ) {
+      throw new Error(
+        "Cannot send message: requesting user is not part of chat."
+      );
+    }
+
+    // verify target chat exists
+    const chatObj = await DBGetWithID("chat", chatID);
+    if (!chatObj) {
+      console.error('ERROR! User has chat in chat array, but chat does not exist', 'user:', requestingUserID, 'chat:', chatID);
+      throw new Error(
+        "Cannot send message: requested chat does not exist"
+      );
+    }
+
+    if (
+      !chatObj.users ||
+      typeof chatObj.users !== "object" ||
+      !Object.keys(chatObj.users).includes(requestingUserID)
+    ) {
+      throw new Error(
+        "Cannot send message: requesting user is not part of chat."
+      );
+    }
+
+    // verification done. Send message
+    let messageID: string;
+    const messageObj = {
+      contents: contents.trim(),
+      timestamp: Date.now(),
+      sender: requestingUserID,
+      chatID
+    };
+    try {
+      messageID = await DBCreate('message', messageObj);
+    } catch (err) {
+      throw new Error(
+        "Something went wrong while creating message"
+      );
+    }
+
+    // updates chat message array
+    let messages = [...(chatObj.messages||[])];
+    while (messages.length > AuthenticatedSocket.ChatMessageCountLimit) {
+      messages.shift();
+    }
+    messages.push(messageID);
+
+    // update chat with new message array and preview
+    const newChatObj = {
+      ...chatObj,
+      messages,
+      lastMessage: messageObj
+    };
+    try {
+      await DBSetWithID('chat', chatID, newChatObj, false);
+    } catch (err) {
+      throw new Error('Something went wrong while updating chat');
+    }
+
+    const { users } = newChatObj as ObjectAny;
+
+    // send updated chat to all involved users
+    AuthenticatedSocket.SendClientsDataWithUserID(Object.keys(users), 'chat', newChatObj);
   }
 }
 
@@ -2331,20 +2694,6 @@ function ModifyUserForPublic(user: ObjectAny) {
   return userCopy;
 }
 
-async function GetUserMentorshipRequests(userID: string) {
-  try {
-    return await DBGet(
-      "mentorshipRequest",
-      [
-        ["mentorID", "==", userID],
-        ["menteeID", "==", userID],
-      ],
-      "or"
-    );
-  } catch {
-    return [];
-  }
-}
 
 /**
  * This function returns the target userData with the information that is visible to the requestingUser.
