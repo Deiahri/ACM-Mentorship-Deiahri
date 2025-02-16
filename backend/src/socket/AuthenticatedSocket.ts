@@ -1848,7 +1848,7 @@ export default class AuthenticatedSocket {
 
   private async getChats(chatIDs: string[]) {
     if (!chatIDs || !(chatIDs instanceof Array)) {
-      throw Error('Invalid parameter chatIDs');
+      throw Error("Invalid parameter chatIDs");
     }
 
     const chatObjs: ObjectAny[] = [];
@@ -1884,19 +1884,30 @@ export default class AuthenticatedSocket {
         return;
       }
 
-      const messageObjs: DBObj[] = [];
       for (let messageID of messageIDs) {
-        if (typeof(messageID) != 'string') {
+        if (typeof messageID != "string") {
           continue;
         }
         try {
-          const messageObj = await this.getMessage(messageID);
-          messageObjs.push(messageObj);
+          let encounteredError = false; // if any of the message fetches fail, we should exit from the function
+          const messageObjs = await Promise.all(
+            messageIDs.map((id) =>
+              this.getMessage(id).catch((err) => {
+                ErrorCallback(err.message);
+                encounteredError = true; // error ecountered, but we can't exit main function from here.
+              })
+            )
+          );
+
+          if (encounteredError) {
+            // if error encountered, exit from here.
+            return;
+          }
+          callback(messageObjs);
         } catch (err) {
           ErrorCallback(err.message);
         }
       }
-      callback(messageObjs);
     } catch (err) {
       SendErrorMessage(err.message);
     }
