@@ -1,13 +1,13 @@
 
 import 'react-calendar/dist/Calendar.css';
-import NavbarMobile from '../../components/Navbar/NavbarMobile';
+import NavbarDesktop from '../../components/Navbar/NavbarDesktop';
 
 export default function Playground() {
   return (
-    <div
-    className={'pageBase'}
-    >
-      <NavbarMobile/>
-    </div>
+    <NavbarDesktop/>
+    // <div
+    // className={'pageBase'}
+    // >
+    // </div>
   );
 }

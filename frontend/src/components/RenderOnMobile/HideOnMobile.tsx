@@ -1,13 +1,14 @@
-import { ReactNode } from "react";
-import styles from './RenderOnMobile.module.css';
+import React from "react";
+import styles from './RenderOnMobile.module.css'
 
 /**
  * Component used to render a compnent only if the 
  * @param param0 
  * @returns 
  */
-export default function HideOnMobile({ children, style }: { style?: React.CSSProperties, children?: ReactNode }) {
-  return <div style={style} className={styles.hideOnMobile}>
+const HideOnMobile: React.FC<React.HTMLProps<HTMLDivElement>> = ({children, className, ...rest }) => {
+  return <div className={`${styles.hideOnMobile} ${className}`} {...rest}>
     {children}
   </div>;
 }
+export default HideOnMobile;

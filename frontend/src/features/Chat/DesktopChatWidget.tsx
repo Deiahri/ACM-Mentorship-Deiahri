@@ -5,6 +5,7 @@ import { setChatOpen } from "./ChatSlice";
 import HideOnMobile from "../../components/RenderOnMobile/HideOnMobile";
 import ChatWidgetChats from "./ChatWidgetChats";
 import ChatWidgetActiveChat from "./ChatWidgetActiveChat";
+import ChatsUnreadIndicator from "./ChatsUnreadIndicator";
 
 export default function DesktopChatWidget() {
   const { open, loaded } = useSelector((store: ReduxRootState) => store.Chat);
@@ -59,17 +60,7 @@ function ChatWidgetHeader() {
       onClick={handleHeaderClick}
     >
       {/* Notification icon */}
-      <div
-        style={{
-          width: "1rem",
-          height: "1rem",
-          borderRadius: "50%",
-          backgroundColor: "#55f",
-          top: -5,
-          left: -5,
-          position: "absolute",
-        }}
-      />
+      <ChatsUnreadIndicator style={{ position: 'absolute', left: '-0.3rem', top: '-0.3rem' }} />
       <span style={{ fontSize: "1.25rem" }}>Chat</span>
       <ChevronDown style={{ rotate: open ? "0deg" : "180deg" }} />
     </div>

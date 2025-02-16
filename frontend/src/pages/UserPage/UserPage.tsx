@@ -37,6 +37,7 @@ import { useChangeUsernameWithDialog } from "../../hooks/UseChangeUsername";
 import { isMentorshipRequestResponseAction } from "../../scripts/validation";
 import { SaveButtonFixed } from "../../components/SaveButtonFixed/SaveButtonFixed";
 import { setActiveChat, setChatOpen } from "../../features/Chat/ChatSlice";
+import MinimalisticTextArea from "../../components/MinimalisticTextArea/MinimalisticTextArea";
 
 export default function UserPage() {
   const [changed, setChanged] = useState(false);
@@ -116,7 +117,7 @@ export default function UserPage() {
       if (!id || !ready) {
         return;
       }
-      await sleep(500);
+      
       MyClientSocket?.GetUser(id, (d: unknown) => {
         if (!d || typeof d != "object") {
           return;
@@ -1378,27 +1379,13 @@ function BioSection({
         {!disabled && <Pencil style={{ marginLeft: 5 }} size={"1rem"} />}
       </div>
       {bio || !disabled ? (
-        <textarea
+        <MinimalisticTextArea
           placeholder={disabled ? "No bio" : "Your bio"}
           style={{
-            margin: 0,
-            fontSize: "1rem",
-            padding: 10,
-            borderRadius: 10,
-            borderStartStartRadius: 0,
-            marginLeft: 10,
-            backgroundColor: "transparent",
-            color: "white",
-            minWidth: "10rem",
-            minHeight: "1.2rem",
-            maxWidth: "80%",
-            maxHeight: "40vh",
-            marginTop: 5,
-            height: "4rem",
-            width: "28rem",
+            marginLeft: 10
           }}
           value={bio}
-          onChange={(e) => setBio && setBio(e.target.value)}
+          onChange={(v) => setBio && setBio(v)}
           disabled={disabled}
         />
       ) : (

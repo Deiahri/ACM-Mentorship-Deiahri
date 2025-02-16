@@ -7,7 +7,7 @@ import { ReduxRootState } from "../store";
 import Chat from "../features/Chat/Chat";
 import DesktopChatWidget from "../features/Chat/DesktopChatWidget";
 import MobileChatWidget from "../features/Chat/MobileChatWidget";
-import NavbarMobile from "./Navbar/NavbarMobile";
+import Navbar from "./Navbar/Navbar";
 
 export default function App() {
   const { getAccessTokenSilently, isLoading, isAuthenticated } = useAuth0();
@@ -53,7 +53,7 @@ export default function App() {
     <Chat/>
     <DesktopChatWidget/>
     <MobileChatWidget/>
-    <NavbarMobile/>
+    <Navbar/>
     <Outlet/>
   </>
 }

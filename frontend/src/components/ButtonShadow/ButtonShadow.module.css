@@ -1,0 +1,30 @@
+.sqrBtn {
+  padding: 0.6rem;
+  padding-left: 1.5rem;
+  padding-right: 1.5rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 30px;
+  box-shadow: 
+    inset 0px 0px 3px rgba(0, 0, 0, 1);
+  cursor: pointer;
+  transition: border 100ms ease-in-out, box-shadow 100ms ease-in-out, background-color 100ms ease-in-out;
+  border: solid 1px #fff0;
+  user-select: none;
+  background-color: transparent;
+}
+
+.sqrBtn:hover {
+  border: solid 1px #fff2;
+  box-shadow: 
+    inset 0px 0px 8px rgba(0, 0, 0, 0.8);
+    background-color: transparent;
+}
+
+.sqrBtn.active {
+  background-color: initial;
+  box-shadow: 
+    inset 0px 0px 3px rgba(0, 0, 0, 1);
+  background-color: #0006;
+}

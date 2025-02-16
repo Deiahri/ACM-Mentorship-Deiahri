@@ -2,7 +2,7 @@ import { useSelector } from "react-redux";
 import { ReduxRootState } from "../../store";
 import { useEffect, useState } from "react";
 
-export default function ChatsUnreadIndicator({ style }: { style: React.CSSProperties }) {
+export default function ChatsUnreadIndicator({ style }: { style?: React.CSSProperties }) {
   const [hasUnread, setHasUnread] = useState(false);
   const { chatLastTimeRead, chats } = useSelector((store: ReduxRootState) => store.Chat);
 

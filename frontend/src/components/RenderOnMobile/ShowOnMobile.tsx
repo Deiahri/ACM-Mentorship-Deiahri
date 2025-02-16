@@ -1,4 +1,4 @@
-import { ReactNode } from "react";
+import React from 'react';
 import styles from './RenderOnMobile.module.css';
 
 /**
@@ -6,8 +6,9 @@ import styles from './RenderOnMobile.module.css';
  * @param param0 
  * @returns 
  */
-export default function ShowOnMobile({ children, style }: { style?: React.CSSProperties, children?: ReactNode }) {
-  return <div style={style}  className={styles.renderOnMobile}>
+const ShowOnMobile: React.FC<React.HTMLProps<HTMLDivElement>> = ({children, ...rest }) => {
+  return <div className={styles.renderOnMobile} {...rest}>
     {children}
   </div>;
 }
+export default ShowOnMobile;

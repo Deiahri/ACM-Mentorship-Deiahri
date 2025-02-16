@@ -540,6 +540,7 @@ function AssessmentSection({
                 marginTop: 5,
                 height: "4rem",
                 width: "28rem",
+                color: 'black'
               }}
               value={answer}
               onChange={(e) =>
