@@ -20,16 +20,8 @@ export default function LandingPage() {
 
   return (
     <div
-      style={{
-        width: "100vw",
-        height: "100%",
-        minHeight: "100vh",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        backgroundColor: "#111",
-        flexDirection: "column",
-      }}
+    className={'pageBase'}
+    style={{justifyContent: 'center', alignItems: 'center'}}
     >
       {/* Shift slightly left to please visually */}
       <div style={{ marginLeft: -10 }}>
@@ -41,6 +33,7 @@ export default function LandingPage() {
           color: "white",
           fontSize: "1.1rem",
           fontWeight: 300,
+          textAlign: 'center'
         }}
       >
         Inspiring the next generation, one person at a time

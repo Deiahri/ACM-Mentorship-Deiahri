@@ -27,37 +27,24 @@ export default function HomePage() {
   function handleChangeSubpage(newSubPage: HomeSubPage) {
     setSubPage(newSubPage);
   }
-  
+
   const {
     username,
     fName,
     mName,
     lName,
-    id: userID,// @ts-ignore
-    socials,// @ts-ignore
-    experience,// @ts-ignore
-    education,// @ts-ignore
-    certifications,// @ts-ignore
-    projects,// @ts-ignore
-    softSkills,// @ts-ignore
-    isMentee,// @ts-ignore
+    id: userID, // @ts-ignore
+    socials, // @ts-ignore
+    experience, // @ts-ignore
+    education, // @ts-ignore
+    certifications, // @ts-ignore
+    projects, // @ts-ignore
+    softSkills, // @ts-ignore
+    isMentee, // @ts-ignore
     isMentor,
   } = user;
   return (
-    <div
-      style={{
-        width: "100vw",
-        height: "100%",
-        minHeight: "100vh",
-        display: "flex",
-        justifyContent: "start",
-        alignItems: "start",
-        padding: 15,
-        backgroundColor: "#111",
-        flexDirection: "column",
-        boxSizing: "border-box",
-      }}
-    >
+    <div className={"pageBase"}>
       <HomePageHeader />
       <div
         style={{
@@ -131,7 +118,7 @@ function ViewMenteesSection() {
   if (!user) {
     return <p>Waiting for user data...</p>;
   }
-// @ts-ignore
+  // @ts-ignore
   const { isMentor, menteeIDs } = user;
 
   return (
@@ -214,7 +201,11 @@ function BecomeMentorSection() {
   }
 
   return (
-    <div>
+    <div
+      style={{
+        maxWidth: "25rem",
+      }}
+    >
       <p style={{ color: "white", margin: 0, fontSize: "1.5rem" }}>
         Want to become a mentor?
       </p>
@@ -225,22 +216,22 @@ function BecomeMentorSection() {
               color: "white",
               margin: 0,
               fontSize: "1.25rem",
-              marginBottom: 10,
+              marginBottom: 5,
             }}
           >
             We recommend adding some information to your profile first.
           </p>
-          <div style={{ height: 10, width: 200, backgroundColor: "#777" }}>
+          <div style={{ height: 10, width: "25rem", backgroundColor: "#777" }}>
             <div
               style={{
-                width: 200 * Math.max(percentageSectionsFilled, 0.025),
+                width: `${25 * Math.max(percentageSectionsFilled, 0.025)}rem`,
                 height: "100%",
                 backgroundColor: "green",
               }}
             />
           </div>
           <p style={{ margin: 0 }}>
-            Profile Completion: {percentageSectionsFilled.toFixed(0)}%
+            Profile Completion: {(100 * percentageSectionsFilled).toFixed(0)}%
           </p>
         </div>
       )}
@@ -290,7 +281,7 @@ function ViewMentorSection() {
 
 function MenteeInformation() {
   const navigate = useNavigate();
-  const { user } = useSelector((store: ReduxRootState) => store.ClientSocket)
+  const { user } = useSelector((store: ReduxRootState) => store.ClientSocket);
   if (!user || !user.id) {
     return null;
   }
@@ -330,7 +321,7 @@ function MenteeInformation() {
       <p style={{ color: "white", fontSize: "1.5rem", margin: 0 }}>
         Find Mentors
       </p>
-      <div style={{ marginLeft: 10 }}>
+      <div style={{ marginLeft: 10, display: "flex", flexWrap: "wrap" }}>
         <MentorSearchTool />
       </div>
     </div>
@@ -404,7 +395,16 @@ function MentorSearchTool() {
   }
 
   return (
-    <div style={{ backgroundColor: "#555", borderRadius: 5, padding: 10 }}>
+    <div
+      style={{
+        backgroundColor: "#555",
+        borderRadius: 5,
+        padding: 10,
+        display: "flex",
+        flexWrap: "wrap",
+        justifyContent: 'center',
+      }}
+    >
       {mentors.length == 0 && (
         <p style={{ margin: 0, fontSize: "1.25rem" }}>No mentors available</p>
       )}
@@ -417,14 +417,14 @@ function MentorSearchTool() {
           username, // @ts-ignore
           id,
         } = mentor;
-        return <UserProfileCard key={`user_${id}`} user={mentor} />;
+        return <UserProfileCard key={`user_${id}`} user={mentor} style={{ margin: 5 }} />;
       })}
     </div>
   );
 }
 
-function UserProfileCard({ user }: { user: ClientSocketUser }) {
-  const { fName, mName, lName, username, id, DisplayPictureURL, bio } = user;
+function UserProfileCard({ user, style }: { user: ClientSocketUser, style?: React.CSSProperties }) {
+  const { fName, mName, lName, username, id, displayPictureURL, bio } = user;
   const navigate = useNavigate();
 
   function handleViewProfile(userID: string) {
@@ -442,23 +442,29 @@ function UserProfileCard({ user }: { user: ClientSocketUser }) {
         padding: 10,
         width: "10rem",
         borderRadius: 5,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'start',
+        justifyContent: 'start',
+        height: 'auto',
+        ...style
       }}
     >
       <img
         style={{ width: "100%", height: "8rem", objectFit: "cover" }}
         src={
-          DisplayPictureURL ||
+          displayPictureURL ||
           "https://static.vecteezy.com/system/resources/previews/000/574/512/original/vector-sign-of-user-icon.jpg"
         }
       />
-      <p style={{ margin: 0, fontSize: "1.25rem", marginBottom: -5 }}>
+      <p style={{ margin: 0, fontSize: "1.25rem", marginBottom: 0, lineHeight: '1.5rem' }}>
         {fName} {mName} {lName}
       </p>
-      <p style={{ margin: 0, marginLeft: 5, fontSize: "0.8rem", opacity: 0.5 }}>
+      <p style={{ margin: 0, fontSize: "0.8rem", opacity: 0.5 }}>
         aka {username}
-      </p>
-      <p style={{ margin: 0 }}>{bio}</p>
-      <div style={{ width: "100%", display: "flex", justifyContent: "end" }}>
+      </p> 
+      <p style={{ margin: 0 }}>{bio?.substring(0, Math.min(bio.length, 60))}</p>
+      <div style={{ width: "100%", display: "flex", justifyContent: "end", marginTop: 'auto' }}>
         <button
           style={{
             border: "2px solid #fff",
@@ -536,7 +542,6 @@ function HomePageHeader() {
   return (
     <div
       style={{
-        width: 400,
         display: "flex",
         paddingLeft: 10,
         alignItems: "center",

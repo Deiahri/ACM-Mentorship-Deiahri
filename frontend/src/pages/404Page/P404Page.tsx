@@ -10,16 +10,7 @@ export default function P404Page() {
   }, []);
   return (
     <div
-      style={{
-        width: "100vw",
-        height: "100%",
-        minHeight: "100vh",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        backgroundColor: "#111",
-        flexDirection: "column",
-      }}
+      className={'pageBase'}
     >
       <p style={{color: 'white', fontSize: '2rem', margin: 0}}>Seems like you're lost</p>
       <p style={{color: 'white', fontSize: '1rem', margin: 0}}>Going to home page in 3 seconds.</p>

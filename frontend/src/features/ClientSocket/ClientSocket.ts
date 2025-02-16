@@ -18,15 +18,19 @@ import {
   AnyFunction,
   AssessmentPreviewMap,
   AssessmentQuestion,
+  ChatObj,
   GoalObj,
   GoalPreviewMap,
   MentorshipRequestObj,
   MentorshipRequestResponseAction,
+  MessageObj,
   ObjectAny,
   SubmitGoalAction,
 } from "../../scripts/types";
 import { setAlert } from "../Alert/AlertSlice";
 import { NothingFunction } from "../../scripts/tools";
+import { addChat } from "../Chat/ChatSlice";
+import { playMessageReceiveNotificationSound, playMessageSendNotificationSound } from "../../scripts/sounds";
 
 export let MyClientSocket: ClientSocket | undefined = undefined;
 
@@ -106,14 +110,15 @@ export type ClientSocketUser = {
   assessments?: AssessmentPreviewMap;
   menteeIDs?: string[];
   mentorID?: string;
-  DisplayPictureURL?: string;
+  displayPictureURL?: string;
   bio?: string;
   mentorshipRequests?: string[];
   goals?: GoalPreviewMap;
+  chats?: string[];
 };
 
-export type ClientDataPayloadType = "initialData" | "mentorshipRequest";
-export const ClientDataPayloadTypes = ["initialData", "mentorshipRequest"];
+export type ClientDataPayloadType = "initialData" | "mentorshipRequest" | "chat";
+export const ClientDataPayloadTypes = ["initialData", "mentorshipRequest", "chat"];
 
 export type SubmitAssessmentAction =
   | "create"
@@ -153,7 +158,6 @@ class ClientSocket {
   user: ClientSocketUser = {};
   mentorshipRequests: ObjectAny[] = [];
   currentSocketStateEvents: { [key: string]: (...args: any[]) => void } = {};
-  submitting: boolean = false; // this is used to prevent this socket from emitting more than one event at a time.
 
   constructor(socket: Socket, dispatch: Dispatch) {
     this.socket = socket;
@@ -164,9 +168,6 @@ class ClientSocket {
 
   createAccount(params: ClientCreateUserPayload, callback?: AnyFunction) {
     // don't submit if already submitting some information.
-    if (this.submitting) {
-      return;
-    }
     const CreateAccountErrorHeader = "Create Account Error";
     if (this.state != "authed_nouser") {
       this.showDialog(CreateAccountErrorHeader, "You already have an account");
@@ -187,27 +188,19 @@ class ClientSocket {
       this.showDialog(CreateAccountErrorHeader, "You're missing a username.");
     }
 
-    this.submitting = true;
     this.socket.emit(
       "createUser",
       { fName, mName, lName, username },
       (v: boolean) => {
         callback && callback(v);
-        this.submitting = false;
       }
     );
   }
 
   updateProfile(params: ClientSocketUser, callback?: Function) {
-    if (this.submitting) {
-      callback && callback(false);
-      return;
-    }
     console.log("updatingProfile", params);
-    this.submitting = true;
     this.socket.emit("updateProfile", params, (v: boolean) => {
       callback && callback(v);
-      this.submitting = false;
 
       // if successful, requests a self update
       v && this.requestUpdateSelf();
@@ -215,12 +208,7 @@ class ClientSocket {
   }
 
   requestUpdateSelf(callback?: Function) {
-    if (this.submitting) {
-      return;
-    }
-    this.submitting = true;
     this.socket.emit("getUser", this.user.id, (v: ObjectAny) => {
-      this.submitting = false;
       callback && callback(v);
       this.dispatch(setClientUser(v));
     });
@@ -230,11 +218,6 @@ class ClientSocket {
     let callback = callbackRaw || NothingFunction;
     // @ts-ignore
     const { action, questions, id, published } = payload;
-
-    if (this.submitting) {
-      callback(false);
-      return;
-    }
 
     if (!action || !isSubmitAssessmentAction(action)) {
       callback(false);
@@ -248,23 +231,19 @@ class ClientSocket {
     }
 
     if (action == "create") {
-      this.submitting = true;
       this.socket.emit(
         "submitAssessment",
         { action, questions },
         (v: boolean | string) => {
           callback(v);
-          this.submitting = false;
         }
       );
     } else if (action == "edit") {
       console.log("editing");
-      this.submitting = true;
       this.socket.emit(
         "submitAssessment",
         { action, questions, id },
         (v: boolean | string) => {
-          this.submitting = false;
           callback(v);
         }
       );
@@ -294,12 +273,10 @@ class ClientSocket {
         if (!goal || typeof goal != "object") {
           return;
         }
-        this.submitting = true;
         this.socket.emit(
           "submitGoal",
           { goal, action: "create" },
           (v: boolean | string) => {
-            this.submitting = false;
             callback(v);
             if (v) {
               this.requestUpdateSelf();
@@ -315,12 +292,10 @@ class ClientSocket {
           callback(false);
           return;
         }
-        this.submitting = true;
         this.socket.emit(
           "submitGoal",
           { goal, action: "edit", id },
           (v: boolean) => {
-            this.submitting = false;
             callback(v);
             if (v) {
               this.requestUpdateSelf();
@@ -333,12 +308,10 @@ class ClientSocket {
           callback(false);
           return;
         }
-        this.submitting = true;
         this.socket.emit(
           "submitGoal",
           { id, action: "delete" },
           (v: boolean) => {
-            this.submitting = false;
             callback(v);
             if (v) {
               this.requestUpdateSelf();
@@ -403,6 +376,8 @@ class ClientSocket {
         processFunc = this._handleInitialData.bind(this);
       } else if (type == "mentorshipRequest") {
         processFunc = this._handleMentorshipRequests.bind(this);
+      } else if (type == "chat") {
+        processFunc = this._handleChat.bind(this);
       } else {
         console.error("Unhandled data type:", type);
         return;
@@ -416,9 +391,7 @@ class ClientSocket {
 
   GetAssessment(assessmentID: string, callbackRaw: Function) {
     const callback = callbackRaw || NothingFunction;
-    this.submitting = true;
     this.socket.emit("getAssessment", assessmentID, (v: Object | boolean) => {
-      this.submitting = false;
       if (typeof v == "boolean") {
         callback(false);
         return;
@@ -429,9 +402,7 @@ class ClientSocket {
 
   GetUser(userID: string, callbackRaw: Function) {
     const callback = callbackRaw || NothingFunction;
-    this.submitting = true;
     this.socket.emit("getUser", userID, (v: Object | boolean) => {
-      this.submitting = false;
       if (typeof v == "boolean") {
         callback(false);
         return;
@@ -442,9 +413,7 @@ class ClientSocket {
 
   GetAllMentors(callbackRaw?: Function) {
     const callback = callbackRaw || NothingFunction;
-    this.submitting = true;
     this.socket.emit("getAllMentors", (v: Object | boolean) => {
-      this.submitting = false;
       if (typeof v == "boolean") {
         callback(false);
         return;
@@ -462,10 +431,23 @@ class ClientSocket {
       return;
     }
 
-    this.submitting = true;
     this.socket.emit("getGoal", goalID, (v: boolean | GoalObj) => {
-      this.submitting = false;
       cb(v);
+    });
+  }
+
+  GetMessages(messageIDs: string[], cb?: Function) {
+    const callback = cb || NothingFunction;
+    if (!messageIDs || !(messageIDs instanceof Array)) {
+      callback(false);
+      return;
+    }
+    this.socket.emit("getMessages", messageIDs, (v: MessageObj[]) => {
+      if (!v || !(v instanceof Array)) {
+        callback(false);
+        return;
+      }
+      callback(v);
     });
   }
 
@@ -475,12 +457,10 @@ class ClientSocket {
 
   SendMentorshipRequest(userID: string, callback?: Function) {
     const cb = callback || NothingFunction;
-    this.submitting = true;
     this.socket.emit(
       "mentorshipRequest",
       { action: "send", mentorID: userID },
       (v: boolean) => {
-        this.submitting = false;
         cb(v);
       }
     );
@@ -515,23 +495,85 @@ class ClientSocket {
     console.log(
       "DoMentorshipRequestAction",
       requestID,
-      mentorshipRequestAction,
-      this.submitting
+      mentorshipRequestAction
     );
-    if (this.submitting) {
-      callback && callback(false);
-      return;
-    }
-    this.submitting = true;
     this.socket.emit(
       "mentorshipRequest",
       { action: mentorshipRequestAction, mentorshipRequestID: requestID },
       (v: boolean) => {
         callback && callback(v);
-        this.submitting = false;
         if (v) {
           this.requestUpdateSelf();
         }
+      }
+    );
+  }
+
+  GetChats(chats: string[], cb?: Function) {
+    const callback = cb || NothingFunction;
+    if (!chats || !(chats instanceof Array)) {
+      callback(false);
+      return;
+    }
+    this.socket.emit("getChats", chats, (v: ChatObj[]) => {
+      if (!v || !(v instanceof Array)) {
+        callback(false);
+        return;
+      }
+      callback(v);
+    });
+  }
+
+  CreateChat(targetUserID: string, messageContent: string, cb?: Function) {
+    const callback = cb || NothingFunction;
+    if (!targetUserID || !messageContent) {
+      callback(false);
+      return;
+    } else if (messageContent.length == 0) {
+      this.dispatch(
+        setAlert({
+          title: "A little bit more",
+          body: "We need a little bit more text before we can send this message.",
+        })
+      );
+      return;
+    }
+    this.socket.emit(
+      "sendMessage",
+      {
+        action: "create",
+        contents: messageContent,
+        targetUserIDs: [targetUserID],
+      },
+      (v: boolean | string) => {
+        callback(v);
+      }
+    );
+  }
+
+  SendMessage(chatID: string, messageContent: string, cb?: Function) {
+    const callback = cb || NothingFunction;
+    if (!chatID || !messageContent) {
+      callback(false);
+      return;
+    } else if (messageContent.length == 0) {
+      this.dispatch(
+        setAlert({
+          title: "A little bit more",
+          body: "We need a little bit more text before we can send this message.",
+        })
+      );
+      return;
+    }
+    this.socket.emit(
+      "sendMessage",
+      {
+        action: "send",
+        contents: messageContent,
+        chatID: chatID,
+      },
+      (v: boolean | string) => {
+        callback(v);
       }
     );
   }
@@ -645,6 +687,16 @@ class ClientSocket {
           })
         );
       }
+    }
+  }
+
+  private _handleChat(chatObj: ChatObj) {
+    this.dispatch(addChat({ chatID: chatObj.id, chat: chatObj }));
+    console.log(chatObj.lastMessage.sender, this.user.id, chatObj.lastMessage.sender == this.user.id);
+    if (chatObj.lastMessage.sender == this.user.id) {
+      playMessageSendNotificationSound();
+    } else {
+      playMessageReceiveNotificationSound();
     }
   }
 }

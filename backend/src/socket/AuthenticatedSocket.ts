@@ -252,6 +252,13 @@ export default class AuthenticatedSocket {
     );
 
     this._addStateSocketEvent("getGoal", this.handleGetGoal.bind(this));
+
+    this._addStateSocketEvent("sendMessage", this.handleSendMessage.bind(this));
+
+    this._addStateSocketEvent("getChat", this.handleGetChat.bind(this));
+    this._addStateSocketEvent("getChats", this.handleGetChats.bind(this));
+
+    this._addStateSocketEvent("getMessages", this.handleGetMessages.bind(this));
   }
 
   private _setState(state: AuthenticatedSocketState) {
@@ -1524,6 +1531,7 @@ export default class AuthenticatedSocket {
   }
 
   async handleSendMessage(dataRaw: unknown, callback: unknown) {
+    console.log("Received handleSendMessage", this.user.username, dataRaw);
     const handleSendMessageErrorHeader = "Error while sending message:";
     const SendErrorMessage = (msg: string) => {
       this.sendClientMessage("Error", handleSendMessageErrorHeader + " " + msg);
@@ -1545,17 +1553,17 @@ export default class AuthenticatedSocket {
         return;
       }
 
-      const { action, message, targetUserIDs, chatID } = dataRaw as ObjectAny;
+      const { action, contents, targetUserIDs, chatID } = dataRaw as ObjectAny;
       if (!isSendMessageAction(action)) {
         ErrorCallback("Action is invalid: " + action);
         return;
-      } else if (!message) {
+      } else if (!contents) {
         ErrorCallback("No message content was provided");
         return;
       }
 
       try {
-        if (!isValidMessageContent(message)) {
+        if (!isValidMessageContent(contents)) {
           // this should never execute. Used to satisfy tsc (and prove message type to string)
           ErrorCallback("Message content is invalid");
           return;
@@ -1567,16 +1575,45 @@ export default class AuthenticatedSocket {
 
       switch (action) {
         case "create":
-          if (!(targetUserIDs instanceof Array)) {
+          if (!targetUserIDs || !(targetUserIDs instanceof Array)) {
             ErrorCallback("TargetUserIDs is invalid");
             return;
           }
-          await AuthenticatedSocket.CreateChat(
-            targetUserIDs,
-            this.user.id,
-            message
-          );
+          console.log("creating");
+          try {
+            const createRes = await AuthenticatedSocket.CreateChat(
+              targetUserIDs,
+              this.user.id,
+              contents,
+              this.testing
+            );
+            callback(createRes);
+            return;
+          } catch (err) {
+            ErrorCallback(err.message);
+            return;
+          }
+          break;
         case "send":
+          if (!chatID || typeof chatID != "string") {
+            ErrorCallback("ChatID is invalid");
+            return;
+          }
+
+          try {
+            await AuthenticatedSocket.SendChatMessage(
+              contents,
+              chatID,
+              this.user.id,
+              this.testing
+            );
+            callback(true);
+            return;
+          } catch (err) {
+            ErrorCallback(err.message);
+            return;
+          }
+          break;
         default:
           ErrorCallback("Unhandled Action");
           console.error("Unhandled Action", action);
@@ -1716,6 +1753,177 @@ export default class AuthenticatedSocket {
     } catch (err) {
       SendErrorMessage(err.message);
     }
+  }
+
+  private async handleGetChat(chatID: string, callback: unknown) {
+    const handleGetChatErrorHeader = "Error getting chat: ";
+    const SendErrorMessage = (msg: string) => {
+      this.sendClientMessage("Error", handleGetChatErrorHeader + " " + msg);
+    };
+    try {
+      if (!callback || typeof callback != "function") {
+        SendErrorMessage("No callback provided");
+        return;
+      }
+
+      const ErrorCallback = (msg: string) => {
+        SendErrorMessage(msg);
+        callback(false);
+      };
+
+      if (!chatID || typeof chatID != "string") {
+        ErrorCallback("Invalid chatID");
+        return;
+      }
+
+      try {
+        const chatObj = await this.getChat(chatID);
+        callback(chatObj);
+      } catch (err) {
+        ErrorCallback(err.message);
+      }
+    } catch (err) {
+      SendErrorMessage(err.message);
+    }
+  }
+
+  private async getChat(chatID: string) {
+    if (!chatID || typeof chatID != "string") {
+      throw new Error("No chatID provided");
+    }
+
+    let chatObj: DBObj;
+    try {
+      chatObj = await DBGetWithID("chat", chatID);
+    } catch (err) {
+      throw new Error("Something went wrong while getting chat.");
+    }
+
+    if (!chatObj || typeof chatObj != "object") {
+      throw new Error("No such chat");
+    }
+
+    const { users } = chatObj;
+    if (!users) {
+      throw new Error("No such chat");
+    }
+
+    if (!Object.keys(users).includes(this.user.id)) {
+      throw new Error("You do not have permission to access this chat");
+    }
+    return chatObj;
+  }
+
+  private async handleGetChats(chatIDs: string[], callback: unknown) {
+    const handleGetChatErrorHeader = "Error getting chats: ";
+    const SendErrorMessage = (msg: string) => {
+      this.sendClientMessage("Error", handleGetChatErrorHeader + " " + msg);
+    };
+    try {
+      if (!callback || typeof callback != "function") {
+        SendErrorMessage("No callback provided");
+        return;
+      }
+
+      const ErrorCallback = (msg: string) => {
+        SendErrorMessage(msg);
+        callback(false);
+      };
+
+      if (!chatIDs || !(chatIDs instanceof Array)) {
+        ErrorCallback("Invalid chatID");
+        return;
+      }
+
+      try {
+        const chatObj = await this.getChats(chatIDs);
+        callback(chatObj);
+      } catch (err) {
+        ErrorCallback(err.message);
+      }
+    } catch (err) {
+      SendErrorMessage(err.message);
+    }
+  }
+
+  private async getChats(chatIDs: string[]) {
+    if (!chatIDs || !(chatIDs instanceof Array)) {
+      throw Error('Invalid parameter chatIDs');
+    }
+
+    const chatObjs: ObjectAny[] = [];
+    for (let chatID of chatIDs) {
+      try {
+        const chatObj = await this.getChat(chatID);
+        chatObjs.push(chatObj);
+      } catch {
+        continue;
+      }
+    }
+    return chatObjs;
+  }
+
+  private async handleGetMessages(messageIDs: string[], callback: unknown) {
+    const handleGetChatErrorHeader = "Error getting message: ";
+    const SendErrorMessage = (msg: string) => {
+      this.sendClientMessage("Error", handleGetChatErrorHeader + " " + msg);
+    };
+    try {
+      if (!callback || typeof callback != "function") {
+        SendErrorMessage("No callback provided");
+        return;
+      }
+
+      const ErrorCallback = (msg: string) => {
+        SendErrorMessage(msg);
+        callback(false);
+      };
+
+      if (!messageIDs || !(messageIDs instanceof Array)) {
+        ErrorCallback("Invalid messageIDs");
+        return;
+      }
+
+      const messageObjs: DBObj[] = [];
+      for (let messageID of messageIDs) {
+        if (typeof(messageID) != 'string') {
+          continue;
+        }
+        try {
+          const messageObj = await this.getMessage(messageID);
+          messageObjs.push(messageObj);
+        } catch (err) {
+          ErrorCallback(err.message);
+        }
+      }
+      callback(messageObjs);
+    } catch (err) {
+      SendErrorMessage(err.message);
+    }
+  }
+
+  /**
+   * TODO: implement chat check to improve security
+   * @param messageID
+   * @returns
+   */
+  private async getMessage(messageID: string) {
+    if (!messageID || typeof messageID != "string") {
+      throw new Error("No chatID provided");
+    }
+
+    let messageObj: DBObj;
+    try {
+      messageObj = await DBGetWithID("message", messageID);
+    } catch (err) {
+      throw new Error("Something went wrong while getting message.");
+    }
+
+    if (!messageObj || typeof messageObj != "object") {
+      throw new Error("No such message");
+    }
+
+    return messageObj;
   }
 
   private static async addMentorship(mentorID: string, menteeID: string) {
@@ -2425,47 +2633,71 @@ export default class AuthenticatedSocket {
   static async CreateChat(
     targetUserIDs: string[],
     requestingUserID: string,
-    firstMessage: string
+    firstMessageContents: string,
+    testing?: boolean
   ) {
     if (!requestingUserID) {
       throw new Error("Requesting UserID was not provided");
-    } else if (!targetUserIDs) {
+    } else if (
+      !targetUserIDs ||
+      !(targetUserIDs instanceof Array) ||
+      targetUserIDs.length == 0
+    ) {
       throw new Error("TargetUserIDs were not provided");
-    } else if (!firstMessage) {
+    } else if (!firstMessageContents) {
       throw new Error("Cannot create chat, no message was provided");
     }
+    console.log(
+      "[ie45] noParamIssues",
+      JSON.stringify({ targetUserIDs, requestingUserID }, null, 2)
+    );
 
     // ensure requesting user exists
     const requestingUserObj = await DBGetWithID("user", requestingUserID);
+    console.log("[ie45] nasasfues");
     if (!requestingUserObj) {
       throw new Error("Requesting user's account does not exist");
     }
+    console.log("[ie45] nassar");
 
     // determine if chat exists if every user has a chatID in common
     // if current user doesn't have a chats array, then a common chatID cannot exist, and thus the chat does not exist
     let chatDoesNotExist = requestingUserObj.chats ? false : true;
 
+    console.log("[ie45] gabaosd", JSON.stringify(requestingUserObj.chats));
     let chatIDCounts = new Map<string, number>();
-    for (let chatID of requestingUserObj.chats) {
-      chatIDCounts.set(chatID, 1);
+    if (!chatDoesNotExist) {
+      for (let chatID of requestingUserObj.chats) {
+        chatIDCounts.set(chatID, 1);
+      }
     }
 
+    console.log("[ie45] noPsxas");
     // ensure targetUserIDs are valid
     const targetUserIDSet = new Map<string, DBObj>();
+    // add requesting user to set.
+    targetUserIDSet.set(requestingUserID, requestingUserObj);
     for (let userID of targetUserIDs) {
       // ensure userID is valid, and user exists.
       if (typeof userID != "string") {
         throw new Error("A target userID is invalid");
       }
+
+      if (targetUserIDSet.get(userID)) {
+        continue;
+      }
+      // this prevents retrieving users more than once, even if they appear in the array more than once.
       const targetUser = await DBGetWithID("user", userID);
       if (!targetUser) {
         throw new Error("User with userID " + userID + " does not exist.");
       }
       targetUserIDSet.set(userID, targetUser);
+      console.log("foundAndAdded", userID, targetUser.username);
 
       if (chatDoesNotExist) {
         continue;
       }
+
       const { chats } = targetUser;
       if (!chats) {
         chatDoesNotExist = true;
@@ -2491,11 +2723,10 @@ export default class AuthenticatedSocket {
         }
       }
     }
-    // add requesting user to set.
-    targetUserIDSet.set(requestingUserID, requestingUserObj);
+    console.log("[ie45] gabagoo");
 
     // ensure no chats with current members exist
-    const userCount = targetUserIDs.length + 1;
+    const userCount = targetUserIDSet.size;
     if (!chatDoesNotExist) {
       // search for existing chat, ensuring on doesn't already exist.
       for (let [chatID, count] of chatIDCounts) {
@@ -2506,7 +2737,7 @@ export default class AuthenticatedSocket {
             console.error(
               "Uh oh, every user had chatID",
               chatID,
-              "but chatID doesn't exist"
+              "but chat doesn't exist"
             );
             continue;
           }
@@ -2530,23 +2761,32 @@ export default class AuthenticatedSocket {
       chatDoesNotExist = true;
     }
 
+    console.log("[ie45] heemiejeems");
     // chat does not exist. Go ahead and create
     const users = {};
     for (let [userID, userObj] of targetUserIDSet) {
+      // contruct preview in chat object
       users[userID] = {
         username: userObj.username || "[no username]",
         fName: userObj.fName || "",
         mName: userObj.mName || "",
         lName: userObj.lName || "",
-        displayPictureURL: userObj.displayPicture || "",
+        displayPictureURL: userObj.displayPictureURL || "",
       };
     }
+    console.log("[ie45] parabsa");
     let createdChatID: string;
+    const chatObj: ObjectAny = {
+      users,
+      messages: [],
+    };
+
+    if (testing) {
+      chatObj.testing = true;
+    }
+
     try {
-      createdChatID = await DBCreate("chat", {
-        users,
-        messages: [],
-      });
+      createdChatID = await DBCreate("chat", chatObj);
     } catch (err) {
       console.error(
         "Something went wrong while creating chat",
@@ -2577,21 +2817,24 @@ export default class AuthenticatedSocket {
       }
     }
 
+    console.log("created chat");
     // now send message in chat.
     await AuthenticatedSocket.SendChatMessage(
-      firstMessage,
+      firstMessageContents,
       createdChatID,
-      requestingUserID
+      requestingUserID,
+      testing
     );
 
-    // note: no need to notify users here, as sending message will do that for us.
+    return createdChatID;
   }
 
   static ChatMessageCountLimit = 50;
   static async SendChatMessage(
     contents: string,
     chatID: string,
-    requestingUserID: string
+    requestingUserID: string,
+    testing?: boolean
   ) {
     if (!requestingUserID || !chatID) {
       throw new Error("Cannot send message: No requesting userID was provided");
@@ -2607,11 +2850,7 @@ export default class AuthenticatedSocket {
 
     const { chats } = userObj;
     // verify user is part of chat on their side
-    if (
-      !chats ||
-      !(chats instanceof Array) ||
-      !chats.includes(chatID)
-    ) {
+    if (!chats || !(chats instanceof Array) || !chats.includes(chatID)) {
       throw new Error(
         "Cannot send message: requesting user is not part of chat."
       );
@@ -2620,10 +2859,14 @@ export default class AuthenticatedSocket {
     // verify target chat exists
     const chatObj = await DBGetWithID("chat", chatID);
     if (!chatObj) {
-      console.error('ERROR! User has chat in chat array, but chat does not exist', 'user:', requestingUserID, 'chat:', chatID);
-      throw new Error(
-        "Cannot send message: requested chat does not exist"
+      console.error(
+        "ERROR! User has chat in chat array, but chat does not exist",
+        "user:",
+        requestingUserID,
+        "chat:",
+        chatID
       );
+      throw new Error("Cannot send message: requested chat does not exist");
     }
 
     if (
@@ -2638,43 +2881,59 @@ export default class AuthenticatedSocket {
 
     // verification done. Send message
     let messageID: string;
-    const messageObj = {
+    const messageObj: ObjectAny = {
       contents: contents.trim(),
       timestamp: Date.now(),
       sender: requestingUserID,
-      chatID
+      chatID,
     };
+
+    if (testing) {
+      messageObj.testing = true;
+    }
+
     try {
-      messageID = await DBCreate('message', messageObj);
+      messageID = await DBCreate("message", messageObj);
     } catch (err) {
-      throw new Error(
-        "Something went wrong while creating message"
-      );
+      throw new Error("Something went wrong while creating message");
     }
 
     // updates chat message array
-    let messages = [...(chatObj.messages||[])];
-    while (messages.length > AuthenticatedSocket.ChatMessageCountLimit) {
-      messages.shift();
+    let messages = [...(chatObj.messages || [])];
+    while (messages.length > AuthenticatedSocket.ChatMessageCountLimit - 1) {
+      const deletedMessageID = messages.shift();
+      try {
+        await DBDeleteWithID("message", deletedMessageID);
+      } catch (err) {
+        console.error("Problem while deleting message", messageID, err);
+      }
     }
     messages.push(messageID);
 
     // update chat with new message array and preview
-    const newChatObj = {
-      ...chatObj,
-      messages,
-      lastMessage: messageObj
-    };
     try {
-      await DBSetWithID('chat', chatID, newChatObj, false);
+      await DBSetWithID(
+        "chat",
+        chatID,
+        {
+          messages,
+          lastMessage: messageObj,
+        },
+        true
+      );
     } catch (err) {
-      throw new Error('Something went wrong while updating chat');
+      throw new Error("Something went wrong while updating chat");
     }
 
+    const newChatObj = { ...chatObj, messages, lastMessage: messageObj };
     const { users } = newChatObj as ObjectAny;
-
+    console.log("sentChatMessage");
     // send updated chat to all involved users
-    AuthenticatedSocket.SendClientsDataWithUserID(Object.keys(users), 'chat', newChatObj);
+    AuthenticatedSocket.SendClientsDataWithUserID(
+      Object.keys(users),
+      "chat",
+      newChatObj
+    );
   }
 }
 
@@ -2693,7 +2952,6 @@ function ModifyUserForPublic(user: ObjectAny) {
   delete user.OAuthSubID;
   return userCopy;
 }
-
 
 /**
  * This function returns the target userData with the information that is visible to the requestingUser.

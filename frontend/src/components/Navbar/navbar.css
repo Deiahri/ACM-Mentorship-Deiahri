@@ -1,0 +1,80 @@
+@import url('https://fonts.googleapis.com/css2?family=Bagel+Fat+One&family=Fredoka:wdth,wght@112.5,300..700&display=swap');
+
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap');
+/* // <uniquifier>: Use a unique and descriptive class name
+// <weight>: Use a value from 300 to 700 */
+
+
+/* montserrat font */
+.nav-link{
+  font-family: "Montserrat", serif;
+  font-optical-sizing: auto;
+  font-weight: 800;
+  font-style: normal;
+}
+
+.loader {
+  border: 16px solid #f3f3f3; /* Light grey */
+  border-top: 16px solid #3498db; /* Blue */
+  border-radius: 50%;
+  width: 120px;
+  height: 120px;
+  animation: spin 2s linear infinite;
+}
+
+.loading-logo {
+  animation: scale-animation 2s forwards;
+  animation-delay: 2s;
+}
+
+.gradient-underline::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: -5px;
+  width: 100%;
+  height: 3px;
+  background: linear-gradient(to right, #ffffff, rgb(255, 255, 255));
+  transform: scaleX(0);
+  transform-origin: bottom right;
+  transition: transform 0.3s ease;
+}
+.gradient-underline:hover::after {
+  transform: scaleX(1);
+  transform-origin: bottom left;
+}
+
+@keyframes scale-animation {
+  0% { 
+    transform: scale(1); 
+    opacity: 1; /* Fully visible at the start */
+  }
+  50% { 
+    transform: scale(1.5); 
+    opacity: 1; /* Maintain visibility while scaling up */
+  }
+  100% { 
+    transform: scale(1); 
+    opacity: 0; /* Fade out while returning to original size */
+  }
+}
+
+
+/* for the roundy font */
+/* .nav-link {
+  font-family: "Fredoka", serif;
+  font-optical-sizing: auto;
+  font-weight: 600;
+  font-style: normal;
+  font-variation-settings:
+    "wdth" 112.5;
+} */
+
+
+/* bebas font */
+
+/* .nav-link {
+  font-family: "Bebas Neue", serif;
+  font-weight: 400;
+  font-style: normal;
+} */

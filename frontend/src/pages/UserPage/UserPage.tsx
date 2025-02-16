@@ -22,6 +22,7 @@ import {
   XIcon,
   Youtube,
 } from "lucide-react";
+import { IoChatbubbleOutline } from "react-icons/io5";
 import {
   closeDialog,
   DialogInput,
@@ -35,6 +36,7 @@ import { setAlert } from "../../features/Alert/AlertSlice";
 import { useChangeUsernameWithDialog } from "../../hooks/UseChangeUsername";
 import { isMentorshipRequestResponseAction } from "../../scripts/validation";
 import { SaveButtonFixed } from "../../components/SaveButtonFixed/SaveButtonFixed";
+import { setActiveChat, setChatOpen } from "../../features/Chat/ChatSlice";
 
 export default function UserPage() {
   const [changed, setChanged] = useState(false);
@@ -299,26 +301,42 @@ export default function UserPage() {
             <Pencil style={{ marginLeft: "0.5rem" }} size={"1rem"} />
           )}
         </div>
-        <div style={{ display: "flex", marginLeft: 10, paddingTop: 5 }}>
-          <MinimalisticButton
-            style={{
-              fontSize: "0.8rem",
-            }}
-            onClick={() =>
-              navigate(`/app/assessments?id=${user.id}&origin=user`)
-            }
-          >
-            Assessments {">"}
-          </MinimalisticButton>
-          <MinimalisticButton
-            style={{
-              marginLeft: 10,
-              fontSize: "0.8rem",
-            }}
-            onClick={() => navigate(`/app/goals?id=${user.id}&origin=user`)}
-          >
-            Goals {">"}
-          </MinimalisticButton>
+
+        <ChatSection userIsSelf={CanMakeChanges} user={user} />
+
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "start",
+            marginLeft: 10,
+          }}
+        >
+          <span style={{ fontSize: "1.1rem" }}>
+            {fName}
+            {fName?.charAt(fName.length - 1) == "s" ? "'" : "'s"} Stuff
+          </span>
+          <div style={{ display: "flex", marginLeft: 10, paddingTop: 5 }}>
+            <MinimalisticButton
+              style={{
+                fontSize: "0.8rem",
+              }}
+              onClick={() =>
+                navigate(`/app/assessments?id=${user.id}&origin=user`)
+              }
+            >
+              Assessments {">"}
+            </MinimalisticButton>
+            <MinimalisticButton
+              style={{
+                marginLeft: 10,
+                fontSize: "0.8rem",
+              }}
+              onClick={() => navigate(`/app/goals?id=${user.id}&origin=user`)}
+            >
+              Goals {">"}
+            </MinimalisticButton>
+          </div>
         </div>
         <RequestMentorSection
           isMentor={isMentor}
@@ -361,6 +379,94 @@ export default function UserPage() {
         />
       </div>
       <div style={{ height: "10vh" }} />
+    </div>
+  );
+}
+
+function ChatSection({ userIsSelf, user }: { userIsSelf: boolean, user: ClientSocketUser }) {
+  const dispatch = useDispatch();
+  const { chats, loaded } = useSelector((store: ReduxRootState) => store.Chat);
+  const { user: self } = useSelector((store: ReduxRootState) => store.ClientSocket);
+  if (userIsSelf || !loaded || !self || !user) {
+    return;
+  }
+
+  function handleChatClick() {
+    if (!self || !self.id || !user || !user.id) {
+      return;
+    }
+    for(let [chatID, chatObj] of chats) {
+      const chatUsers = Object.keys(chatObj.users);
+      if (chatUsers.length != 2) {
+        continue;
+      } else if (!chatUsers.includes(self.id) || !chatUsers.includes(user.id)) {
+        continue;
+      }
+
+      // if we reach this point, we have found the chat.
+      dispatch(setChatOpen(true));
+      dispatch(setActiveChat(chatID));
+      return;
+    }
+    // no chat exists, prompt user to start the convo.
+    handleStartNewChat();
+  }
+
+  function handleStartNewChat() {
+    dispatch(setDialog({
+      title: 'Start the Convo!',
+      subtitle: 'Make a solid first impression',
+      inputs: [
+        {
+          name: 'message',
+          label: 'Message',
+          type: 'text',
+          containerStyle: { minWidth: 200 }
+        }
+      ],
+      buttons: [
+        {
+          text: 'Send',
+          useDisableTill: true,
+          onClick: (params, cb) => {
+            if (!MyClientSocket || !user || !user.id) {
+              cb && cb();
+              return;
+            }
+            const { message } = params as ObjectAny;
+            if (!message) {
+              cb && cb();
+              return;
+            }
+            MyClientSocket.CreateChat(user.id, message, (v: boolean | string) => {
+              if (typeof(v) == 'boolean') {
+                cb && cb();
+                return;
+              }
+              cb && cb();
+              dispatch(closeDialog());
+              dispatch(setActiveChat(v));
+            });
+          }
+        }
+      ],
+      buttonContainerStyle: { width: '100%', justifyItems: 'end' }
+    }))
+  }
+
+  return (
+    <div style={{ marginLeft: 10, marginTop: 5 }}>
+      <MinimalisticButton
+        style={{ fontSize: "0.8rem", display: "flex", alignItems: "center" }}
+        onClick={handleChatClick}
+      >
+        Chat{" "}
+        <IoChatbubbleOutline
+          style={{ marginLeft: 5 }}
+          strokeWidth={4}
+          size={"1rem"}
+        />
+      </MinimalisticButton>
     </div>
   );
 }

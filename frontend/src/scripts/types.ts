@@ -106,3 +106,28 @@ export type TaskObj = {
 
 export type SubmitGoalAction = 'create' | 'edit' | 'delete';
 export const SubmitGoalActions = ['create', 'edit', 'delete'];
+
+export type ChatObj = {
+  users: ChatObjUserPreviewMap,
+  messages: string[],
+  lastMessage: MessageObj,
+  id: string
+};
+
+type ChatObjUserPreviewMap = {
+  [userID: string]: {
+    username: string,
+    fName: string,
+    mName?: string,
+    lName: string,
+    displayPictureURL?: string
+  }
+};
+
+export type MessageObj = {
+  contents: string,
+  timestamp: number,
+  sender: string,
+  chatID: number,
+  id: string
+}

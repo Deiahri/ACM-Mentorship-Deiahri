@@ -195,18 +195,7 @@ export default function GoalPage() {
 
   return (
     <div
-      style={{
-        width: "100vw",
-        height: "100%",
-        minHeight: "100vh",
-        display: "flex",
-        justifyContent: "start",
-        alignItems: "start",
-        padding: "3rem",
-        backgroundColor: "#111",
-        flexDirection: "column",
-        boxSizing: "border-box",
-      }}
+    className={'pageBase'}
     >
       <SaveButtonFixed
         onSave={handleOnSaveClick}

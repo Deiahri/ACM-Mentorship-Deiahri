@@ -67,18 +67,7 @@ export default function Assessments() {
 
   return (
     <div
-      style={{
-        width: "100vw",
-        height: "100%",
-        minHeight: "100vh",
-        display: "flex",
-        justifyContent: "start",
-        alignItems: "start",
-        padding: "3rem",
-        backgroundColor: "#111",
-        flexDirection: "column",
-        boxSizing: "border-box",
-      }}
+    className={'pageBase'}
     >
       <MinimalisticButton style={{fontSize: '0.8rem', marginBottom: 10}} onClick={handleBackButton}>{BackButtonText}</MinimalisticButton>
       <p style={{ margin: 0, fontSize: "1.5rem" }}>

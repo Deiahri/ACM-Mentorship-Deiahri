@@ -42,10 +42,6 @@ const router = createBrowserRouter([
         element: <NewUserPage/>
       },
       {
-        path: '*',
-        element: <P404Page/>
-      },
-      {
         path: 'assessment',
         element: <AssessmentPage/>
       },
@@ -60,7 +56,11 @@ const router = createBrowserRouter([
       {
         path: 'goal',
         element: <GoalPage/>
-      }
+      },
+      {
+        path: '*',
+        element: <P404Page/>
+      },
     ]
   },
 ]);

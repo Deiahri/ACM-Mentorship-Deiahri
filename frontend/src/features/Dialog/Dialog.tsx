@@ -3,7 +3,7 @@ import { ReduxRootState } from "../../store";
 import * as DialogRadix from "@radix-ui/react-dialog";
 import { closeDialog, DialogButton, DialogInput } from "./DialogSlice";
 import { useEffect, useState } from "react";
-import { AnyObject } from "../../types";
+import { ObjectAny } from "../../scripts/types";
 import { XIcon } from "lucide-react";
 // import { Checkbox } from "@radix-ui/react-checkbox";
 import { Checkbox } from "radix-ui";
@@ -42,7 +42,7 @@ export default function Dialog() {
     containerStyle,
     overlayStyle,
   } = useSelector((store: ReduxRootState) => store.Dialog);
-  const [inputVals, setInputVals] = useState<AnyObject>({});
+  const [inputVals, setInputVals] = useState<ObjectAny>({});
   const [disabledButtons, setDisabledButtons] = useState(
     Array.from({ length: buttons?.length || 0 }, () => false)
   );
@@ -53,7 +53,7 @@ export default function Dialog() {
     if (!inputs) {
       return;
     }
-    const initialInputVals: AnyObject = {};
+    const initialInputVals: ObjectAny = {};
     for (let input of inputs) {
       if (!input.initialValue) {
         continue;

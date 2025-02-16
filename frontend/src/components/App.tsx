@@ -4,6 +4,10 @@ import { useDispatch, useSelector } from "react-redux";
 import { CreateClientSocketConnection } from "../features/ClientSocket/ClientSocket";
 import { Outlet, useNavigate } from "react-router-dom";
 import { ReduxRootState } from "../store";
+import Chat from "../features/Chat/Chat";
+import DesktopChatWidget from "../features/Chat/DesktopChatWidget";
+import MobileChatWidget from "../features/Chat/MobileChatWidget";
+import NavbarMobile from "./Navbar/NavbarMobile";
 
 export default function App() {
   const { getAccessTokenSilently, isLoading, isAuthenticated } = useAuth0();
@@ -35,7 +39,7 @@ export default function App() {
     if (!isAuthenticated && !isLoading) {
       navigate('/');
     }
-  }, [state]);
+  }, [state, isAuthenticated, isLoading]);
 
   if (isLoading) {
     return <p>Still Loading...</p>
@@ -46,6 +50,10 @@ export default function App() {
   }
 
   return <>
+    <Chat/>
+    <DesktopChatWidget/>
+    <MobileChatWidget/>
+    <NavbarMobile/>
     <Outlet/>
   </>
 }

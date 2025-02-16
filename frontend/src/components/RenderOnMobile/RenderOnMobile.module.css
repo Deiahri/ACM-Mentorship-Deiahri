@@ -1,0 +1,16 @@
+/* Further decrease for mobile devices */
+.renderOnMobile {
+  display: none;
+}
+.hideOnMobile {
+  display: initial;
+}
+
+@media (max-width: 768px) {
+  .renderOnMobile {
+    display: initial;
+  }
+  .hideOnMobile {
+    display: none;
+  }
+}

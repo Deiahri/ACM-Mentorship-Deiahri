@@ -338,18 +338,7 @@ export default function AssessmentPage() {
   const userOwnsAssessment = assessmentUserID == id;
   return (
     <div
-      style={{
-        width: "100vw",
-        height: "100%",
-        minHeight: "100vh",
-        display: "flex",
-        justifyContent: "start",
-        alignItems: "start",
-        padding: 30,
-        backgroundColor: "#111",
-        flexDirection: "column",
-        boxSizing: "border-box",
-      }}
+    className={'pageBase'}
     >
       <span
         style={{
