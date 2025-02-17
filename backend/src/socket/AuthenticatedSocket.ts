@@ -33,6 +33,7 @@ import {
   MAX_BIO_LENGTH,
   Project,
 } from "../scripts/validation";
+import { SyncUserProfile } from "./entities/users";
 
 export type AuthenticatedSocketAdditionalParameters = {
   deleteAccountAfterDisconnect?: boolean;
@@ -78,6 +79,9 @@ type UserObj = {
   mentorshipRequests?: string[];
   goals?: GoalPreviewMap;
 };
+export const AllAcceptingMentorIDs: Set<string> = new Set();
+export const AllSockets: Map<string, Array<AuthenticatedSocket>> = new Map();
+
 export default class AuthenticatedSocket {
   socket: Socket;
   state: AuthenticatedSocketState;
@@ -89,8 +93,6 @@ export default class AuthenticatedSocket {
   >();
   inAllSockets: boolean;
   testing: boolean = false;
-  static AllSockets: Map<string, Array<AuthenticatedSocket>> = new Map();
-  static AllAcceptingMentorIDs: Set<string> = new Set();
 
   constructor(
     socket: Socket,
@@ -698,17 +700,7 @@ export default class AuthenticatedSocket {
         return;
       }
 
-      const isAcceptingMentor =
-        (this.user.acceptingMentees || acceptingMentees) &&
-        (this.user.isMentor || isMentor);
-      if (isAcceptingMentor) {
-        console.log("added to mentor list", this.user.username);
-        this.addSelfToAcceptingMentorIDsList();
-      } else if (!isMentor || !acceptingMentees) {
-        console.log("removed from mentor list", this.user.username);
-        // remove user if they made a change that would affect their accepting mentor status.
-        this.removeSelfFromAcceptingMentorIDsList();
-      }
+      SyncUserProfile(this.user.id, newUserObj)
 
       callback(true);
     } catch (err) {
@@ -742,7 +734,7 @@ export default class AuthenticatedSocket {
       let allMentors: Array<ObjectAny> = [];
       try {
         const AllMentorIDs = Array.from(
-          AuthenticatedSocket.AllAcceptingMentorIDs.values()
+          AllAcceptingMentorIDs.values()
         );
         const promises = AllMentorIDs.map(async (mentorID: string) => {
           return DBGetWithID("user", mentorID);
@@ -752,7 +744,7 @@ export default class AuthenticatedSocket {
 
         results.forEach((datProm, index) => {
           if (datProm.status == "rejected") {
-            AuthenticatedSocket.AllAcceptingMentorIDs.delete(
+            AllAcceptingMentorIDs.delete(
               AllMentorIDs[index]
             ); //Remove from set
             return;
@@ -760,7 +752,7 @@ export default class AuthenticatedSocket {
 
           const dat = datProm.value;
           if (!dat) {
-            AuthenticatedSocket.AllAcceptingMentorIDs.delete(
+            AllAcceptingMentorIDs.delete(
               AllMentorIDs[index]
             ); //Remove from set
           } else {
@@ -2261,7 +2253,7 @@ export default class AuthenticatedSocket {
       }
 
       // gets all sockets with current userID
-      const sockets = AuthenticatedSocket.AllSockets.get(userID);
+      const sockets = AllSockets.get(userID);
 
       // skips if sockets no sockets with userID
       if (!sockets) {
@@ -2425,13 +2417,13 @@ export default class AuthenticatedSocket {
     }
 
     // add to existing list if it exists
-    const socketList = AuthenticatedSocket.AllSockets.get(this.user.id);
+    const socketList = AllSockets.get(this.user.id);
     if (socketList) {
       socketList.push(this);
     }
     // otherwise, start a new list
     else {
-      AuthenticatedSocket.AllSockets.set(this.user.id, [this]);
+      AllSockets.set(this.user.id, [this]);
     }
     this.inAllSockets = true;
     console.log("Added", this.user.id, this.user.username, "to socket map");
@@ -2442,14 +2434,14 @@ export default class AuthenticatedSocket {
       return;
     }
     this.inAllSockets = false;
-    const socketList = AuthenticatedSocket.AllSockets.get(this.user.id);
+    const socketList = AllSockets.get(this.user.id);
 
     if (!socketList) {
       // interestingly, not in socket list. Not sure how this is possibile
       return;
     } else if (socketList.length == 1) {
       // if the list will be empty after this operation, remove list entirely.
-      AuthenticatedSocket.AllSockets.delete(this.user.id);
+      AllSockets.delete(this.user.id);
       return;
     }
 
@@ -2496,8 +2488,8 @@ export default class AuthenticatedSocket {
       "and"
     );
 
-    // create a new set to add these mentor IDs to
-    const newAllMentorIDsSet = new Set<string>();
+    // clear current set of mentors a new set to add these mentor IDs to
+    AllAcceptingMentorIDs.clear();
 
     // process each mentor, ensuring they are a mentor and accepting mentors
     for (let mentor of allMentors) {
@@ -2506,19 +2498,9 @@ export default class AuthenticatedSocket {
       if (!id || !isMentor || !acceptingMentees) {
         continue;
       }
-      newAllMentorIDsSet.add(id);
+      AllAcceptingMentorIDs.add(id);
     }
 
-    // set AllAcceptingMentorIDs to the new set.
-    AuthenticatedSocket.AllAcceptingMentorIDs = newAllMentorIDsSet;
-  }
-
-  private removeSelfFromAcceptingMentorIDsList() {
-    AuthenticatedSocket.AllAcceptingMentorIDs.delete(this.user.id);
-  }
-
-  private addSelfToAcceptingMentorIDsList() {
-    AuthenticatedSocket.AllAcceptingMentorIDs.add(this.user.id);
   }
 
   static async CreateGoalForUser(

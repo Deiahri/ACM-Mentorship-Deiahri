@@ -49,6 +49,7 @@ const NavbarMobile: React.FC = () => {
           style={{
             backgroundColor: isOpen ? "transparent" : "#222",
             transition: "background-color 300ms ease-in-out",
+            borderBottom: '1px solid #fff2'
           }}
           className="flex items-center fixed top-0 w-screen px-4 justify-between z-50 backdrop-blur-sm"
         >

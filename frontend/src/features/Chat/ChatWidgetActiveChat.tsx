@@ -233,6 +233,7 @@ export default function ChatWidgetActiveChat({ fontScale = 1 }: { fontScale?: nu
             minHeight: 2.5 * fontScale + "rem",
             fontSize: fontScale+'rem',
             color: "black",
+            background: '#eee',
             width: "100%",
             resize: "none",
           }}

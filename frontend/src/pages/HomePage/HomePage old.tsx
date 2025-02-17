@@ -12,170 +12,101 @@ import { setAlert } from "../../features/Alert/AlertSlice";
 import { useNavigate } from "react-router-dom";
 import { useChangeUsernameWithDialog } from "../../hooks/UseChangeUsername";
 import MinimalisticButton from "../../components/MinimalisticButton/MinimalisticButton";
-import FileTabContainer from "../../components/FileTabContainer/FileTabContainer";
 
+type HomeSubPage = "view_mentor" | "view_mentees";
 export default function HomePage() {
   const { user, ready } = useSelector(
     (store: ReduxRootState) => store.ClientSocket
   );
+  const [subPage, setSubPage] = useState<HomeSubPage>("view_mentor");
 
-  console.warn("user detection disabled in HomePage");
-  // if (!user || !MyClientSocket || !ready) {
-  //   return <p>Loading...</p>;
-  // }
+  if (!user || !MyClientSocket || !ready) {
+    return <p>Loading...</p>;
+  }
 
+  function handleChangeSubpage(newSubPage: HomeSubPage) {
+    setSubPage(newSubPage);
+  }
+
+  const {
+    username,
+    fName,
+    mName,
+    lName,
+    id: userID, // @ts-ignore
+    socials, // @ts-ignore
+    experience, // @ts-ignore
+    education, // @ts-ignore
+    certifications, // @ts-ignore
+    projects, // @ts-ignore
+    softSkills, // @ts-ignore
+    isMentee, // @ts-ignore
+    isMentor,
+  } = user;
   return (
     <div className={"pageBase"}>
       <HomePageHeader />
-      <div style={{}} />
-      <HomePageDashboard />
-    </div>
-  );
-}
-
-function HomePageDashboard() {
-  return (
-    <FileTabContainer>
-      <ToDoCard />
-      <ToDoCard />
-      <ToDoCard />
-      <ToDoCard />
-      <ToDoCard />
-      <ToDoCard />
-    </FileTabContainer>
-  );
-}
-
-function ToDoCard() {
-  return (
-    <div
-      style={{
-        padding: "0.3rem",
-        paddingBottom: "0.25rem",
-        paddingTop: "0.25rem",
-      }}
-      className="w-full xss:w-1/2 xs:w-1/2 sm:w-1/3 lg:w-1/4 xl:1/5"
-    >
       <div
         style={{
-          height: "14rem",
-          borderRadius: "0.5rem",
-          overflow: "hidden",
-          position: "relative",
-          zIndex: 0,
-          border: "1px solid #fff4",
-          boxSizing: "border-box",
-        }}
-      >
-        <img
-          style={{
-            width: "100%",
-            height: "100%",
-            objectFit: "cover",
-            zIndex: 1,
-            position: "absolute",
-          }}
-          draggable={false}
-          src="https://th.bing.com/th/id/R.2609fa18d5091dc020ae92e8ffde827d?rik=EFdtfi8dYkunsA&riu=http%3a%2f%2fwww.pixelstalk.net%2fwp-content%2fuploads%2f2016%2f05%2fBeautiful-Gradient-Wallpaper.jpg&ehk=wHC%2bBEdWF6fKy71W%2byG8l40bZoD6JV35mjLfEsDFAdQ%3d&risl=&pid=ImgRaw&r=0"
-        />
-        <div
-          style={{
-            width: "100%",
-            height: "100%",
-            display: "flex",
-            flexDirection: "column",
-            justifyContent: "center",
-            alignItems: "center",
-            zIndex: 2,
-            top: 0,
-            position: "relative",
-            padding: "0.5rem",
-            boxSizing: "border-box",
-          }}
-        >
-          <span
-            style={{
-              fontSize: "1.2rem",
-              marginBottom: "-0.2rem",
-              fontWeight: 500,
-              textAlign: "center",
-            }}
-          >
-            Take A Personal Assessment
-          </span>
-          <span style={{ fontSize: "0.9rem", textAlign: "center" }}>
-            Help your mentors learn about you
-          </span>
-          <MinimalisticButton
-            style={{ fontSize: "0.9rem", marginTop: "0.3rem" }}
-          >
-            Take Assessment
-          </MinimalisticButton>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function HomePageHeader() {
-  const navigate = useNavigate();
-  const { logout } = useAuth0();
-  const { user } = useSelector((store: ReduxRootState) => store.ClientSocket);
-
-  // if (!user) {
-  //   return <p>Waiting for user data...</p>;
-  // }
-
-  const HandleViewProfile = () => {
-    navigate(`/app/user?id=${user?.id}`);
-  };
-
-  const { username } = user || {};
-  return (
-    <div
-      style={{
-        display: "flex",
-        paddingLeft: "0.75rem",
-        alignItems: "center",
-        paddingTop: "2rem",
-        paddingBottom: 30,
-      }}
-    >
-      <div
-        style={{
+          backgroundColor: "#222",
           display: "flex",
-          flexDirection: "column",
-          alignItems: "start",
+          padding: 10,
+          borderRadius: 30,
         }}
       >
-        <div style={{ display: "flex", alignItems: "center" }}>
-          <p style={{ color: "white", fontSize: "2rem", margin: 0 }}>
-            Welcome {username || "NoUsername"}
-          </p>
-        </div>
-        <div>
-          <MinimalisticButton
-            onClick={() =>
-              logout({ logoutParams: { returnTo: window.location.origin } })
-            }
-            style={{
-              marginTop: 5,
-              fontSize: "0.8rem",
-              marginRight: "0.5rem",
-            }}
-          >
-            Logout
-          </MinimalisticButton>
-          <MinimalisticButton
-            onClick={HandleViewProfile}
-            style={{
-              marginTop: 5,
-              fontSize: "0.8rem",
-            }}
-          >
-            View Profile
-          </MinimalisticButton>
-        </div>
+        <button
+          style={{
+            border: "2px solid #fff",
+            backgroundColor: subPage == "view_mentor" ? "white" : "transparent",
+            color: subPage == "view_mentor" ? "#222" : "white",
+            borderRadius: 30,
+            transition:
+              "background-color 100ms ease-in-out, color 100ms ease-in-out",
+            fontSize: "1.1rem",
+          }}
+          onClick={() => handleChangeSubpage("view_mentor")}
+        >
+          Mentor
+        </button>
+        <button
+          style={{
+            border: "2px solid #fff",
+            backgroundColor:
+              subPage == "view_mentees" ? "white" : "transparent",
+            color: subPage == "view_mentees" ? "#222" : "white",
+            borderRadius: 30,
+            marginLeft: 10,
+            transition:
+              "background-color 100ms ease-in-out, color 100ms ease-in-out",
+            fontSize: "1.1rem",
+          }}
+          onClick={() => handleChangeSubpage("view_mentees")}
+        >
+          Mentees
+        </button>
+      </div>
+
+      {subPage == "view_mentor" && <ViewMentorSection />}
+      {subPage == "view_mentees" && <ViewMenteesSection />}
+
+      <div
+        style={{
+          backgroundColor: "#222",
+          marginTop: 15,
+          padding: 10,
+          borderRadius: 10,
+          marginLeft: 5,
+        }}
+      >
+        <p style={{ color: "white", fontSize: "1.5rem", margin: 0 }}>
+          UserID: {userID}
+        </p>
+        <p style={{ color: "white", fontSize: "1.5rem", margin: 0 }}>
+          Name: {fName} {mName} {lName}
+        </p>
+        <p style={{ color: "white", fontSize: "1.5rem", margin: 0 }}>
+          Username: {username}
+        </p>
       </div>
     </div>
   );
@@ -471,7 +402,7 @@ function MentorSearchTool() {
         padding: 10,
         display: "flex",
         flexWrap: "wrap",
-        justifyContent: "center",
+        justifyContent: 'center',
       }}
     >
       {mentors.length == 0 && (
@@ -486,25 +417,13 @@ function MentorSearchTool() {
           username, // @ts-ignore
           id,
         } = mentor;
-        return (
-          <UserProfileCard
-            key={`user_${id}`}
-            user={mentor}
-            style={{ margin: 5 }}
-          />
-        );
+        return <UserProfileCard key={`user_${id}`} user={mentor} style={{ margin: 5 }} />;
       })}
     </div>
   );
 }
 
-function UserProfileCard({
-  user,
-  style,
-}: {
-  user: ClientSocketUser;
-  style?: React.CSSProperties;
-}) {
+function UserProfileCard({ user, style }: { user: ClientSocketUser, style?: React.CSSProperties }) {
   const { fName, mName, lName, username, id, displayPictureURL, bio } = user;
   const navigate = useNavigate();
 
@@ -523,12 +442,12 @@ function UserProfileCard({
         padding: 10,
         width: "10rem",
         borderRadius: 5,
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "start",
-        justifyContent: "start",
-        height: "auto",
-        ...style,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'start',
+        justifyContent: 'start',
+        height: 'auto',
+        ...style
       }}
     >
       <img
@@ -538,28 +457,14 @@ function UserProfileCard({
           "https://static.vecteezy.com/system/resources/previews/000/574/512/original/vector-sign-of-user-icon.jpg"
         }
       />
-      <p
-        style={{
-          margin: 0,
-          fontSize: "1.25rem",
-          marginBottom: 0,
-          lineHeight: "1.5rem",
-        }}
-      >
+      <p style={{ margin: 0, fontSize: "1.25rem", marginBottom: 0, lineHeight: '1.5rem' }}>
         {fName} {mName} {lName}
       </p>
       <p style={{ margin: 0, fontSize: "0.8rem", opacity: 0.5 }}>
         aka {username}
-      </p>
+      </p> 
       <p style={{ margin: 0 }}>{bio?.substring(0, Math.min(bio.length, 60))}</p>
-      <div
-        style={{
-          width: "100%",
-          display: "flex",
-          justifyContent: "end",
-          marginTop: "auto",
-        }}
-      >
+      <div style={{ width: "100%", display: "flex", justifyContent: "end", marginTop: 'auto' }}>
         <button
           style={{
             border: "2px solid #fff",
@@ -615,6 +520,76 @@ function BecomeMenteeSection() {
       >
         Take Assessment
       </button>
+    </div>
+  );
+}
+
+function HomePageHeader() {
+  const navigate = useNavigate();
+  const { logout } = useAuth0();
+  const { user } = useSelector((store: ReduxRootState) => store.ClientSocket);
+  const changeUsernameWithDialog = useChangeUsernameWithDialog();
+
+  if (!user) {
+    return <p>Waiting for user data...</p>;
+  }
+
+  const HandleViewProfile = () => {
+    navigate(`/app/user?id=${user.id}`);
+  };
+
+  const { username } = user;
+  return (
+    <div
+      style={{
+        display: "flex",
+        paddingLeft: 10,
+        alignItems: "center",
+        paddingTop: 30,
+        paddingBottom: 30,
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "start",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center" }}>
+          <p style={{ color: "white", fontSize: "2rem", margin: 0 }}>
+            Welcome {username}
+          </p>
+          <Pencil
+            onClick={() => changeUsernameWithDialog()}
+            style={{ marginLeft: 10, cursor: "pointer" }}
+            color="white"
+          />
+        </div>
+        <div>
+          <MinimalisticButton
+            onClick={() =>
+              logout({ logoutParams: { returnTo: window.location.origin } })
+            }
+            style={{
+              marginTop: 5,
+              fontSize: "0.8rem",
+            }}
+          >
+            Logout
+          </MinimalisticButton>
+          <MinimalisticButton
+            onClick={HandleViewProfile}
+            style={{
+              marginTop: 5,
+              fontSize: "0.8rem",
+              marginLeft: 10,
+            }}
+          >
+            View Profile
+          </MinimalisticButton>
+        </div>
+      </div>
     </div>
   );
 }

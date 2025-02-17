@@ -45,6 +45,8 @@ export default function UserPage() {
   const [params, _] = useSearchParams();
   const navigate = useNavigate();
   const id = params.get("id");
+
+  // TODO: add changedValues state to upload only changed values.
   const [user, setUser] = useState<ClientSocketUser | undefined>(undefined);
   const { ready, user: self } = useSelector(
     (store: ReduxRootState) => store.ClientSocket

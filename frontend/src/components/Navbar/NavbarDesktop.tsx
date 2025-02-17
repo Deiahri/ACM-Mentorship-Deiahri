@@ -13,7 +13,7 @@ import HideOnMobile from "../RenderOnMobile/HideOnMobile";
 import styles from "./NavbarDesktop.module.css";
 
 export default function NavbarDesktop() {
-  const [hover, setHover] = useState(true);
+  const [hover, setHover] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const pagePath = location.pathname;
@@ -27,7 +27,7 @@ export default function NavbarDesktop() {
   }
 
   function handleMyMenteeClick() {
-    navigate("/app/my-mentor");
+    navigate("/app/my-mentees");
   }
 
   function handleMouseLeaveNavbar() {
@@ -55,7 +55,7 @@ export default function NavbarDesktop() {
           style={{ cursor: "pointer" }}
         />
         <ButtonShadow
-          active={pagePath == "/app/my-mentors"}
+          active={pagePath == "/app/my-mentor"}
           style={{
             marginRight: "1rem",
             transform: `scale(${hover ? 1 : 0.7})`,

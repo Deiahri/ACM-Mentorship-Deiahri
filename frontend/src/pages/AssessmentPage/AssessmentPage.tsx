@@ -210,6 +210,7 @@ export default function AssessmentPage() {
             return;
           }
           setTimeout(() => {
+            MyClientSocket?.requestUpdateSelf();
             navigate(`/app/assessment?id=${v}`);
             setTimeout(() => {
               dispatch(
