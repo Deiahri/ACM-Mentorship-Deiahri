@@ -83,7 +83,7 @@ export default function GoalsPage() {
   );
 }
 
-function GoalCard({ name, id }: { name: string, id: string }) {
+export function GoalCard({ name, id }: { name: string, id: string }) {
   const navigate = useNavigate();
   return (
     <div

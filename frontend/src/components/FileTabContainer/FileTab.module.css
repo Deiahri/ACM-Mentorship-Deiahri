@@ -1,0 +1,30 @@
+.tab {
+  padding: 1rem;
+  font-size: 1.2rem;
+  font-weight: 700;
+  padding-left: 1.75rem;
+  padding-right: 1.75rem;
+  border-radius: 0.5rem;
+  border-end-end-radius: 0;
+  border-end-start-radius: 0;
+  border: 1px solid rgba(255, 255, 255, 0.67);
+  border-bottom: transparent;
+  margin-bottom: -2px;
+  background-color: #191919;
+  transform: translate(5%, 20%);
+  z-index: 0;
+  cursor: pointer;
+  user-select: none;
+  transition: transform 80ms ease-in-out, background-color 200ms ease-in-out;
+}
+
+.tab:hover {
+  background-color: #292929;
+}
+
+.tab.active {
+  z-index: 2;
+  background-color: #222;
+  transform: translate(0%, 0%);
+  cursor:initial;
+}

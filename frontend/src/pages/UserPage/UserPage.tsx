@@ -36,8 +36,8 @@ import { setAlert } from "../../features/Alert/AlertSlice";
 import { useChangeUsernameWithDialog } from "../../hooks/UseChangeUsername";
 import { isMentorshipRequestResponseAction } from "../../scripts/validation";
 import { SaveButtonFixed } from "../../components/SaveButtonFixed/SaveButtonFixed";
-import { setActiveChat, setChatOpen } from "../../features/Chat/ChatSlice";
 import MinimalisticTextArea from "../../components/MinimalisticTextArea/MinimalisticTextArea";
+import useChatWithUser from "../../hooks/UseChatWithUser/UseChatWithUser";
 
 export default function UserPage() {
   const [changed, setChanged] = useState(false);
@@ -387,74 +387,18 @@ export default function UserPage() {
 }
 
 function ChatSection({ userIsSelf, user }: { userIsSelf: boolean, user: ClientSocketUser }) {
-  const dispatch = useDispatch();
-  const { chats, loaded } = useSelector((store: ReduxRootState) => store.Chat);
+  const chatWithuser = useChatWithUser();
+  const { loaded } = useSelector((store: ReduxRootState) => store.Chat);
   const { user: self } = useSelector((store: ReduxRootState) => store.ClientSocket);
   if (userIsSelf || !loaded || !self || !user) {
     return;
   }
 
   function handleChatClick() {
-    if (!self || !self.id || !user || !user.id) {
+    if (!user || !user.id) {
       return;
     }
-    for(let [chatID, chatObj] of chats) {
-      const chatUsers = Object.keys(chatObj.users);
-      if (chatUsers.length != 2) {
-        continue;
-      } else if (!chatUsers.includes(self.id) || !chatUsers.includes(user.id)) {
-        continue;
-      }
-
-      // if we reach this point, we have found the chat.
-      dispatch(setChatOpen(true));
-      dispatch(setActiveChat(chatID));
-      return;
-    }
-    // no chat exists, prompt user to start the convo.
-    handleStartNewChat();
-  }
-
-  function handleStartNewChat() {
-    dispatch(setDialog({
-      title: 'Start the Convo!',
-      subtitle: 'Make a solid first impression',
-      inputs: [
-        {
-          name: 'message',
-          label: 'Message',
-          type: 'text',
-          containerStyle: { minWidth: 200 }
-        }
-      ],
-      buttons: [
-        {
-          text: 'Send',
-          useDisableTill: true,
-          onClick: (params, cb) => {
-            if (!MyClientSocket || !user || !user.id) {
-              cb && cb();
-              return;
-            }
-            const { message } = params as ObjectAny;
-            if (!message) {
-              cb && cb();
-              return;
-            }
-            MyClientSocket.CreateChat(user.id, message, (v: boolean | string) => {
-              if (typeof(v) == 'boolean') {
-                cb && cb();
-                return;
-              }
-              cb && cb();
-              dispatch(closeDialog());
-              dispatch(setActiveChat(v));
-            });
-          }
-        }
-      ],
-      buttonContainerStyle: { width: '100%', justifyItems: 'end' }
-    }))
+    chatWithuser(user.id);
   }
 
   return (

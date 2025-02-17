@@ -1,12 +1,19 @@
-import React from "react";
-import FileTab from "./FileTab";
+import React, { ReactNode, useState } from "react";
+import styles from "./FileTab.module.css";
 
 interface FileTabContainerProps extends React.HTMLProps<HTMLDivElement> {
-  children: React.ReactElement<React.ComponentProps<typeof FileTab>>[];  // Array of FileTab elements
+  tabs: {
+    name: string;
+    children?: ReactNode;
+  }[];
 }
 
-
-const FileTabContainer: React.FC<FileTabContainerProps> = ({ children, ...rest }) => {
+const FileTabContainer: React.FC<FileTabContainerProps> = ({
+  children,
+  tabs,
+  ...rest
+}) => {
+  const [activeTab, setActiveTab] = useState(0);
   return (
     <div
       style={{
@@ -16,68 +23,50 @@ const FileTabContainer: React.FC<FileTabContainerProps> = ({ children, ...rest }
         alignItems: "start",
         justifyItems: "start",
         alignContent: "start",
+        width: '100%'
       }}
       {...rest}
     >
       <div style={{ display: "flex" }}>
-        <div
-          style={{
-            padding: "1rem",
-            fontSize: "1.2rem",
-            fontWeight: 700,
-            paddingLeft: "1.75rem",
-            paddingRight: "1.75rem",
-            borderRadius: "0.5rem",
-            borderEndEndRadius: 0,
-            borderEndStartRadius: 0,
-            border: "1px solid #fffa",
-            borderBottom: "transparent",
-            marginBottom: -2,
-            zIndex: 2,
-            backgroundColor: "#222",
-          }}
-        >
-          To Do
-        </div>
-        <div
-          style={{
-            padding: "1rem",
-            fontSize: "1.2rem",
-            fontWeight: 700,
-            paddingLeft: "1.75rem",
-            paddingRight: "1.75rem",
-            borderRadius: "0.5rem",
-            borderEndEndRadius: 0,
-            borderEndStartRadius: 0,
-            border: "1px solid #fffa",
-            marginBottom: -1,
-            zIndex: 0,
-            backgroundColor: "#191919",
-            transform: "translate(5%, 20%)",
-          }}
-        >
-          Goals
-        </div>
+        {
+          tabs.map((tab, tabIndex) => {
+            return <FileFolderTab onClick={() => setActiveTab(tabIndex)} name={tab.name} active={tabIndex == activeTab} />
+          })
+        }
       </div>
       <div
         style={{
           backgroundColor: "#222",
           border: "1px solid #fffa",
           display: "flex",
+          alignItems: 'start',
+          justifyContent: 'start',
           flexDirection: "row",
           flexWrap: "wrap",
           // gap: "0.5rem",
           padding: "0.5rem",
-          width: "100%",
+          width: '100%',
           boxSizing: "border-box",
           zIndex: 1,
+          borderRadius: "1rem",
+          borderStartStartRadius: 0,
+          minHeight: '10rem',
         }}
       >
-        {children}
+        {
+          tabs[activeTab].children
+        }
       </div>
     </div>
   );
-}
+};
 
+function FileFolderTab({ name, active, onClick }: { name?: string; active?: boolean, onClick?: () => any }) {
+  return (
+    <div onClick={onClick} className={`${styles.tab} ${active ? styles["active"] : ""}`}>
+      {name}
+    </div>
+  );
+}
 
 export default FileTabContainer;

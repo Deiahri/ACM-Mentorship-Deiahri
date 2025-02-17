@@ -15,6 +15,7 @@ import Assessments from "./pages/Assessment/Assessments";
 import GoalPage from "./pages/GoalPage/GoalPage";
 import GoalsPage from "./pages/GoalsPage/GoalsPage";
 import Playground from "./pages/Playground/Playground";
+import MymentorPage from "./pages/MyMentorPage/MyMentorPage";
 
 const router = createBrowserRouter([
   {
@@ -56,6 +57,10 @@ const router = createBrowserRouter([
       {
         path: 'goal',
         element: <GoalPage/>
+      },
+      {
+        path: 'my-mentor',
+        element: <MymentorPage/>
       },
       {
         path: '*',

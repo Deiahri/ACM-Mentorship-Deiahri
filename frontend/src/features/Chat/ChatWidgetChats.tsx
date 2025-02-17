@@ -26,7 +26,7 @@ function sortChatPreviews(chatArr: ChatObj[]) {
   }
 }
 export default function ChatWidgetChats({ fontScale=1 }: { fontScale?: number }) {
-  const { chats } = useSelector((store: ReduxRootState) => store.Chat);
+  const { chats, chatLastTimeRead } = useSelector((store: ReduxRootState) => store.Chat);
   const chatArr = Array.from(chats.values());
   sortChatPreviews(chatArr);
   return (
@@ -38,6 +38,7 @@ export default function ChatWidgetChats({ fontScale=1 }: { fontScale?: number })
             chatID={chatObj.id}
             chatObj={chatObj}
             fontScale={fontScale}
+            lastTimeRead={chatLastTimeRead.get(chatObj.id)}
           />
         );
       })}
@@ -50,10 +51,12 @@ function ChatWidgetChatPreview({
   chatID,
   chatObj,
   fontScale = 1,
+  lastTimeRead
 }: {
   chatID: string;
   chatObj: ChatObj;
   fontScale?: number;
+  lastTimeRead?: number;
 }) {
   const { user: self } = useSelector(
     (store: ReduxRootState) => store.ClientSocket
@@ -79,7 +82,7 @@ function ChatWidgetChatPreview({
         style={{
           padding: 10,
           boxSizing: "border-box",
-          backgroundColor: "#333",
+          backgroundColor: lastMessage.timestamp > (lastTimeRead || 0) ? "#494949" : "#333",
           display: "flex",
           flexDirection: "row",
           cursor: "pointer",
