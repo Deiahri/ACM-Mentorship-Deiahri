@@ -30,7 +30,7 @@ export default function ChatWidgetChats({ fontScale=1 }: { fontScale?: number })
   const chatArr = Array.from(chats.values());
   sortChatPreviews(chatArr);
   return (
-    <div style={{ width: "100%", height: '100%', background: "#222" }}>
+    <div style={{ width: "100%", height: '100%', background: "#222", overflowY: 'scroll', scrollbarWidth: 'thin' }}>
       {chatArr.map((chatObj) => {
         return (
           <ChatWidgetChatPreview

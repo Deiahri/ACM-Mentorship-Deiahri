@@ -1,6 +1,14 @@
 import dotenv from 'dotenv';
+import express from "express";
 
 dotenv.config();
+const app = express();
+app.get("/", (_, res) => {
+  res.send({ all: "good" });
+});
+app.listen(4000 ,() => {
+  console.log('Health check online on port 4000');
+})
 
 if (!process.env.BACKEND_URL) {
   throw new Error('No backend URL provided');
