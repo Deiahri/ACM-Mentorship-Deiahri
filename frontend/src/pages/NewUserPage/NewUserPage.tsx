@@ -52,7 +52,6 @@ export default function NewUserPage() {
         style={{
           fontSize: "2rem",
           color: "white",
-          backgroundColor: '#333',
           textAlign: "center",
           margin: 0,
           marginBottom: 5,
@@ -126,7 +125,7 @@ export default function NewUserPage() {
               backgroundColor: '#333',borderRadius: 5, color: 'white' }}
           />
         </div>
-        <div style={{ width: "100%", display: 'flex', alignItems: "end" }}>
+        <div style={{ width: "100%", display: 'flex', justifyContent: "end" }}>
           <MinimalisticButton style={{ marginTop: 10, fontSize: "1rem" }}>
             Submit
           </MinimalisticButton>

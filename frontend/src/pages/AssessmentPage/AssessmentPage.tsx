@@ -14,6 +14,7 @@ import {
 import { isAssessment } from "../../scripts/validation";
 import { sleep } from "../../scripts/tools";
 import MinimalisticButton from "../../components/MinimalisticButton/MinimalisticButton";
+import MinimalisticTextArea from "../../components/MinimalisticTextArea/MinimalisticTextArea";
 
 const FirstTimeRecommendedQuestionCount = 3;
 export default function AssessmentPage() {
@@ -420,20 +421,20 @@ export default function AssessmentPage() {
         setAssessment={setAssessment}
         disabled={(!userOwnsAssessment && type != 'new')||submitting}
       />
-      <button
-        style={{
-          border: "2px solid #fff",
-          backgroundColor: "transparent",
-          color: "white",
-          borderRadius: 30,
-          fontSize: "0.8rem",
-          marginLeft: 10,
-          marginTop: 5,
-        }}
-        onClick={handleAddQuestion}
-      >
-        Add Question +
-      </button>
+      {
+        !(!userOwnsAssessment && type != 'new') && 
+        <MinimalisticButton
+          style={{
+            fontSize: "0.8rem",
+            marginLeft: 10,
+            marginTop: 5,
+          }}
+          disabled={(!userOwnsAssessment && type != 'new')}
+          onClick={handleAddQuestion}
+        >
+          Add Question +
+        </MinimalisticButton>
+      }
       <div
         style={{
           maxWidth: "80vw",
@@ -445,15 +446,7 @@ export default function AssessmentPage() {
           marginLeft: 10,
         }}
       />
-      <button
-        style={{
-          border: "2px solid #fff",
-          backgroundColor: "transparent",
-          color: "white",
-          borderRadius: 30,
-          fontSize: "1rem",
-          opacity: (submitting || (!userOwnsAssessment && type != 'new')) ? 0.5 : 1,
-        }}
+      <MinimalisticButton
         disabled={submitting || (!userOwnsAssessment && type != 'new')}
         onClick={HandleClickSaveAssessment}
       >
@@ -464,7 +457,7 @@ export default function AssessmentPage() {
           : (submitting)
           ? "Saving Assessment..."
           : "Save Assessment"}
-      </button>
+      </MinimalisticButton>
     </div>
   );
 }
@@ -538,25 +531,11 @@ function AssessmentSection({
                 {warning}
               </span>
             )}
-            <textarea
+            <MinimalisticTextArea
               placeholder="Your answer"
-              style={{
-                margin: 0,
-                fontSize: "1rem",
-                padding: 10,
-                borderRadius: 15,
-                minWidth: "10rem",
-                minHeight: "1.2rem",
-                maxWidth: "80%",
-                maxHeight: "40vh",
-                marginTop: 5,
-                height: "4rem",
-                width: "28rem",
-                color: 'black'
-              }}
               value={answer}
               onChange={(e) =>
-                !disabled && updateAssessmentQuestion(index, question || "", e.target.value)
+                !disabled && updateAssessmentQuestion(index, question || "", e)
               }
               disabled={disabled}
             />
