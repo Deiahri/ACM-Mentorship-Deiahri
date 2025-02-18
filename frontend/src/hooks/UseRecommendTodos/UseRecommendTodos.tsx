@@ -60,7 +60,7 @@ export default function UseRecommendTodos() {
       recommendedTodos.push(['CreateFirstGoal', undefined]);
     }
 
-    if (user && user.mentorID || true) {
+    if (user && user.mentorID) {
       // locate chat with mentorID
       let targetChatObj: ChatObj|undefined;
       for (let chatObj of chats.values()) {
@@ -133,7 +133,7 @@ export default function UseRecommendTodos() {
           <ToDoCard
             title={"Chat with your Mentor!"}
             subTitle="Ask them some questions, see if you can meet, whatever you want to do!"
-            buttonText="ChatWithMentor"
+            buttonText="Chat With Mentor"
             backgroundImageUrl="https://th.bing.com/th/id/R.d6f43944c2d1479537c7fb363d49cf6e?rik=cGLD3x%2bNuapRBg&riu=http%3a%2f%2fwww.pixelstalk.net%2fwp-content%2fuploads%2f2016%2f06%2fHD-Abstract-Backgrounds.jpg&ehk=UDPzXal8%2fsJLCiC5SLZcOQIciHko6lyZzShvDSEaFYM%3d&risl=&pid=ImgRaw&r=0"
             onClickButton={() => (user && user.mentorID) ? chatWithUser(user?.mentorID) : undefined}
           />
@@ -167,7 +167,7 @@ export function ToDoCard({
       initialToggle={false}
       delay={25}
       transitionSpeedMS={300}
-      forceClass="xss:w-1/2 xs:w-1/2 sm:w-1/3 lg:w-1/4 xl:1/5"
+      forceClass="w-full xss:w-1/2 xs:w-1/2 sm:w-1/3 lg:w-1/4 xl:1/5"
     >
       <div
         style={{

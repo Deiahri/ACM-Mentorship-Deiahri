@@ -109,9 +109,10 @@ export default function Dialog() {
             position: "fixed",
             transform: "translate(-50%, -50%)",
             backgroundColor: "#333",
-            padding: 30,
+            padding: '2.5rem',
             borderRadius: 10,
             minWidth: 200,
+            width: '92vw',
             maxWidth: 600,
             border: "1px solid #0004",
             zIndex: 11,
@@ -129,7 +130,7 @@ export default function Dialog() {
           />
           <DialogRadix.Title
             className="DialogTitle"
-            style={{ margin: 0, ...titleStyle }}
+            style={{ margin: 0, fontSize: '1.5rem', ...titleStyle }}
           >
             {title}
           </DialogRadix.Title>

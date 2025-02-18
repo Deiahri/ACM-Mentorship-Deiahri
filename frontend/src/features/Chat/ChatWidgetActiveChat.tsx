@@ -8,7 +8,11 @@ import { MyClientSocket } from "../ClientSocket/ClientSocket";
 import { IoIosArrowRoundBack } from "react-icons/io";
 import { placeholderPreviewPicture } from "./Chat";
 
-export default function ChatWidgetActiveChat({ fontScale = 1 }: { fontScale?: number }) {
+export default function ChatWidgetActiveChat({
+  fontScale = 1,
+}: {
+  fontScale?: number;
+}) {
   const { activeChatID, chats, messages } = useSelector(
     (store: ReduxRootState) => store.Chat
   );
@@ -39,15 +43,23 @@ export default function ChatWidgetActiveChat({ fontScale = 1 }: { fontScale?: nu
       if (!chatSectionRef.current) {
         return;
       }
+      console.log('ham', chatSectionRef.current.scrollHeight -
+        chatSectionRef.current.clientHeight -
+        chatSectionRef.current.scrollTop);
       if (
         chatSectionRef.current.scrollHeight -
           chatSectionRef.current.clientHeight -
           chatSectionRef.current.scrollTop <
-        50
+        180
       ) {
-        chatSectionRef.current.scrollTo({
-          top: chatSectionRef.current.scrollHeight + 1000,
-        });
+        setTimeout(() => {
+          if (!chatSectionRef.current) {
+            return;
+          }
+          chatSectionRef.current.scrollTo({
+            top: chatSectionRef.current.scrollHeight + 1000,
+          })
+        }, 100);
       }
     }, 100);
   }, [activeChatObj?.messages]);
@@ -231,9 +243,9 @@ export default function ChatWidgetActiveChat({ fontScale = 1 }: { fontScale?: nu
             padding: 0.5 * fontScale + "rem",
             borderRadius: 0.5 * fontScale + "rem",
             minHeight: 2.5 * fontScale + "rem",
-            fontSize: fontScale+'rem',
+            fontSize: fontScale + "rem",
             color: "black",
-            background: '#eee',
+            background: "#eee",
             width: "100%",
             resize: "none",
           }}

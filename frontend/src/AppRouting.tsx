@@ -11,11 +11,14 @@ import UserPage from "./pages/UserPage/UserPage";
 import P404Page from "./pages/404Page/P404Page";
 import Alert from "./features/Alert/Alert";
 import AssessmentPage from "./pages/AssessmentPage/AssessmentPage";
-import Assessments from "./pages/Assessment/Assessments";
+import Assessments from "./pages/Assessments/Assessments";
 import GoalPage from "./pages/GoalPage/GoalPage";
 import GoalsPage from "./pages/GoalsPage/GoalsPage";
 import Playground from "./pages/Playground/Playground";
 import MymentorPage from "./pages/MyMentorPage/MyMentorPage";
+import MyMenteesPage from "./pages/MyMenteesPage/MyMenteesPage";
+import MentorGuidelinesPage from "./pages/GuidelinesPage/MentorGuidelinesPage";
+import MenteeGuidelinesPage from "./pages/GuidelinesPage/MenteeGuidelinesPage";
 
 const router = createBrowserRouter([
   {
@@ -61,6 +64,18 @@ const router = createBrowserRouter([
       {
         path: 'my-mentor',
         element: <MymentorPage/>
+      },
+      {
+        path: 'my-mentees',
+        element: <MyMenteesPage/>
+      },
+      {
+        path: 'mentor-guidelines',
+        element: <MentorGuidelinesPage/>
+      },
+      {
+        path: 'mentee-guidelines',
+        element: <MenteeGuidelinesPage/>
       },
       {
         path: '*',

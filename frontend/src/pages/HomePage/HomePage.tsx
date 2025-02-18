@@ -1,12 +1,9 @@
-import { useAuth0 } from "@auth0/auth0-react";
 import { useSelector } from "react-redux";
 import { ReduxRootState } from "../../store";
 import { Fragment } from "react";
 import {
   MyClientSocket,
 } from "../../features/ClientSocket/ClientSocket";
-import { useNavigate } from "react-router-dom";
-import MinimalisticButton from "../../components/MinimalisticButton/MinimalisticButton";
 import FileTabContainer from "../../components/FileTabContainer/FileTabContainer";
 import { GoalCard } from "../GoalsPage/GoalsPage";
 import UseRecommendTodos from "../../hooks/UseRecommendTodos/UseRecommendTodos";
@@ -76,7 +73,7 @@ function PreviewGoalsPage() {
     <>
       <div style={{ width: "100%", display: "flex" }}>
         {userGoals.map(([goalID, goalPreviewObj]) => {
-          return <GoalCard id={goalID} name={goalPreviewObj.name} />;
+          return <GoalCard key={`goal_${goalID}`} id={goalID} name={goalPreviewObj.name} />;
         })}
       </div>
       {userGoals.length == 0 && recommendTodoCard("CreateFirstGoal")}
@@ -85,17 +82,8 @@ function PreviewGoalsPage() {
 }
 
 function HomePageHeader() {
-  const navigate = useNavigate();
-  const { logout } = useAuth0();
   const { user } = useSelector((store: ReduxRootState) => store.ClientSocket);
 
-  // if (!user) {
-  //   return <p>Waiting for user data...</p>;
-  // }
-
-  const HandleViewProfile = () => {
-    navigate(`/app/user?id=${user?.id}`);
-  };
 
   const { username } = user || {};
   return (
@@ -121,27 +109,7 @@ function HomePageHeader() {
           </p>
         </div>
         <div>
-          <MinimalisticButton
-            onClick={() =>
-              logout({ logoutParams: { returnTo: window.location.origin } })
-            }
-            style={{
-              marginTop: 5,
-              fontSize: "0.8rem",
-              marginRight: "0.5rem",
-            }}
-          >
-            Logout
-          </MinimalisticButton>
-          <MinimalisticButton
-            onClick={HandleViewProfile}
-            style={{
-              marginTop: 5,
-              fontSize: "0.8rem",
-            }}
-          >
-            View Profile
-          </MinimalisticButton>
+          <span style={{fontSize: '1.75rem', fontWeight: 300}}>Home</span>
         </div>
       </div>
     </div>

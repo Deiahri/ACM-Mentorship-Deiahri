@@ -9,12 +9,13 @@ import { setChatOpen } from "../../features/Chat/ChatSlice";
 import ShowOnMobile from "../RenderOnMobile/ShowOnMobile";
 import ChatsUnreadIndicator from "../../features/Chat/ChatsUnreadIndicator";
 import { ReduxRootState } from "../../store";
+import { useAuth0 } from "@auth0/auth0-react";
 
 const NavbarMobile: React.FC = () => {
   const { user } = useSelector((store: ReduxRootState) => store.ClientSocket);
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const dispatch = useDispatch();
-
+  const { logout } = useAuth0();
 
   const handleToggle = () => {
     setIsOpen(!isOpen);
@@ -25,21 +26,28 @@ const NavbarMobile: React.FC = () => {
   }
 
   const navItems: NavItemProps[] = [
-    { text: "Home", href:'/app/home' },
-    { text: "Your Mentor", href: '/app/your-mentor' },
-    { text: "Your Mentees", href: '/app/your-mentee' },
+    { text: "Home", href: "/app/home" },
+    { text: "My Mentor", href: "/app/my-mentor" },
+    { text: "My Mentees", href: "/app/my-mentees" },
     {
       text: "You",
       dropdownItems: [
         {
-          text: "Assessments", href: `/app/assessments?id=${user?.id}`
+          text: "Assessments",
+          href: `/app/assessments?id=${user?.id}`,
         },
         {
-          text: "Goals", href: `/app/goals?id=${user?.id}`
+          text: "Goals",
+          href: `/app/goals?id=${user?.id}`,
         },
-        { text: "Profile", href: `/app/user?id=${user?.id}` }
+        { text: "Profile", href: `/app/user?id=${user?.id}` },
       ],
-    }
+    },
+    {
+      text: "Logout",
+      onClick: () =>
+        logout({ logoutParams: { returnTo: window.location.origin } }),
+    },
   ];
 
   return (
@@ -49,7 +57,7 @@ const NavbarMobile: React.FC = () => {
           style={{
             backgroundColor: isOpen ? "transparent" : "#222",
             transition: "background-color 300ms ease-in-out",
-            borderBottom: '1px solid #fff2'
+            borderBottom: "1px solid #fff2",
           }}
           className="flex items-center fixed top-0 w-screen px-4 justify-between z-50 backdrop-blur-sm"
         >
@@ -84,13 +92,22 @@ const NavbarMobile: React.FC = () => {
               }`}
             ></div>
           </div>
-          <div className="z-40 top-2" style={{ left: '50%', position: 'absolute', transform: 'translate(-55%, 0%)' }}>
+          <div
+            className="z-40 top-2"
+            style={{
+              left: "50%",
+              position: "absolute",
+              transform: "translate(-55%, 0%)",
+            }}
+          >
             <MentorshipLogo scale={0.7} />
             {/* <img src={logo} alt="Logo" /> */}
           </div>
           <div className="w-20 h-20"></div>
           <div className="absolute right-5">
-            <ChatsUnreadIndicator style={{ position: 'absolute', top: '-0.3rem', right: '-0.2rem' }} />
+            <ChatsUnreadIndicator
+              style={{ position: "absolute", top: "-0.3rem", right: "-0.2rem" }}
+            />
             <IoChatbubbleOutline onClick={handleChatClick} size={"2rem"} />
           </div>
         </div>
@@ -107,7 +124,12 @@ const NavbarMobile: React.FC = () => {
               text={item.text}
               href={item.href}
               dropdownItems={item.dropdownItems}
-              onClick={() => setTimeout(() => setIsOpen(false), 100)}
+              onClick={() => {
+                item.onClick && item.onClick();
+                setTimeout(() => {
+                  setIsOpen(false);
+                }, 100);
+              }}
             />
           ))}
         </ul>
@@ -122,10 +144,15 @@ interface NavItemProps {
   text: string;
   href?: string;
   dropdownItems?: NavItemProps[];
-  onClick?: () => any
+  onClick?: () => any;
 }
 
-const NavItem: React.FC<NavItemProps> = ({ text, href, dropdownItems, onClick }) => {
+const NavItem: React.FC<NavItemProps> = ({
+  text,
+  href,
+  dropdownItems,
+  onClick,
+}) => {
   const navigate = useNavigate();
   const [isDropdownOpen, setIsDropdownOpen] = useState<boolean>(false);
 
@@ -142,7 +169,14 @@ const NavItem: React.FC<NavItemProps> = ({ text, href, dropdownItems, onClick })
             WebkitBackgroundClip: "text",
             WebkitTextFillColor: "transparent",
           }}
-          onClick={href ? () => { navigate(href); onClick && onClick(); } : undefined}
+          onClick={
+            href
+              ? () => {
+                  navigate(href);
+                  onClick && onClick();
+                }
+              : onClick
+          }
         >
           {text}
         </span>
@@ -173,7 +207,12 @@ const NavItem: React.FC<NavItemProps> = ({ text, href, dropdownItems, onClick })
               key={index}
               className="text-4xl py-2 translate hover:ml-10 duration-200"
             >
-              <NavItem text={item.text} dropdownItems={item.dropdownItems} onClick={onClick} href={item.href} />
+              <NavItem
+                text={item.text}
+                dropdownItems={item.dropdownItems}
+                onClick={onClick}
+                href={item.href}
+              />
             </ul>
           ))}
         </ul>

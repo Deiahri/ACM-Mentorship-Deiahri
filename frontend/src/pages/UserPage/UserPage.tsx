@@ -1,9 +1,8 @@
 import { useDispatch, useSelector } from "react-redux";
 import { ReduxRootState } from "../../store";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import React, { useEffect, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import {
-  ClientSocketUser,
   MyClientSocket,
 } from "../../features/ClientSocket/ClientSocket";
 import {
@@ -19,6 +18,7 @@ import {
   Pencil,
   Trash,
   Twitter,
+  X,
   XIcon,
   Youtube,
 } from "lucide-react";
@@ -38,37 +38,50 @@ import { isMentorshipRequestResponseAction } from "../../scripts/validation";
 import { SaveButtonFixed } from "../../components/SaveButtonFixed/SaveButtonFixed";
 import MinimalisticTextArea from "../../components/MinimalisticTextArea/MinimalisticTextArea";
 import useChatWithUser from "../../hooks/UseChatWithUser/UseChatWithUser";
+import { UserPageContext, UserPageContextProvider } from "./UserPageContext";
+import { placeholderPreviewPicture } from "../../features/Chat/Chat";
 
 export default function UserPage() {
-  const [changed, setChanged] = useState(false);
-  const [saving, setSaving] = useState(false);
+  return (
+    <UserPageContextProvider>
+      <UserPageWithContext />
+    </UserPageContextProvider>
+  );
+}
+
+function UserPageWithContext() {
   const [params, _] = useSearchParams();
   const navigate = useNavigate();
   const id = params.get("id");
 
   // TODO: add changedValues state to upload only changed values.
-  const [user, setUser] = useState<ClientSocketUser | undefined>(undefined);
+  const { user, setUser, saving, setSaving, changed, setChanged } =
+    useContext(UserPageContext);
   const { ready, user: self } = useSelector(
     (store: ReduxRootState) => store.ClientSocket
   );
   const dispatch = useDispatch();
 
-  const changeUsernameWithDialog = useChangeUsernameWithDialog();
-
-  function HandleChangeUsername() {
-    if (!CanMakeChanges) {
-      return;
-    }
-    changeUsernameWithDialog((v?: boolean, newUsername?: string) => {
-      if (!v || !newUsername) {
+  useEffect(() => {
+    async function GetUser() {
+      if (!id || !ready) {
         return;
       }
-      setUser({
-        ...user,
-        username: newUsername,
+      setSaving(false);
+      setChanged(false);
+      setUser(undefined);
+      MyClientSocket?.GetUser(id, (d: unknown) => {
+        if (!d || typeof d != "object") {
+          return;
+        }
+        setUser(d);
       });
-    });
-  }
+    }
+    GetUser();
+  }, [id, ready, self]);
+
+  const { id: selfUserID } = self || {};
+  const CanMakeChanges = selfUserID == id;
 
   function HandleSave() {
     if (!changed || saving || !user) {
@@ -112,32 +125,6 @@ export default function UserPage() {
         },
       })
     );
-  }
-
-  useEffect(() => {
-    async function GetUser() {
-      if (!id || !ready) {
-        return;
-      }
-      
-      MyClientSocket?.GetUser(id, (d: unknown) => {
-        if (!d || typeof d != "object") {
-          return;
-        }
-        setUser(d);
-      });
-    }
-    GetUser();
-  }, [id, ready]);
-
-  function setName(fName: string, mName: string | undefined, lName: string) {
-    setUser({
-      ...user,
-      fName: fName.trim(),
-      mName: mName?.trim(),
-      lName: lName.trim(),
-    });
-    setChanged(true);
   }
 
   function setSocials(newSocials: ObjectAny[]) {
@@ -212,43 +199,61 @@ export default function UserPage() {
   }
 
   const {
-    username,
-    fName,
-    mName,
-    lName,
     socials,
     experience,
     education,
     certifications,
     projects,
     softSkills,
-    isMentor, // @ts-ignore
-    isMentee,
-    acceptingMentees, // @ts-ignore
-    assessments, // @ts-ignore
-    DisplayPictureURL,
     bio,
   } = user;
 
-  const { id: selfUserID, mentorID: currentUserMentorID } = self;
-
-  const CanMakeChanges = selfUserID == id;
   console.log("currentUser", user);
   return (
-    <div
-      style={{
-        width: "100vw",
-        height: "100%",
-        minHeight: "100vh",
-        display: "flex",
-        justifyContent: "start",
-        alignItems: "start",
-        backgroundColor: "#111",
-        flexDirection: "column",
-        padding: "2rem",
-        boxSizing: "border-box",
-      }}
-    >
+    <div className={"pageBase"}>
+      <MinimalisticButton
+        style={{
+          fontSize: "0.8rem",
+        }}
+        onClick={() => navigate(-1)}
+      >
+        {"<"} Back
+      </MinimalisticButton>
+      <div style={{ marginTop: "1rem" }} />
+      <TopSection />
+      <UserStuff />
+      <BioSection bio={bio} setBio={setBio} disabled={!CanMakeChanges} />
+      <SocialSection
+        socials={socials}
+        setSocials={setSocials}
+        disabled={!CanMakeChanges}
+      />
+      <EducationSection
+        education={education}
+        setEducation={setEducation}
+        disabled={!CanMakeChanges}
+      />
+      <CertificationSection
+        certifications={certifications}
+        setCertifications={setCertifications}
+        disabled={!CanMakeChanges}
+      />
+      <ExperienceSection
+        experience={experience}
+        setExperience={setExperience}
+        disabled={!CanMakeChanges}
+      />
+      <ProjectSection
+        projects={projects}
+        setProjects={setProjects}
+        disabled={!CanMakeChanges}
+      />
+      <SoftSkillSection
+        softSkills={softSkills}
+        setSoftSkills={setSoftSkills}
+        disabled={!CanMakeChanges}
+      />
+      <div style={{ height: "10vh" }} />
       {CanMakeChanges && (
         <SaveButtonFixed
           disabled={!CanMakeChanges}
@@ -257,163 +262,54 @@ export default function UserPage() {
           onSave={HandleSave}
         />
       )}
-      <div
-        style={{
-          maxWidth: 800,
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "start",
-        }}
-      >
-        <MinimalisticButton
-          style={{
-            fontSize: "0.8rem",
-          }}
-          onClick={() => navigate("/app/home")}
-        >
-          {"<"} Home
-        </MinimalisticButton>
-        <div style={{ marginTop: 20 }} />
-        <NameSection
-          fName={fName}
-          mName={mName}
-          lName={lName}
-          setName={setName}
-          disabled={!CanMakeChanges}
-        />
-        <div
-          onClick={CanMakeChanges ? HandleChangeUsername : undefined}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            cursor: CanMakeChanges ? "pointer" : "default",
-          }}
-        >
-          <p
-            style={{
-              color: "white",
-              fontSize: "1rem",
-              margin: 0,
-              marginLeft: 10,
-              opacity: 0.5,
-            }}
-          >
-            aka {username}
-          </p>
-          {CanMakeChanges && (
-            <Pencil style={{ marginLeft: "0.5rem" }} size={"1rem"} />
-          )}
-        </div>
-
-        <ChatSection userIsSelf={CanMakeChanges} user={user} />
-
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "start",
-            marginLeft: 10,
-          }}
-        >
-          <span style={{ fontSize: "1.1rem" }}>
-            {fName}
-            {fName?.charAt(fName.length - 1) == "s" ? "'" : "'s"} Stuff
-          </span>
-          <div style={{ display: "flex", marginLeft: 10, paddingTop: 5 }}>
-            <MinimalisticButton
-              style={{
-                fontSize: "0.8rem",
-              }}
-              onClick={() =>
-                navigate(`/app/assessments?id=${user.id}&origin=user`)
-              }
-            >
-              Assessments {">"}
-            </MinimalisticButton>
-            <MinimalisticButton
-              style={{
-                marginLeft: 10,
-                fontSize: "0.8rem",
-              }}
-              onClick={() => navigate(`/app/goals?id=${user.id}&origin=user`)}
-            >
-              Goals {">"}
-            </MinimalisticButton>
-          </div>
-        </div>
-        <RequestMentorSection
-          isMentor={isMentor}
-          acceptingMentees={acceptingMentees}
-          disabled={!CanMakeChanges}
-          isCurrentUserMentor={currentUserMentorID == id}
-          mentorData={user}
-        />
-        <AcceptMentorshipRequestSection user={user} />
-        <BioSection bio={bio} setBio={setBio} disabled={!CanMakeChanges} />
-        <SocialSection
-          socials={socials}
-          setSocials={setSocials}
-          disabled={!CanMakeChanges}
-        />
-        <EducationSection
-          education={education}
-          setEducation={setEducation}
-          disabled={!CanMakeChanges}
-        />
-        <CertificationSection
-          certifications={certifications}
-          setCertifications={setCertifications}
-          disabled={!CanMakeChanges}
-        />
-        <ExperienceSection
-          experience={experience}
-          setExperience={setExperience}
-          disabled={!CanMakeChanges}
-        />
-        <ProjectSection
-          projects={projects}
-          setProjects={setProjects}
-          disabled={!CanMakeChanges}
-        />
-        <SoftSkillSection
-          softSkills={softSkills}
-          setSoftSkills={setSoftSkills}
-          disabled={!CanMakeChanges}
-        />
-      </div>
-      <div style={{ height: "10vh" }} />
     </div>
   );
 }
 
-function ChatSection({ userIsSelf, user }: { userIsSelf: boolean, user: ClientSocketUser }) {
-  const chatWithuser = useChatWithUser();
-  const { loaded } = useSelector((store: ReduxRootState) => store.Chat);
-  const { user: self } = useSelector((store: ReduxRootState) => store.ClientSocket);
-  if (userIsSelf || !loaded || !self || !user) {
+function UserStuff() {
+  const navigate = useNavigate();
+  const { user } = useContext(UserPageContext);
+
+  if (!user) {
     return;
   }
 
-  function handleChatClick() {
-    if (!user || !user.id) {
-      return;
-    }
-    chatWithuser(user.id);
-  }
-
+  const { fName } = user;
   return (
-    <div style={{ marginLeft: 10, marginTop: 5 }}>
-      <MinimalisticButton
-        style={{ fontSize: "0.8rem", display: "flex", alignItems: "center" }}
-        onClick={handleChatClick}
-      >
-        Chat{" "}
-        <IoChatbubbleOutline
-          style={{ marginLeft: 5 }}
-          strokeWidth={4}
-          size={"1rem"}
-        />
-      </MinimalisticButton>
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "start",
+        // backgroundColor: "#292929",
+        // padding: "1rem",
+        marginTop: "0.5rem",
+        borderRadius: "0.5rem",
+      }}
+    >
+      <span style={{ fontSize: "1.25rem" }}>
+        {fName}
+        {fName?.charAt(fName.length - 1) == "s" ? "'" : "'s"} Stuff
+      </span>
+      <div style={{ display: "flex", marginLeft: 10, paddingTop: 5 }}>
+        <MinimalisticButton
+          style={{
+            fontSize: "0.8rem",
+          }}
+          onClick={() => navigate(`/app/assessments?id=${user.id}&origin=user`)}
+        >
+          Assessments {">"}
+        </MinimalisticButton>
+        <MinimalisticButton
+          style={{
+            marginLeft: 10,
+            fontSize: "0.8rem",
+          }}
+          onClick={() => navigate(`/app/goals?id=${user.id}&origin=user`)}
+        >
+          Goals {">"}
+        </MinimalisticButton>
+      </div>
     </div>
   );
 }
@@ -601,6 +497,472 @@ function SoftSkillSection({
       </div>
     </>
   );
+}
+
+function TopSection() {
+  const changeUsernameWithDialog = useChangeUsernameWithDialog();
+  const { user, setUser, setChanged } = useContext(UserPageContext);
+  const { user: self } = useSelector(
+    (store: ReduxRootState) => store.ClientSocket
+  );
+  if (!user || !self) {
+    return;
+  }
+  const CanMakeChanges = self.id == user.id;
+  function setName(fName: string, mName: string | undefined, lName: string) {
+    setUser({
+      ...user,
+      fName: fName.trim(),
+      mName: mName?.trim(),
+      lName: lName.trim(),
+    });
+    setChanged(true);
+  }
+
+  function HandleChangeUsername() {
+    if (!CanMakeChanges) {
+      return;
+    }
+    changeUsernameWithDialog((v?: boolean, newUsername?: string) => {
+      if (!v || !newUsername) {
+        return;
+      }
+      setUser({
+        ...user,
+        username: newUsername,
+      });
+    });
+  }
+
+  const { fName, mName, lName, displayPictureURL, username } = user;
+  return (
+    <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
+      <img
+        src={displayPictureURL || placeholderPreviewPicture}
+        style={{ borderRadius: "50%", width: "8rem", height: "8rem", border: '1px solid #fff3' }}
+      />
+      <div>
+        <NameSection
+          fName={fName}
+          mName={mName}
+          lName={lName}
+          setName={setName}
+          disabled={!CanMakeChanges}
+        />
+        <div style={{ display: "flex", alignItems: "center" }}>
+          <span
+            onClick={HandleChangeUsername}
+            style={{ marginLeft: "0.5rem", opacity: 0.5, cursor: "pointer" }}
+          >
+            @{username}
+          </span>
+          {CanMakeChanges && (
+            <Pencil style={{ marginLeft: "0.5rem" }} size={"1rem"} />
+          )}
+        </div>
+        <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+          <ChatButton />
+          <RequestMentorButton />
+          <MenteeButton />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ChatButton() {
+  const chatWithuser = useChatWithUser();
+  const { user } = useContext(UserPageContext);
+  const { user: self } = useSelector(
+    (store: ReduxRootState) => store.ClientSocket
+  );
+  if (!user || !self || (user.id == self.id)) {
+    return;
+  }
+  function handleChatClick() {
+    if (!user || !user.id) {
+      return;
+    }
+    chatWithuser(user.id);
+  }
+  return (
+    <MinimalisticButton
+      style={{ fontSize: "1rem", display: "flex", alignItems: "center" }}
+      onClick={handleChatClick}
+    >
+      Chat{" "}
+      <IoChatbubbleOutline
+        style={{ marginLeft: 5 }}
+        strokeWidth={4}
+        size={"1rem"}
+      />
+    </MinimalisticButton>
+  );
+}
+
+const RequestMentorButtonStyle: React.CSSProperties = {
+  fontSize: "1rem",
+  display: "flex",
+  alignItems: "center",
+};
+
+function RequestMentorButton() {
+  const dispatch = useDispatch();
+  const { user } = useContext(UserPageContext);
+  const { user: self } = useSelector(
+    (store: ReduxRootState) => store.ClientSocket
+  );
+  const [existingMentorshipRequestObj, setExistingMentorshipRequestObj] =
+    useState<MentorshipRequestObj | "loading">("loading");
+
+  useEffect(() => {
+    if (
+      !MyClientSocket ||
+      !user ||
+      !user.id ||
+      !self ||
+      !self.id ||
+      self.id == user.id
+    ) {
+      return;
+    }
+    MyClientSocket.GetMentorshipRequestBetweenMentorMentee(
+      user?.id,
+      self.id,
+      (v) => {
+        if (typeof v == "boolean") {
+          return;
+        }
+        setExistingMentorshipRequestObj(v);
+      }
+    );
+  }, [self, user]);
+
+  if (!user || !self || self.id == user.id) {
+    return;
+  }
+
+  if (!user.isMentor) {
+    return;
+  }
+
+  if (existingMentorshipRequestObj == "loading") {
+    return;
+  }
+
+  // TODO: Refactor structure of request mentor and mentee section
+  function handleRemoveMentor() {
+    if (!UserIsOurMentor) {
+      return;
+    }
+
+    dispatch(
+      setDialog({
+        title: "Remove Mentor",
+        subtitle:
+          "This will remove this person as your mentor. Are you sure you want to do that?",
+        buttons: [
+          {
+            text: "Remove Mentor",
+            useDisableTill: true,
+            onClick: (_, cb) => {
+              if (!MyClientSocket) {
+                cb && cb();
+                return;
+              }
+              MyClientSocket.RemoveMentor((_: boolean) => {
+                cb && cb();
+                dispatch(closeDialog());
+              });
+            },
+          },
+        ],
+      })
+    );
+  }
+
+  function handleCancelMentorshipRequest() {
+    if (
+      !existingMentorshipRequestObj ||
+      existingMentorshipRequestObj == "loading"
+    ) {
+      return;
+    }
+
+    dispatch(
+      setDialog({
+        title: "Cancel Mentorship request",
+        subtitle: "This will cancel your mentorship request",
+        buttons: [
+          {
+            text: "Cancel Request",
+            useDisableTill: true,
+            onClick: (_, cb) => {
+              if (
+                !MyClientSocket ||
+                !existingMentorshipRequestObj ||
+                !existingMentorshipRequestObj.id
+              ) {
+                cb && cb();
+                return;
+              }
+              MyClientSocket.DoMentorshipRequestAction(
+                existingMentorshipRequestObj.id,
+                "cancel",
+                (_: boolean) => {
+                  cb && cb();
+                  dispatch(closeDialog());
+                }
+              );
+            },
+          },
+        ],
+      })
+    );
+  }
+
+  function handleRequestMentorshipClick() {
+    if (!user || !self) {
+      return;
+    }
+    dispatch(
+      setDialog({
+        title: `Request Mentorship from ${user.fName}`,
+        subtitle: `You sure you want to send a mentorship request to ${user.fName} ${user.lName}?`,
+        buttons: [
+          {
+            text: "Yes",
+            useDisableTill: true,
+            onClick: (_, enableCallback) => {
+              if (!MyClientSocket || !user || !user.id) {
+                return;
+              }
+              dispatch(closeDialog());
+              MyClientSocket.SendMentorshipRequest(user.id, (v: boolean) => {
+                enableCallback && enableCallback();
+                if (v) {
+                  setTimeout(() => {
+                    dispatch(
+                      setAlert({
+                        title: "Request Sent!",
+                        body: `Your request has been set to ${user?.fName}`,
+                      })
+                    );
+                  }, 250);
+                }
+              });
+            },
+          },
+        ],
+      })
+    );
+  }
+
+  const UserIsOurMentor = self.mentorID == user.id;
+  let buttonElement: JSX.Element | undefined;
+
+  if (!user.acceptingMentees) {
+    buttonElement = (
+      <MinimalisticButton
+        style={RequestMentorButtonStyle}
+        disabled={true}
+        // onClick={handleChatClick}
+      >
+        Not Accepting Mentees
+      </MinimalisticButton>
+    );
+  } else if (UserIsOurMentor) {
+    buttonElement = (
+      <MinimalisticButton
+        style={RequestMentorButtonStyle}
+        onClick={handleRemoveMentor}
+      >
+        Remove Mentor{" "}
+        <X
+          style={{ marginLeft: "0.5rem", marginRight: "-0.3rem" }}
+          size={"1.1rem"}
+        />
+      </MinimalisticButton>
+    );
+  } else if (!existingMentorshipRequestObj) {
+    buttonElement = (
+      <MinimalisticButton
+        style={RequestMentorButtonStyle}
+        onClick={handleRequestMentorshipClick}
+      >
+        Request Mentorship
+      </MinimalisticButton>
+    );
+  } else if (existingMentorshipRequestObj) {
+    buttonElement = (
+      <MinimalisticButton
+        style={RequestMentorButtonStyle}
+        onClick={handleCancelMentorshipRequest}
+      >
+        Cancel Mentorship Request
+      </MinimalisticButton>
+    );
+  }
+
+  return buttonElement;
+}
+
+function MenteeButton() {
+  const { user } = useContext(UserPageContext);
+  const { user: self } = useSelector(
+    (store: ReduxRootState) => store.ClientSocket
+  );
+  const [
+    existingIncomingMentorshipRequestObj,
+    setExistingIncomingMentorshipRequestObj,
+  ] = useState<MentorshipRequestObj | "loading">("loading");
+  const dispatch = useDispatch();
+
+  // fetches existing incoming mentorship request from user.
+  useEffect(() => {
+    if (
+      !MyClientSocket ||
+      !user ||
+      !user.id ||
+      !self ||
+      !self.id ||
+      self.id == user.id
+    ) {
+      return;
+    }
+    MyClientSocket.GetMentorshipRequestBetweenMentorMentee(
+      self.id,
+      user?.id,
+      (v) => {
+        if (typeof v == "boolean") {
+          return;
+        }
+        setExistingIncomingMentorshipRequestObj(v);
+      }
+    );
+  }, [self, user]);
+
+  if (!user || !self || self.id == user.id) {
+    return;
+  }
+
+  if (existingIncomingMentorshipRequestObj == "loading") {
+    return;
+  }
+
+  function handleRemoveMentee() {
+    if (!UserIsOurMentee) {
+      return;
+    }
+
+    dispatch(
+      setDialog({
+        title: "Remove Mentee",
+        subtitle: `${user?.fName} will no longer be your mentee`,
+        buttons: [
+          {
+            text: "Remove Mentee",
+            useDisableTill: true,
+            onClick: (_, cb) => {
+              if (!MyClientSocket || !user || !user.id) {
+                cb && cb();
+                return;
+              }
+              // TODO: add target menteeID
+              MyClientSocket.RemoveMentee(user.id, (_: boolean) => {
+                cb && cb();
+                dispatch(closeDialog());
+              });
+            },
+          },
+        ],
+      })
+    );
+  }
+
+  function handleRespondToMentorshipRequest() {
+    if (!existingIncomingMentorshipRequestObj) {
+      return;
+    }
+    dispatch(
+      setDialog({
+        title: "Accept mentorship request",
+        subtitle: `${user?.fName} ${user?.lName} is requesting your mentorship`,
+        subTitleStyle: { minHeight: "3rem" },
+        buttons: [
+          {
+            text: "Decline",
+            onClick: (_, cb) => {
+              handleRespondToRequest("decline", cb);
+              dispatch(closeDialog());
+            },
+          },
+          {
+            text: "Accept",
+            onClick: (_, cb) => {
+              handleRespondToRequest("accept", cb);
+              dispatch(closeDialog());
+            },
+          },
+        ],
+        buttonContainerStyle: {
+          justifyContent: "space-between",
+          width: "100%",
+        },
+      })
+    );
+  }
+
+  function handleRespondToRequest(
+    response: MentorshipRequestResponseAction,
+    callback?: Function
+  ) {
+    if (
+      !isMentorshipRequestResponseAction(response) ||
+      !MyClientSocket ||
+      !existingIncomingMentorshipRequestObj ||
+      existingIncomingMentorshipRequestObj == "loading" ||
+      !existingIncomingMentorshipRequestObj.id
+    ) {
+      callback && callback(false);
+      setTimeout(() => {
+        dispatch(
+          setAlert({ title: "Action failed", body: "Couldn't do that." })
+        );
+      }, 250);
+      return;
+    }
+
+    MyClientSocket.DoMentorshipRequestAction(
+      existingIncomingMentorshipRequestObj.id,
+      response
+    );
+  }
+
+  const UserIsOurMentee = self.id == user.mentorID;
+  let buttonElement: JSX.Element | undefined;
+
+  if (existingIncomingMentorshipRequestObj) {
+    buttonElement = (
+      <MinimalisticButton
+        style={RequestMentorButtonStyle}
+        onClick={handleRespondToMentorshipRequest}
+      >
+        View Mentee Request
+      </MinimalisticButton>
+    );
+  } else if (UserIsOurMentee) {
+    buttonElement = (
+      <MinimalisticButton
+        style={RequestMentorButtonStyle}
+        onClick={handleRemoveMentee}
+      >
+        Remove Mentee
+      </MinimalisticButton>
+    );
+  }
+
+  return buttonElement;
 }
 
 function ExperienceSection({
@@ -851,186 +1213,6 @@ function CertificationSection({
       )}
     </>
   );
-}
-
-function RequestMentorSection({
-  isMentor,
-  acceptingMentees,
-  isCurrentUserMentor,
-  mentorData,
-  disabled = true,
-}: {
-  isMentor?: boolean;
-  acceptingMentees?: boolean;
-  disabled?: boolean;
-  isCurrentUserMentor?: boolean;
-  mentorData: ClientSocketUser;
-}) {
-  return (
-    <>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "start",
-          width: "auto",
-        }}
-      >
-        {isMentor ? (
-          acceptingMentees ? (
-            isCurrentUserMentor ? (
-              <span style={{ marginLeft: 5 }}>This is your mentor</span>
-            ) : (
-              disabled && <MentorshipRequestSection mentorData={mentorData} />
-            )
-          ) : (
-            <span style={{ margin: 0 }}>Not accepting mentees</span>
-          )
-        ) : (
-          <span style={{ margin: 0 }}>Not a mentor</span>
-        )}
-      </div>
-    </>
-  );
-}
-
-function AcceptMentorshipRequestSection({ user }: { user: ClientSocketUser }) {
-  const { user: self, ready } = useSelector(
-    (store: ReduxRootState) => store.ClientSocket
-  );
-  const [params, _] = useSearchParams();
-  const id = params.get("id");
-  const [pendingMentorshipRequest, setPendingMentorshipRequest] = useState<
-    MentorshipRequestObj | undefined
-  >(undefined);
-  const [isMentee, setIsMentee] = useState(false);
-  const dispatch = useDispatch();
-
-  useEffect(() => {
-    if (!MyClientSocket || !self || !self.id || !id || id == self.id) {
-      return;
-    }
-    MyClientSocket.GetMentorshipRequestBetweenMentorMentee(
-      self.id,
-      id,
-      (v: ObjectAny) => {
-        if (typeof v == "boolean") {
-          setPendingMentorshipRequest(undefined);
-          return;
-        }
-        setPendingMentorshipRequest(v);
-      }
-    );
-    const { menteeIDs } = self;
-    if (!menteeIDs || !menteeIDs.includes(id)) {
-      setIsMentee(false);
-    } else {
-      setIsMentee(true);
-    }
-  }, [self, ready, id]);
-
-  function handleAcceptMentorshipRequest() {
-    if (!pendingMentorshipRequest) {
-      return;
-    }
-    dispatch(
-      setDialog({
-        title: "Accept mentorship request",
-        subtitle: `${user.fName} ${user.lName} is requesting your mentorship`,
-        subTitleStyle: { minHeight: "3rem" },
-        buttons: [
-          {
-            text: "Decline",
-            onClick: (_, cb) => {
-              handleRespondToRequest("decline", cb);
-              dispatch(closeDialog());
-            },
-          },
-          {
-            text: "Accept",
-            onClick: (_, cb) => {
-              handleRespondToRequest("accept", cb);
-              dispatch(closeDialog());
-            },
-          },
-        ],
-        buttonContainerStyle: {
-          justifyContent: "space-between",
-          width: "100%",
-        },
-      })
-    );
-  }
-
-  function handleRespondToRequest(
-    response: MentorshipRequestResponseAction,
-    callback?: Function
-  ) {
-    if (
-      !isMentorshipRequestResponseAction(response) ||
-      !MyClientSocket ||
-      !pendingMentorshipRequest ||
-      !pendingMentorshipRequest.id
-    ) {
-      callback && callback(false);
-      console.log(
-        "handleRespondToRequest",
-        response,
-        pendingMentorshipRequest,
-        MyClientSocket
-      );
-      setTimeout(() => {
-        dispatch(
-          setAlert({ title: "Action failed", body: "Couldn't do that." })
-        );
-      }, 250);
-      return;
-    }
-
-    MyClientSocket.DoMentorshipRequestAction(
-      pendingMentorshipRequest.id,
-      response
-    );
-  }
-
-  if (!self || !MyClientSocket || !id) {
-    return;
-  }
-
-  if (pendingMentorshipRequest) {
-    return (
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          marginTop: 10,
-          marginLeft: 5,
-          marginBottom: 10,
-        }}
-      >
-        <p style={{ color: "#9ff", margin: 0, marginBottom: 5 }}>
-          This user is requesting your mentorship
-        </p>
-        <MinimalisticButton onClick={handleAcceptMentorshipRequest}>
-          View Mentorship Request
-        </MinimalisticButton>
-      </div>
-    );
-  } else if (isMentee) {
-    return (
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          marginTop: 0,
-          marginLeft: 5,
-        }}
-      >
-        <p style={{ color: "#9ff", margin: 0, marginBottom: 0 }}>
-          This is one of your mentees
-        </p>
-      </div>
-    );
-  }
 }
 
 function EducationSection({
@@ -1320,27 +1502,34 @@ function BioSection({
 }) {
   return (
     <>
-      <div style={{ display: "flex", alignItems: "center" }}>
-        <p style={{ color: "white", fontSize: "1.25rem", margin: 0 }}>Bio</p>
-        {!disabled && <Pencil style={{ marginLeft: 5 }} size={"1rem"} />}
+      <div style={{ borderRadius: '0.5rem', marginTop: '0.5rem' }}>
+        <div style={{ display: "flex", alignItems: "center" }}>
+          <p style={{ color: "white", fontSize: "1.25rem", margin: 0 }}>Bio</p>
+          {!disabled && <Pencil style={{ marginLeft: 5 }} size={"1rem"} />}
+        </div>
+        {bio || !disabled ? (
+          <MinimalisticTextArea
+            placeholder={disabled ? "No bio" : "Your bio"}
+            style={{
+              marginLeft: 10,
+            }}
+            value={bio}
+            onChange={(v) => setBio && setBio(v)}
+            disabled={disabled}
+          />
+        ) : (
+          <p
+            style={{
+              fontSize: "1rem",
+              margin: 0,
+              marginLeft: 10,
+              opacity: 0.5,
+            }}
+          >
+            No bio
+          </p>
+        )}
       </div>
-      {bio || !disabled ? (
-        <MinimalisticTextArea
-          placeholder={disabled ? "No bio" : "Your bio"}
-          style={{
-            marginLeft: 10
-          }}
-          value={bio}
-          onChange={(v) => setBio && setBio(v)}
-          disabled={disabled}
-        />
-      ) : (
-        <p
-          style={{ fontSize: "1rem", margin: 0, marginLeft: 10, opacity: 0.5 }}
-        >
-          No bio
-        </p>
-      )}
     </>
   );
 }
@@ -1381,110 +1570,6 @@ function SoftSkill({
         <XIcon size={"1.25rem"} onClick={onClose} cursor={"pointer"} />
       )}
     </span>
-  );
-}
-
-function MentorshipRequestSection({
-  mentorData,
-}: {
-  mentorData: ClientSocketUser;
-}) {
-  const [requestExists, setRequestExists] = useState<boolean | undefined>(
-    undefined
-  );
-  const [requesting, setRequesting] = useState(false);
-  const [params, _] = useSearchParams();
-  const id = params.get("id");
-  const { user } = useSelector((store: ReduxRootState) => store.ClientSocket);
-  const dispatch = useDispatch();
-
-  function CheckStatus() {
-    if (!user || !id || !user.id || !MyClientSocket || id == user.id) {
-      return;
-    }
-    MyClientSocket.GetMentorshipRequestBetweenMentorMentee(
-      id,
-      user.id,
-      (v: ObjectAny | undefined) => {
-        setRequestExists(v ? true : false);
-      }
-    );
-  }
-
-  useEffect(() => {
-    CheckStatus();
-  }, [mentorData, user]);
-
-  if (!user || !id || id == user.id) {
-    return;
-  }
-
-  function handleRequestMentorshipClick() {
-    dispatch(
-      setDialog({
-        title: `Request Mentorship from ${mentorData.fName}`,
-        subtitle: `You sure you want to send a mentorship request to ${mentorData.fName} ${mentorData.lName}?`,
-        buttons: [
-          {
-            text: "Yes",
-            useDisableTill: true,
-            onClick: (_, enableCallback) => {
-              if (!MyClientSocket || !id) {
-                return;
-              }
-
-              dispatch(closeDialog());
-              setRequesting(true);
-              MyClientSocket.SendMentorshipRequest(id, (v: boolean) => {
-                setRequesting(false);
-                enableCallback && enableCallback();
-                if (v) {
-                  setTimeout(() => {
-                    dispatch(
-                      setAlert({
-                        title: "Request Sent!",
-                        body: `Your request has been set to ${user?.fName}`,
-                      })
-                    );
-                    setTimeout(() => {
-                      CheckStatus();
-                    }, 250);
-                  }, 250);
-                }
-              });
-            },
-          },
-        ],
-      })
-    );
-  }
-
-  return (
-    <div
-      style={{
-        // padding: 10,
-        // borderRadius: 30,
-        // backgroundColor: "#444",
-        // border: "1px solid #fff2",
-        margin: 3,
-      }}
-    >
-      <MinimalisticButton
-        disabled={
-          requesting || requestExists || typeof requestExists == "undefined"
-        }
-        onClick={handleRequestMentorshipClick}
-        style={{ margin: 0, fontSize: "1rem" }}
-      >
-        {requesting
-          ? "Requesting Mentorship..."
-          : typeof requestExists == "undefined"
-          ? "Checking..."
-          : requestExists
-          ? "Request Sent"
-          : "Request Mentorship"}
-      </MinimalisticButton>
-    </div>
   );
 }
 
@@ -1737,28 +1822,11 @@ function ExperienceLikeSection({
       </div>
       {!hideDescription && (
         <div style={{ marginLeft: 0 }}>
-          <textarea
-            placeholder="Your bio"
-            style={{
-              margin: 0,
-              fontSize: "1rem",
-              padding: 10,
-              borderRadius: 10,
-              borderStartStartRadius: 0,
-              marginLeft: 10,
-              backgroundColor: "transparent",
-              color: "white",
-              minWidth: "10rem",
-              minHeight: "1.2rem",
-              maxWidth: "80%",
-              maxHeight: "40vh",
-              marginTop: 5,
-              height: "4rem",
-              width: "28rem",
-            }}
+          <MinimalisticTextArea
+            placeholder="Your Experience"
             value={description}
-            onChange={(e) =>
-              handleChangeDescription && handleChangeDescription(e.target.value)
+            onChange={(v) =>
+              handleChangeDescription && handleChangeDescription(v)
             }
             disabled={disabled}
           />

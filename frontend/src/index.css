@@ -83,6 +83,7 @@ html {
   background-color: #111;
   flex-direction: column;
   padding: 2rem;
+  padding-top: 3rem;
   box-sizing: border-box;
 }
 

@@ -37,7 +37,7 @@ function ChatWidgetOpened() {
   return (
     <>
       {!activeChatID && <MobileFullScreenChatWidgetChats />}
-      {activeChatID && <ChatWidgetActiveChat fontScale={mobileFontScale} />}
+      {activeChatID && <ChatWidgetActiveChat fontScale={mobileFontScale*1.5} />}
     </>
   );
 }

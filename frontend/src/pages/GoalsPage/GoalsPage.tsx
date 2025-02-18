@@ -16,7 +16,6 @@ export default function GoalsPage() {
   const [user, setUser] = useState<ClientSocketUser | undefined | false>();
 
   const id = params.get("id");
-  const origin = params.get("origin");
 
   useEffect(() => {
     if (!id || !MyClientSocket) {
@@ -43,30 +42,16 @@ export default function GoalsPage() {
   }
 
   function handleBackButton() {
-    if (origin == 'home') {
-      navigate(`/app/home`);
-    } else if (origin == 'user') {
-      navigate(`/app/user?id=${id}`);
-    } else {
-      navigate(`/app/home`);
-    }
+    navigate(-1);
   }
 
   const { fName, lName, goals } = user;
-  let BackButtonText: string;
-  if (origin == 'home') {
-    BackButtonText = '< Home';
-  } else if (origin == 'user') {
-    BackButtonText = `< ${fName} ${lName}`;
-  } else {
-    BackButtonText = '< Home';
-  }
 
   return (
     <div
     className={'pageBase'}
     >
-      <MinimalisticButton style={{fontSize: '0.8rem', marginBottom: 10}} onClick={handleBackButton}>{BackButtonText}</MinimalisticButton>
+      <MinimalisticButton style={{fontSize: '0.8rem', marginBottom: 10}} onClick={handleBackButton}>Back</MinimalisticButton>
       <p style={{ margin: 0, fontSize: "1.5rem" }}>
         {fName} {lName}'s Goals
       </p>

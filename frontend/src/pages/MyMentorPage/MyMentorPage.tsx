@@ -1,14 +1,10 @@
-import { useAuth0 } from "@auth0/auth0-react";
-import { useDispatch, useSelector } from "react-redux";
+import { useSelector } from "react-redux";
 import { ReduxRootState } from "../../store";
-import { Fragment, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ClientSocketUser,
   MyClientSocket,
 } from "../../features/ClientSocket/ClientSocket";
-import { Pencil } from "lucide-react";
-import { closeDialog, setDialog } from "../../features/Dialog/DialogSlice";
-import { setAlert } from "../../features/Alert/AlertSlice";
 import { useNavigate } from "react-router-dom";
 import MinimalisticButton from "../../components/MinimalisticButton/MinimalisticButton";
 import FileTabContainer from "../../components/FileTabContainer/FileTabContainer";
@@ -30,35 +26,41 @@ export default function MymentorPage() {
     <div className={"pageBase"}>
       <MyMentorPageHeader />
       <div style={{}} />
-      <HomePageDashboard />
+      <MyMentorPageDashboard />
     </div>
   );
 }
 
-function HomePageDashboard() {
-  const { recommendTodoCard, recommendTodos } = UseRecommendTodos();
-  const recommendedTodos = recommendTodos();
+function MyMentorPageDashboard() {
+  const { user } = useSelector((store: ReduxRootState) => store.ClientSocket);
+  const hasMentor = user?.mentorID ? true : false;
+  const isMentee = user?.isMentee || false;
+  const { recommendTodoCard } = UseRecommendTodos();
   return (
-    <FileTabContainer
-      tabs={[
-        {
-          name: "Mentor",
-          children: (
-            <>
-              <CurrentMentorInfo />
-            </>
-          ),
-        },
-        {
-          name: "Goals",
-          children: (
-            <>
-              <PreviewGoalsPage />
-            </>
-          ),
-        },
-      ]}
-    ></FileTabContainer>
+    <>
+      <FileTabContainer
+        tabs={[
+          {
+            name: "Mentor",
+            children: (
+              <>
+                {hasMentor && <CurrentMentorInfo />}
+                {!hasMentor && (!isMentee ? <MentorSearchTool />:recommendTodoCard('TakeFirstAssessment'))}
+              </>
+            ),
+          },
+          {
+            name: "Goals",
+            children: (
+              <>
+                <PreviewGoalsPage />
+              </>
+            ),
+          },
+        ]}
+      />
+      <div style={{ height: "5rem" }} />
+    </>
   );
 }
 
@@ -79,17 +81,12 @@ function PreviewGoalsPage() {
 }
 
 function MyMentorPageHeader() {
-  const navigate = useNavigate();
-  const { logout } = useAuth0();
   const { user } = useSelector((store: ReduxRootState) => store.ClientSocket);
-
+  const navigate = useNavigate();
   // if (!user) {
   //   return <p>Waiting for user data...</p>;
   // }
 
-  const HandleViewProfile = () => {
-    navigate(`/app/user?id=${user?.id}`);
-  };
 
   const { username } = user || {};
   return (
@@ -115,244 +112,11 @@ function MyMentorPageHeader() {
           </p>
         </div>
         <div>
-          <MinimalisticButton
-            onClick={() =>
-              logout({ logoutParams: { returnTo: window.location.origin } })
-            }
-            style={{
-              marginTop: 5,
-              fontSize: "0.8rem",
-              marginRight: "0.5rem",
-            }}
-          >
-            Logout
-          </MinimalisticButton>
-          <MinimalisticButton
-            onClick={HandleViewProfile}
-            style={{
-              marginTop: 5,
-              fontSize: "0.8rem",
-            }}
-          >
-            View Profile
-          </MinimalisticButton>
+          <span style={{ fontSize: "1.75rem", fontWeight: 300 }}>My Mentor</span>
         </div>
-      </div>
-    </div>
-  );
-}
-
-function ViewMenteesSection() {
-  const { user } = useSelector((store: ReduxRootState) => store.ClientSocket);
-
-  if (!user) {
-    return <p>Waiting for user data...</p>;
-  }
-  // @ts-ignore
-  const { isMentor, menteeIDs } = user;
-
-  return (
-    <div
-      style={{
-        backgroundColor: "#222",
-        display: "flex",
-        padding: 10,
-        borderRadius: 10,
-        marginTop: 10,
-        marginLeft: 5,
-      }}
-    >
-      {!isMentor && <BecomeMentorSection />}
-      {isMentor && <MenteeInformation />}
-    </div>
-  );
-}
-
-const MAX_FILLED_SECTIONS = 5;
-function BecomeMentorSection() {
-  const { user } = useSelector((store: ReduxRootState) => store.ClientSocket);
-
-  const dispatch = useDispatch();
-
-  if (!user) {
-    return <p>Waiting for user data...</p>;
-  }
-
-  const { experience, education, certifications, projects, softSkills } = user;
-  const filledSections =
-    (experience ? 1 : 0) +
-    (education ? 1 : 0) +
-    (certifications ? 1 : 0) +
-    (projects ? 1 : 0) +
-    (softSkills ? 1 : 0);
-
-  const percentageSectionsFilled = filledSections / MAX_FILLED_SECTIONS;
-
-  function HandleBecomeMentorClick() {
-    let title = "Before you become a mentor";
-    let message = "";
-    if (percentageSectionsFilled < 0.5) {
-      message =
-        "We recommend completing more of your profile first. It will help your mentees pick you with confidence.";
-    } else {
-      message = "You will become visible to mentees after this.";
-    }
-
-    dispatch(
-      setDialog({
-        title,
-        subtitle: message,
-        buttons: [
-          {
-            text: "Nevermind",
-            onClick: () => {
-              dispatch(closeDialog());
-            },
-          },
-          {
-            text: "Become mentor",
-            useDisableTill: true,
-            onClick: (_, enableCallback) => {
-              dispatch(closeDialog());
-              BecomeMentor(enableCallback);
-            },
-          },
-        ],
-        buttonContainerStyle: {
-          width: "100%",
-          justifyContent: "space-between",
-        },
-      })
-    );
-  }
-
-  function BecomeMentor(cb?: Function) {
-    MyClientSocket?.BecomeMentor(cb);
-  }
-
-  return (
-    <div
-      style={{
-        maxWidth: "25rem",
-      }}
-    >
-      <p style={{ color: "white", margin: 0, fontSize: "1.5rem" }}>
-        Want to become a mentor?
-      </p>
-      {percentageSectionsFilled < 0.5 && (
-        <div>
-          <p
-            style={{
-              color: "white",
-              margin: 0,
-              fontSize: "1.25rem",
-              marginBottom: 5,
-            }}
-          >
-            We recommend adding some information to your profile first.
-          </p>
-          <div style={{ height: 10, width: "25rem", backgroundColor: "#777" }}>
-            <div
-              style={{
-                width: `${25 * Math.max(percentageSectionsFilled, 0.025)}rem`,
-                height: "100%",
-                backgroundColor: "green",
-              }}
-            />
-          </div>
-          <p style={{ margin: 0 }}>
-            Profile Completion: {(100 * percentageSectionsFilled).toFixed(0)}%
-          </p>
+        <div style={{marginTop: '0.5rem'}}>
+          <MinimalisticButton onClick={() => navigate('/app/mentee-guidelines')}>Mentee Guidelines</MinimalisticButton>
         </div>
-      )}
-
-      <button
-        style={{
-          border: "2px solid #fff",
-          backgroundColor: "transparent",
-          color: "white",
-          borderRadius: 30,
-          marginTop: 5,
-          fontSize: "1rem",
-        }}
-        onClick={HandleBecomeMentorClick}
-      >
-        Become Mentor
-      </button>
-    </div>
-  );
-}
-
-function ViewMentorSection() {
-  const { user } = useSelector((store: ReduxRootState) => store.ClientSocket);
-
-  if (!user) {
-    return <p>Waiting for user data...</p>;
-  }
-
-  const { isMentee } = user;
-
-  return (
-    <div
-      style={{
-        backgroundColor: "#222",
-        display: "flex",
-        padding: 10,
-        borderRadius: 10,
-        marginTop: 10,
-        marginLeft: 5,
-      }}
-    >
-      {!isMentee && <BecomeMenteeSection />}
-      {isMentee && <MenteeInformation />}
-    </div>
-  );
-}
-
-function MenteeInformation() {
-  const navigate = useNavigate();
-  const { user } = useSelector((store: ReduxRootState) => store.ClientSocket);
-  if (!user || !user.id) {
-    return null;
-  }
-
-  return (
-    <div>
-      <p style={{ color: "white", fontSize: "1.5rem", margin: 0 }}>
-        Your Stuff
-      </p>
-      <div style={{ display: "flex", marginLeft: 10, paddingTop: 5 }}>
-        <MinimalisticButton
-          style={{
-            fontSize: "0.8rem",
-          }}
-          onClick={() => navigate(`/app/assessments?id=${user.id}&origin=home`)}
-        >
-          Assessments {">"}
-        </MinimalisticButton>
-        <MinimalisticButton
-          style={{
-            marginLeft: 10,
-            fontSize: "0.8rem",
-          }}
-          onClick={() => navigate(`/app/goals?id=${user.id}&origin=home`)}
-        >
-          Goals {">"}
-        </MinimalisticButton>
-      </div>
-
-      <p style={{ color: "white", fontSize: "1.5rem", margin: 0 }}>
-        Your Mentor
-      </p>
-      <div style={{ marginLeft: 10 }}>
-        <CurrentMentorInfo />
-      </div>
-
-      <p style={{ color: "white", fontSize: "1.5rem", margin: 0 }}>
-        Find Mentors
-      </p>
-      <div style={{ marginLeft: 10, display: "flex", flexWrap: "wrap" }}>
-        <MentorSearchTool />
       </div>
     </div>
   );
@@ -388,9 +152,14 @@ function CurrentMentorInfo() {
     return <p style={{ margin: 0, fontSize: "1.25rem" }}>You have no mentor</p>;
   }
 
-  return <div className='w-full xss:w-3/3 xs:w-2/3 sm:w-1/2 lg:w-1/3 xl:1/5'>
-    <MentorTile mentor={mentorObj} />
-  </div>
+  return (
+    <div
+      className="w-full xss:w-3/3 xs:w-2/3 sm:w-1/2 lg:w-1/3 xl:1/5"
+      style={{ margin: "0.1rem" }}
+    >
+      <MentorTile mentor={mentorObj} />
+    </div>
+  );
 }
 
 function MentorTile({ mentor }: { mentor: ClientSocketUser }) {
@@ -419,9 +188,9 @@ function MentorTile({ mentor }: { mentor: ClientSocketUser }) {
     >
       <img
         style={{
-          width: "30%",
-          aspectRatio: 1/1,
-          height: '30%',
+          width: "20%",
+          aspectRatio: 1 / 1,
+          height: "30%",
           objectFit: "cover",
           borderRadius: "50%",
         }}
@@ -430,7 +199,7 @@ function MentorTile({ mentor }: { mentor: ClientSocketUser }) {
       <div
         style={{
           height: "100%",
-          width: '100%',
+          width: "100%",
           display: "flex",
           flexDirection: "column",
           marginLeft: "0.5rem",
@@ -451,9 +220,32 @@ function MentorTile({ mentor }: { mentor: ClientSocketUser }) {
           @{username}
         </span>
         <span style={{ marginLeft: "0.5rem" }}>{bio || "No bio"}</span>
-        <div style={{ display: "flex", marginTop: '0.25rem', width: '100%', justifyContent: 'end', flexWrap: 'wrap', gap: '0.25rem' }}>
-          <MinimalisticButton style={{fontSize: '0.8rem'}} onClick={() => id ? navigate(`/app/user?id=${id}`) : undefined}>View Profile</MinimalisticButton>
-          <MinimalisticButton style={{fontSize: '0.8rem', display: 'flex', alignItems: 'center'}} onClick={() => id ? chatWithUser(id):undefined}>Chat <IoChatbubbleOutline style={{marginLeft: '0.25rem'}} /></MinimalisticButton>
+        <div
+          style={{
+            display: "flex",
+            marginTop: "0.25rem",
+            width: "100%",
+            justifyContent: "end",
+            flexWrap: "wrap",
+            gap: "0.25rem",
+          }}
+        >
+          <MinimalisticButton
+            style={{ fontSize: "0.8rem" }}
+            onClick={() => (id ? navigate(`/app/user?id=${id}`) : undefined)}
+          >
+            View Profile
+          </MinimalisticButton>
+          <MinimalisticButton
+            style={{
+              fontSize: "0.8rem",
+              display: "flex",
+              alignItems: "center",
+            }}
+            onClick={() => (id ? chatWithUser(id) : undefined)}
+          >
+            Chat <IoChatbubbleOutline style={{ marginLeft: "0.25rem" }} />
+          </MinimalisticButton>
         </div>
       </div>
     </div>
@@ -484,157 +276,36 @@ function MentorSearchTool() {
   }
 
   return (
-    <div
-      style={{
-        backgroundColor: "#555",
-        borderRadius: 5,
-        padding: 10,
-        display: "flex",
-        flexWrap: "wrap",
-        justifyContent: "center",
-      }}
-    >
-      {mentors.length == 0 && (
-        <p style={{ margin: 0, fontSize: "1.25rem" }}>No mentors available</p>
+    <div>
+      {mentors.length != 0 && (
+        <span style={{ fontSize: "1.5rem" }}>View Our Mentors</span>
       )}
-      {mentors.map((mentor) => {
-        const {
-          // @ts-ignore
-          fName, // @ts-ignore
-          mName, // @ts-ignore
-          lName, // @ts-ignore
-          username, // @ts-ignore
-          id,
-        } = mentor;
-        return (
-          <UserProfileCard
-            key={`user_${id}`}
-            user={mentor}
-            style={{ margin: 5 }}
-          />
-        );
-      })}
-    </div>
-  );
-}
-
-function UserProfileCard({
-  user,
-  style,
-}: {
-  user: ClientSocketUser;
-  style?: React.CSSProperties;
-}) {
-  const { fName, mName, lName, username, id, displayPictureURL, bio } = user;
-  const navigate = useNavigate();
-
-  function handleViewProfile(userID: string) {
-    navigate(`/app/user?id=${userID}`);
-  }
-
-  if (!id) {
-    return null;
-  }
-
-  return (
-    <div
-      style={{
-        backgroundColor: "#222",
-        padding: 10,
-        width: "10rem",
-        borderRadius: 5,
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "start",
-        justifyContent: "start",
-        height: "auto",
-        ...style,
-      }}
-    >
-      <img
-        style={{ width: "100%", height: "8rem", objectFit: "cover" }}
-        src={
-          displayPictureURL ||
-          "https://static.vecteezy.com/system/resources/previews/000/574/512/original/vector-sign-of-user-icon.jpg"
-        }
-      />
-      <p
-        style={{
-          margin: 0,
-          fontSize: "1.25rem",
-          marginBottom: 0,
-          lineHeight: "1.5rem",
-        }}
-      >
-        {fName} {mName} {lName}
-      </p>
-      <p style={{ margin: 0, fontSize: "0.8rem", opacity: 0.5 }}>
-        aka {username}
-      </p>
-      <p style={{ margin: 0 }}>{bio?.substring(0, Math.min(bio.length, 60))}</p>
       <div
         style={{
-          width: "100%",
+          backgroundColor: "#393939",
+          borderRadius: 5,
+          padding: '0.75rem',
           display: "flex",
-          justifyContent: "end",
-          marginTop: "auto",
+          flexWrap: "wrap",
+          justifyContent: "start",
+          width: "100%",
+          boxSizing: "border-box",
         }}
       >
-        <button
-          style={{
-            border: "2px solid #fff",
-            backgroundColor: "transparent",
-            color: "white",
-            borderRadius: 30,
-            marginTop: 5,
-            fontSize: "0.8rem",
-          }}
-          onClick={() => handleViewProfile(id)}
-        >
-          View Profile {">"}
-        </button>
+        {mentors.length == 0 && (
+          <p style={{ margin: 0, fontSize: "1.25rem" }}>No mentors available</p>
+        )}
+        {mentors.map((mentor) => {
+          return (
+            <div
+              className="w-full xss:w-3/3 xs:w-2/3 sm:w-1/2 lg:w-1/3 xl:1/5"
+              key={`user_${mentor.id}`}
+            >
+              <MentorTile mentor={mentor} />
+            </div>
+          );
+        })}
       </div>
-    </div>
-  );
-}
-
-function BecomeMenteeSection() {
-  const navigate = useNavigate();
-  const dispatch = useDispatch();
-
-  function handleTakeAssessment() {
-    navigate("../assessment?type=new&firstTime=true");
-    setTimeout(() => {
-      dispatch(
-        setAlert({
-          title: "Assessments",
-          body: "Take an assessment to give your mentor clear insight into your career goals. The more details you share, the easier it'll be to work with you.",
-        })
-      );
-    }, 500);
-  }
-
-  return (
-    <div>
-      <p style={{ color: "white", margin: 0, fontSize: "1.5rem" }}>
-        Want to find a mentor?
-      </p>
-      <p style={{ color: "white", margin: 0, fontSize: "1.25rem" }}>
-        Tell us a little more about yourself.
-      </p>
-      <button
-        style={{
-          border: "2px solid #fff",
-          backgroundColor: "transparent",
-          color: "white",
-          borderRadius: 30,
-          marginTop: 5,
-          fontSize: "1rem",
-        }}
-        onClick={handleTakeAssessment}
-      >
-        Take Assessment
-      </button>
     </div>
   );
 }

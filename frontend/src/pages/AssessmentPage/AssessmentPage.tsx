@@ -4,7 +4,7 @@ import { Assessment, AssessmentQuestion, ObjectAny } from "../../scripts/types";
 import { useDispatch, useSelector } from "react-redux";
 import { ReduxRootState } from "../../store";
 import { closeDialog, setDialog } from "../../features/Dialog/DialogSlice";
-import { Eye, EyeOff, Pencil } from "lucide-react";
+import { Pencil } from "lucide-react";
 import MinimalisticInput from "../../components/MinimalisticInput/MinimalisticInput";
 import { setAlert } from "../../features/Alert/AlertSlice";
 import {
@@ -13,6 +13,7 @@ import {
 } from "../../features/ClientSocket/ClientSocket";
 import { isAssessment } from "../../scripts/validation";
 import { sleep } from "../../scripts/tools";
+import MinimalisticButton from "../../components/MinimalisticButton/MinimalisticButton";
 
 const FirstTimeRecommendedQuestionCount = 3;
 export default function AssessmentPage() {
@@ -199,10 +200,17 @@ export default function AssessmentPage() {
     }
 
     setSubmitting(true);
-    console.log("submitting", assessment);
+    const assessmentCopy: AssessmentQuestion[] = [];
+    for (let assessmentQ of assessment) {
+      const cur = {...assessmentQ};
+      delete cur.warning;
+      assessmentCopy.push(cur);
+    }
+
+    console.log("submitting", assessmentCopy);
     if (type == "new") {
       MyClientSocket?.submitAssessment(
-        { questions: assessment, action: "create" },
+        { questions: assessmentCopy, action: "create" },
         (v: boolean | string) => {
           console.log("submitAss res", v);
           setSubmitting(false);
@@ -222,7 +230,7 @@ export default function AssessmentPage() {
       );
     } else {
       MyClientSocket?.submitAssessment(
-        { questions: assessment, action: 'edit', id: assessmentObj.id },
+        { questions: assessmentCopy, action: 'edit', id: assessmentObj.id },
         (v: boolean) => {
           setSubmitting(false);
           if (!v) {
@@ -333,7 +341,7 @@ export default function AssessmentPage() {
     isCreatePage = true;
   }
 
-  const { userID: assessmentUserID, date, published } = assessmentObj;
+  const { userID: assessmentUserID, date } = assessmentObj;
   const { id } = user;
   const { username: assessmentUsername } = assessmentUser;
   const userOwnsAssessment = assessmentUserID == id;
@@ -341,18 +349,18 @@ export default function AssessmentPage() {
     <div
     className={'pageBase'}
     >
-      <span
+      <MinimalisticButton
         style={{
           color: "white",
-          borderBottom: "1px solid #fff8",
-          margin: 10,
+          marginBottom: 10,
+          fontSize: '0.9rem',
           marginLeft: 0,
           cursor: "pointer",
         }}
         onClick={() => navigate("/app/home")}
       >
         {"<"} Home
-      </span>
+      </MinimalisticButton>
       <p style={{ color: "white", fontSize: "1.5rem", margin: 0 }}>
         {isCreatePage
           ? "Create Assessment"
@@ -380,7 +388,7 @@ export default function AssessmentPage() {
               {date ? new Date(date).toLocaleDateString() : "Unknown Date"}
             </p>
           </div>
-          <div
+          {/* <div
             style={{
               height: "1rem",
               marginLeft: "0.5rem",
@@ -388,8 +396,8 @@ export default function AssessmentPage() {
               borderLeft: "1px solid #fff8",
               marginBottom: 7,
             }}
-          />
-          <div style={{ display: "flex", alignItems: "center" }}>
+          /> */}
+          {/* <div style={{ display: "flex", alignItems: "center" }}>
             <div style={{ marginRight: 5 }}>
               {published ? <Eye /> : <EyeOff />}
             </div>
@@ -404,7 +412,7 @@ export default function AssessmentPage() {
             >
               {published ? "Published" : "Not published"}
             </p>
-          </div>
+          </div> */}
         </div>
       )}
       <AssessmentSection
@@ -491,6 +499,9 @@ function AssessmentSection({
       answer,
       warning,
     };
+    if (!warning) {
+      delete newAssessment[index].warning;
+    }
     setAssessment(newAssessment);
   }
 

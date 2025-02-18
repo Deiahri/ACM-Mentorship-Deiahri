@@ -117,8 +117,8 @@ export type ClientSocketUser = {
   chats?: string[];
 };
 
-export type ClientDataPayloadType = "initialData" | "mentorshipRequest" | "chat";
-export const ClientDataPayloadTypes = ["initialData", "mentorshipRequest", "chat"];
+export type ClientDataPayloadType = "initialData" | "mentorshipRequest" | "chat" | "updateSelf";
+export const ClientDataPayloadTypes = ["initialData", "mentorshipRequest", "chat", "updateSelf"];
 
 export type SubmitAssessmentAction =
   | "create"
@@ -378,6 +378,10 @@ class ClientSocket {
         processFunc = this._handleMentorshipRequests.bind(this);
       } else if (type == "chat") {
         processFunc = this._handleChat.bind(this);
+      } else if (type == "updateSelf") {
+        console.log('received update self');
+        this.requestUpdateSelf();
+        processFunc = NothingFunction;
       } else {
         console.error("Unhandled data type:", type);
         return;
@@ -451,6 +455,18 @@ class ClientSocket {
     });
   }
 
+  GetMentorshipRequest(mentorshipRequestID: string, cb: Function) {
+    const callback = cb || NothingFunction;
+    if (!mentorshipRequestID || typeof(mentorshipRequestID) != 'string') {
+      callback(false);
+      return;
+    }
+
+    this.socket.emit("getMentorshipRequest", mentorshipRequestID, (v: string|boolean) => {
+      callback(v);
+    });
+  }
+
   BecomeMentor(cb?: Function) {
     this.updateProfile({ isMentor: true, acceptingMentees: true }, cb);
   }
@@ -461,6 +477,31 @@ class ClientSocket {
       "mentorshipRequest",
       { action: "send", mentorID: userID },
       (v: boolean) => {
+        this.requestUpdateSelf();
+        cb(v);
+      }
+    );
+  }
+
+  RemoveMentor(callback?: Function) {
+    const cb = callback || NothingFunction;
+    this.socket.emit(
+      "mentorshipRequest",
+      { action: "removeMentor" },
+      (v: boolean) => {
+        this.requestUpdateSelf();
+        cb(v);
+      }
+    );
+  }
+
+  RemoveMentee(menteeID: string, callback?: Function) {
+    const cb = callback || NothingFunction;
+    this.socket.emit(
+      "mentorshipRequest",
+      { action: "removeMentee", menteeID },
+      (v: boolean) => {
+        this.requestUpdateSelf();
         cb(v);
       }
     );
@@ -643,20 +684,23 @@ class ClientSocket {
       );
       return;
     }
+    setTimeout(() => {
+      this.requestUpdateSelf();
+    }, 300);
 
     if (status) {
-      if (status == "accepted" || status == "declined") {
-        this.requestUpdateSelf();
+      if (status == "accepted" || status == "declined" || status == 'cancelled') {
         let mentorObj = await new Promise((res) => {
           this.GetUser(mentorID, (v: ObjectAny | boolean) => {
             res(v);
           });
         });
+
         if (!mentorObj || typeof mentorObj != "object") {
           return;
         }
 
-        if (this.user.id == menteeID) {
+        if (this.user.id == menteeID && (status == 'accepted' || status == 'declined')) {
           const { fName, lName } = mentorObj as ObjectAny;
           this.dispatch(
             setAlert({
@@ -667,7 +711,6 @@ class ClientSocket {
         }
       }
     } else {
-      this.requestUpdateSelf();
       if (mentorID == this.user.id) {
         let menteeObj = await new Promise((res) => {
           this.GetUser(menteeID, (v: ObjectAny | boolean) => {

@@ -253,6 +253,11 @@ export default class AuthenticatedSocket {
       this.getFindMentorshipRequestBetweenUsers.bind(this)
     );
 
+    this._addStateSocketEvent(
+      "getMentorshipRequest",
+      this.handleGetMentorshipRequest.bind(this)
+    );
+
     this._addStateSocketEvent("getGoal", this.handleGetGoal.bind(this));
 
     this._addStateSocketEvent("sendMessage", this.handleSendMessage.bind(this));
@@ -855,7 +860,7 @@ export default class AuthenticatedSocket {
           questions,
           userID: this.user.id,
           date: Date.now(),
-          published: false,
+          published: true,
         };
         try {
           this.testing && (assessmentObj.testing = true);
@@ -871,6 +876,9 @@ export default class AuthenticatedSocket {
 
         // enable isMentee if not enabled, and add assessment to assessments array
         try {
+          if (!this.user.assessments) {
+            this.user.assessments = {};
+          }
           this.user.assessments[createdAssessmentID] = {
             date: assessmentObj.date,
           };
@@ -883,7 +891,7 @@ export default class AuthenticatedSocket {
           );
         } catch (err) {
           if (err instanceof Error) {
-            ErrorCallback(err.message);
+            ErrorCallback(err.message+'|boop');
             return;
           }
           ErrorCallback("Something went wrong while creating assessment");
@@ -1461,6 +1469,8 @@ export default class AuthenticatedSocket {
             this.user.mentorID,
             this.user.id
           );
+          callback(true);
+          return;
         } catch (err) {
           if (err instanceof Error) {
             ErrorCallback(
@@ -1472,6 +1482,10 @@ export default class AuthenticatedSocket {
           return;
         }
       } else if (action == "removeMentee") {
+        if (!targetMenteeID) {
+          ErrorCallback("Target menteeID not provided");
+          return;
+        }
         // determine if current user has a mentor
         if (!this.user.menteeIDs) {
           ErrorCallback("You do not have mentees");
@@ -1493,6 +1507,8 @@ export default class AuthenticatedSocket {
             this.user.id,
             targetMenteeID
           );
+          callback(true);
+          return;
         } catch (err) {
           if (err instanceof Error) {
             ErrorCallback(
@@ -1617,6 +1633,63 @@ export default class AuthenticatedSocket {
         return;
       }
       SendErrorMessage("Something went wrong");
+      return;
+    }
+  }
+
+  // TODO: Not tested
+  async handleGetMentorshipRequest(mentorshipRequestID: unknown, callback: unknown) {
+    const handleGetMentorshipRequestErrorHeader = 'Problem while fetching mentorship request:';
+    const SendErrorMessage = (msg: string) => {
+      this.sendClientMessage('Error', handleGetMentorshipRequestErrorHeader+' '+msg);
+      return;
+    };
+
+    try {
+      if (!callback || typeof(callback) != 'function') {
+        SendErrorMessage('No callback provided');
+        return;
+      }
+
+      const ErrorCallback = (msg: string) => {
+        SendErrorMessage(msg);
+        callback(false);
+      };
+
+      if (!mentorshipRequestID || typeof(mentorshipRequestID) != 'string') {
+        ErrorCallback('No mentorship request provided');
+        return;
+      }
+
+      let mentorshipRequestObj: DBObj;
+      try {
+        mentorshipRequestObj = await DBGetWithID('mentorshipRequest', mentorshipRequestID);
+        if (!mentorshipRequestObj) {
+          ErrorCallback('Mentorship request does not exist');
+          return;
+        }
+      } catch (err) {
+        console.error('[as9casd]', err);
+        ErrorCallback('Something went wrong while fetching mentorship request');
+        return;
+      }
+
+      const { mentorID, menteeID } = mentorshipRequestObj;
+      if (!menteeID || !mentorID) {
+        console.error('[sa0cia0s]', 'mentorship request was malformed', mentorshipRequestID);
+        ErrorCallback('Something went wrong while fetching mentorship request');
+        return;
+      }
+
+      if (this.user.id != menteeID && this.user.id != mentorID) {
+        ErrorCallback('You do not have permission to fetch this mentorship request');
+        return;
+      }
+
+      callback(mentorshipRequestObj);
+    } catch (err) {
+      console.error('[a9schjas]', err);
+      SendErrorMessage('Something went wrong while fetching mentorship request');
       return;
     }
   }
@@ -1925,7 +1998,6 @@ export default class AuthenticatedSocket {
     if (!messageObj || typeof messageObj != "object") {
       throw new Error("No such message");
     }
-
     return messageObj;
   }
 
@@ -1987,6 +2059,11 @@ export default class AuthenticatedSocket {
     menteeObj.menteeIDs = mentorMenteeList;
     await DBSetWithID("user", mentorID, { menteeIDs: mentorMenteeList }, true);
     console.log("removed mentorship relation", menteeObj, mentorObj);
+
+    // let both users know
+    AuthenticatedSocket.SendClientsMessageWithUserID([mentorID], 'Mentee Removed', `${menteeObj.fName} (@${menteeObj.username}) is no longer your mentee.`);
+    AuthenticatedSocket.SendClientsMessageWithUserID([menteeID], 'Mentor Removed', `${mentorObj.fName} (@${mentorObj.username}) is no longer your mentor.`);
+    AuthenticatedSocket.SendClientsDataWithUserID([mentorID, menteeID], 'updateSelf', {});
   }
 
   private static async addMentorshipRequest(
@@ -2263,6 +2340,37 @@ export default class AuthenticatedSocket {
       // if there are sockets with userID, sends data to those sockets
       for (let socket of sockets) {
         socket.sendClientData(type, data);
+      }
+    }
+  }
+
+  /**
+   * Uses global socket map `AllSockets` to send data to sockets with given userIDs
+   * @param userIDs
+   * @param type
+   * @param data
+   */
+  static SendClientsMessageWithUserID(userIDs: string[], title: string, body: any) {
+    if (!(userIDs instanceof Array)) {
+      return;
+    }
+    // iterates through each userID
+    for (let userID of userIDs) {
+      if (typeof userID != "string") {
+        continue;
+      }
+
+      // gets all sockets with current userID
+      const sockets = AllSockets.get(userID);
+
+      // skips if sockets no sockets with userID
+      if (!sockets) {
+        continue;
+      }
+
+      // if there are sockets with userID, sends data to those sockets
+      for (let socket of sockets) {
+        socket.sendClientMessage(title, body);
       }
     }
   }
@@ -2992,7 +3100,8 @@ async function GetUserData(targetUserID: string, requestingUserID?: string) {
   delete userData.email;
 
   // check if target user is our mentee
-  if (userMentorID == userData.id) {
+  console.log('requesting user mentorID check', userMentorID, requestingUserID);
+  if (userMentorID == requestingUserID) {
     return userData;
   }
 

@@ -21,6 +21,7 @@ export default function ButtonMenu({
         border: "1px solid #fff2",
         borderRadius: 10,
         userSelect: "none",
+        overflow: 'hidden',
         ...style
       }}
     >

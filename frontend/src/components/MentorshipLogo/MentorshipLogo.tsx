@@ -10,7 +10,7 @@ export default function MentorshipLogo({scale = 1, hideText = false, style, onCl
         <img src={ACMLogoTriangle} style={{ width: `${7*size}rem`, zIndex: 2 }} />
         {/* <img src={ACMLogoTriangle} style={{ width: `${9*size}rem`, position: 'absolute', zIndex: 1, filter: 'brightness(0) saturate(100%)', mixBlendMode: 'difference', backgroundColor: '#010101' }} /> */}
       </div>
-      <div className={`${styles.animateWidth} ${!hideText?'':styles.active}`} style={{ color: "white", fontSize: `${3*size}rem`, fontWeight: 100, paddingBottom: `${0.5*size}rem`, overflow: 'hidden', zIndex: 0 }}>
+      <div className={`${!hideText?'':styles.active}`} style={{ color: "white", fontSize: `${3*size}rem`, fontWeight: 100, paddingBottom: `${0.5*size}rem`, overflow: 'hidden', zIndex: 0 }}>
         Mentorship
       </div>
     </div>

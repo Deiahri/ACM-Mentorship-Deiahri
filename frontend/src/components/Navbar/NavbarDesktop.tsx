@@ -11,6 +11,7 @@ import { useRef, useState } from "react";
 import Transition from "../Transition/Transition";
 import HideOnMobile from "../RenderOnMobile/HideOnMobile";
 import styles from "./NavbarDesktop.module.css";
+import { useAuth0 } from "@auth0/auth0-react";
 
 export default function NavbarDesktop() {
   const [hover, setHover] = useState(false);
@@ -97,6 +98,7 @@ export function NavbarProfile({
 }) {
   const navigate = useNavigate();
   const { user } = useSelector((store: ReduxRootState) => store.ClientSocket);
+  const { logout } = useAuth0();
   const [open, setOpen] = useState(false);
   const openDelayRef = useRef(0);
 
@@ -115,6 +117,12 @@ export function NavbarProfile({
       text: "Profile",
       style: defaultMenuButtonStyling,
       onClick: () => navigate(`/app/user?id=${user?.id}`),
+    },
+    {
+      text: "Logout",
+      style: { ...defaultMenuButtonStyling, backgroundColor: "#933" },
+      onClick: () =>
+        logout({ logoutParams: { returnTo: window.location.origin } }),
     },
   ];
 

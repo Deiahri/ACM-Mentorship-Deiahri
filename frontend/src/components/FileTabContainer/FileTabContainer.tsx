@@ -30,7 +30,7 @@ const FileTabContainer: React.FC<FileTabContainerProps> = ({
       <div style={{ display: "flex" }}>
         {
           tabs.map((tab, tabIndex) => {
-            return <FileFolderTab onClick={() => setActiveTab(tabIndex)} name={tab.name} active={tabIndex == activeTab} />
+            return <FileFolderTab key={`tab${tabIndex}`} onClick={() => setActiveTab(tabIndex)} name={tab.name} active={tabIndex == activeTab} />
           })
         }
       </div>
@@ -50,7 +50,7 @@ const FileTabContainer: React.FC<FileTabContainerProps> = ({
           zIndex: 1,
           borderRadius: "1rem",
           borderStartStartRadius: 0,
-          minHeight: '10rem',
+          minHeight: '10rem'
         }}
       >
         {

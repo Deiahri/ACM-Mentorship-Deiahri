@@ -17,7 +17,6 @@ export default function Assessments() {
   const [user, setUser] = useState<ClientSocketUser | undefined | false>();
 
   const id = params.get("id");
-  const origin = params.get("origin");
 
   useEffect(() => {
     if (!id || !MyClientSocket) {
@@ -44,32 +43,16 @@ export default function Assessments() {
   }
 
   function handleBackButton() {
-    if (origin == 'home') {
-      navigate(`/app/home`);
-    } else if (origin == 'user') {
-      navigate(`/app/user?id=${id}`);
-    } else {
-      navigate(`/app/user?id=${id}`);
-    }
+    navigate(-1);
   }
 
   const { fName, lName, assessments } = user;
-  let BackButtonText: string;
-  if (!origin) {
-    BackButtonText = `< ${fName} ${lName}`;
-  } else if (origin == 'home') {
-    BackButtonText = '< Home';
-  } else if (origin == 'user') {
-    BackButtonText = `< ${fName} ${lName}`;
-  } else {
-    BackButtonText = `< ${fName} ${lName}`;
-  }
 
   return (
     <div
     className={'pageBase'}
     >
-      <MinimalisticButton style={{fontSize: '0.8rem', marginBottom: 10}} onClick={handleBackButton}>{BackButtonText}</MinimalisticButton>
+      <MinimalisticButton style={{fontSize: '0.8rem', marginBottom: 10}} onClick={handleBackButton}>Back</MinimalisticButton>
       <p style={{ margin: 0, fontSize: "1.5rem" }}>
         {fName} {lName}'s Assessments
       </p>

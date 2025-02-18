@@ -28,7 +28,6 @@ export default function GoalPage() {
   const id = params.get("id");
   const newParam = params.get("new");
   const isNew = newParam == "true";
-  const origin = params.get("origin");
   const { user: self, ready } = useSelector(
     (store: ReduxRootState) => store.ClientSocket
   );
@@ -176,22 +175,11 @@ export default function GoalPage() {
   };
 
   const { name, tasks } = goal;
-  const { fName, mName, lName, id: ownerID } = goalOwner;
+  const { fName, mName, lName } = goalOwner;
 
   const handleOnBack = () => {
-    if (origin == "user") {
-      navigate(`/app/goals?id=${ownerID}`);
-      return;
-    }
-    navigate("/app/home");
+    navigate(-1);
   };
-
-  let BackButtonText = "< Home";
-  if (origin == "user") {
-    BackButtonText = `< ${fName} ${lName}${
-      lName!.charAt(lName!.length - 1) == "s" ? "'" : "'s"
-    } goals`;
-  }
 
   return (
     <div
@@ -207,7 +195,7 @@ export default function GoalPage() {
         style={{ fontSize: "0.8rem", marginBottom: "0.5rem" }}
         onClick={handleOnBack}
       >
-        {BackButtonText}
+        Back
       </MinimalisticButton>
       <div style={{ display: "flex", flexDirection: "column" }}>
         <div style={{ display: "flex", alignItems: "center" }}>
@@ -244,7 +232,7 @@ export default function GoalPage() {
           onClick={handleOnSaveClick}
           style={{ marginTop: 10 }}
         >
-          Create Assessment
+          Create Goal
         </MinimalisticButton>
       )}
     </div>
