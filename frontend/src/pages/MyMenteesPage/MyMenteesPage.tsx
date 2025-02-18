@@ -563,21 +563,21 @@ function CurrentMentorInfo() {
 
   return (
     <div style={{ width: "100%" }}>
+      <span style={{ fontSize: "1.5rem" }}>Mentees</span>
       {menteeIDs && (
-        <>
-          <span style={{ fontSize: "1.5rem" }}>Mentees</span>
+        <div style={{width: '100%', display: 'flex'}}>
           {menteeIDs.map((menteeID) => {
             return (
               <div
                 className="w-full xss:w-3/3 xs:w-2/3 sm:w-1/2 lg:w-1/3 xl:1/5"
-                style={{ margin: "0.1rem" }}
+                style={{ margin: "0.1rem", padding: '0.25rem' }}
                 key={`mentee_${menteeID}`}
               >
                 <MenteeTile menteeID={menteeID} />
               </div>
             );
           })}
-        </>
+        </div>
       )}
       {(!menteeIDs || menteeIDs.length == 0) && (
         <span style={{ fontSize: "1.5rem" }}>No mentees yet</span>
@@ -684,7 +684,7 @@ function MenteeTile({ menteeID }: { menteeID: string }) {
             }}
             onClick={() => (id ? chatWithUser(id) : undefined)}
           >
-            Chat <IoChatbubbleOutline style={{ marginLeft: "0.25rem" }} />
+            Chat <IoChatbubbleOutline size={'1rem'} style={{ marginLeft: "0.25rem" }} />
           </MinimalisticButton>
         </div>
       </div>

@@ -282,9 +282,8 @@ function MentorSearchTool() {
       )}
       <div
         style={{
-          backgroundColor: "#393939",
           borderRadius: 5,
-          padding: '0.75rem',
+          padding: '0.2rem',
           display: "flex",
           flexWrap: "wrap",
           justifyContent: "start",
@@ -300,6 +299,7 @@ function MentorSearchTool() {
             <div
               className="w-full xss:w-3/3 xs:w-2/3 sm:w-1/2 lg:w-1/3 xl:1/5"
               key={`user_${mentor.id}`}
+              style={{padding: '0.25rem'}}
             >
               <MentorTile mentor={mentor} />
             </div>

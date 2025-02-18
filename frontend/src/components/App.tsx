@@ -49,6 +49,12 @@ export default function App() {
     return <p>Not authed</p>
   }
 
+  if (!state) {
+    return <div className="pageBase" style={{justifyContent: 'center', alignItems: 'center'}} >
+      <span style={{fontSize: '1.5rem'}}>Connecting...</span>
+    </div>
+  }
+
   return <>
     <Chat/>
     <DesktopChatWidget/>
