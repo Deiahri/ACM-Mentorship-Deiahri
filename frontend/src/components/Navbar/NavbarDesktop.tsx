@@ -144,25 +144,28 @@ export function NavbarProfile({
     <>
       <div
         style={{
-          ...style,
+          ...style
         }}
         className={className}
         onMouseEnter={() => handleMouseEnter()}
         onMouseLeave={() => handleMouseLeave()}
       >
-        <img
-          draggable={false}
-          style={{
-            borderRadius: "50%",
-            width: "3rem",
-            height: "3rem",
-            overflow: "hidden",
-            border: "1px solid #fff6",
-            userSelect: "none",
-            cursor: "pointer",
-          }}
-          src={user?.displayPictureURL || placeholderPreviewPicture}
-        />
+        <div style={{display: 'flex', alignItems: 'center'}}>
+          <span style={{ color: "white", fontSize: '1.25rem', marginRight: '1rem' }}>{user?.fName} {user?.lName}</span>
+          <img
+            draggable={false}
+            style={{
+              borderRadius: "50%",
+              width: "3rem",
+              height: "3rem",
+              overflow: "hidden",
+              border: "1px solid #fff6",
+              userSelect: "none",
+              cursor: "pointer",
+            }}
+            src={user?.displayPictureURL || placeholderPreviewPicture}
+          />
+        </div>
         <Transition
           toggle={open}
           initialToggle={false}

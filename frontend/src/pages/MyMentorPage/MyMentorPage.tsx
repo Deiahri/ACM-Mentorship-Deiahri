@@ -45,7 +45,7 @@ function MyMentorPageDashboard() {
             children: (
               <>
                 {hasMentor && <CurrentMentorInfo />}
-                {!hasMentor && (!isMentee ? <MentorSearchTool />:recommendTodoCard('TakeFirstAssessment'))}
+                {!hasMentor && (isMentee ? <MentorSearchTool />:recommendTodoCard('TakeFirstAssessment'))}
               </>
             ),
           },

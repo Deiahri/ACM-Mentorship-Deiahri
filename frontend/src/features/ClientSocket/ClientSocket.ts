@@ -236,6 +236,9 @@ class ClientSocket {
         { action, questions },
         (v: boolean | string) => {
           callback(v);
+          if (v) {
+            this.requestUpdateSelf();
+          }
         }
       );
     } else if (action == "edit") {

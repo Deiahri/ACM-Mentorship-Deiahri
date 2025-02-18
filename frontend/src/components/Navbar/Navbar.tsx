@@ -1,9 +1,17 @@
+import { useSelector } from "react-redux";
 import HideOnMobile from "../RenderOnMobile/HideOnMobile";
 import ShowOnMobile from "../RenderOnMobile/ShowOnMobile";
 import NavbarDesktop from "./NavbarDesktop";
 import NavbarMobile from "./NavbarMobile";
+import { ReduxRootState } from "../../store";
 
 export default function Navbar() {
+  const { user } = useSelector((store: ReduxRootState) => store.ClientSocket);
+
+  if (!user) {
+    return;
+  }
+
   return <>
     <NavbarMobile/>
     <NavbarDesktop/>

@@ -71,17 +71,21 @@ function MenteeRequests() {
   const { mentorshipRequests } = user;
   const mentorshipRequestTiles = mentorshipRequests?.map(
     (mentorshipRequestID) => {
+      const tile = (
+        <MentorshipRequestTile
+          mentorshipRequestID={mentorshipRequestID}
+          renderIfRole="mentor"
+        />
+      );
+      if (!tile) {
+        return null;
+      }
       return (
         <div
           className="w-full xss:w-3/3 xs:w-2/3 sm:w-1/2 lg:w-1/3 xl:1/5"
           style={{ margin: "0.1rem" }}
           key={`mr_${mentorshipRequestID}`}
-        >
-          <MentorshipRequestTile
-            mentorshipRequestID={mentorshipRequestID}
-            renderIfRole="mentor"
-          />
-        </div>
+        >{tile}</div>
       );
     }
   );
@@ -342,8 +346,12 @@ function MyMentorPageHeader() {
           <div style={{ height: "0.5rem" }} />
           <AcceptingMenteesIndicator />
         </div>
-        <div style={{display: 'flex', marginTop: '1rem'}}>
-          <MinimalisticButton onClick={() => navigate('/app/mentor-guidelines')}>Mentor Guidelines</MinimalisticButton>
+        <div style={{ display: "flex", marginTop: "1rem" }}>
+          <MinimalisticButton
+            onClick={() => navigate("/app/mentor-guidelines")}
+          >
+            Mentor Guidelines
+          </MinimalisticButton>
         </div>
       </div>
     </div>
@@ -368,19 +376,26 @@ function AcceptingMenteesIndicator() {
         subtitle: acceptingMentees
           ? `Turning this off means new mentees cannot send you mentorship requests`
           : `Turning this off means new mentees can start sending you mentorship requests`,
-        buttonContainerStyle: { width: '100%', justifyContent: 'end', marginTop: '1rem' },
+        buttonContainerStyle: {
+          width: "100%",
+          justifyContent: "end",
+          marginTop: "1rem",
+        },
         buttons: [
           {
-            text: `${acceptingMentees?'Stop':'Start'} accepting mentees`,
+            text: `${acceptingMentees ? "Stop" : "Start"} accepting mentees`,
             useDisableTill: true,
             onClick: (_, cb) => {
-              MyClientSocket?.updateProfile({ acceptingMentees: !acceptingMentees }, () => {
-                cb && cb();
-                dispatch(closeDialog());
-              })
-            }
-          }
-        ]
+              MyClientSocket?.updateProfile(
+                { acceptingMentees: !acceptingMentees },
+                () => {
+                  cb && cb();
+                  dispatch(closeDialog());
+                }
+              );
+            },
+          },
+        ],
       })
     );
   }
@@ -564,7 +579,7 @@ function CurrentMentorInfo() {
           })}
         </>
       )}
-      {(!menteeIDs || menteeIDs.length > 0) && (
+      {(!menteeIDs || menteeIDs.length == 0) && (
         <span style={{ fontSize: "1.5rem" }}>No mentees yet</span>
       )}
     </div>

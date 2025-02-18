@@ -227,7 +227,7 @@ export default function GoalPage() {
           />
         </div>
       </div>
-      {(!selfIsOwner || isNew) && (
+      {(selfIsOwner && isNew) && (
         <MinimalisticButton
           onClick={handleOnSaveClick}
           style={{ marginTop: 10 }}
@@ -349,7 +349,7 @@ function Task({
           style={{ minWidth: '3rem', fontWeight: 'bold', fontSize: '1.25rem' }}
         />
         <div style={{display: 'flex', marginLeft: '0.5rem' }}>
-          <span onClick={() => setOpenCalendar(true)} style={{ borderBottom: '1px #fff4 solid', cursor: 'pointer' }}>{ completitionDate ? unixToDateString(completitionDate) : 'Not Complete' }</span>
+          <span onClick={() => !disabled&&setOpenCalendar(true)} style={{ borderBottom: '1px #fff4 solid', cursor: disabled ? 'initial':'pointer' }}>{ completitionDate ? unixToDateString(completitionDate) : 'Not Complete' }</span>
           {completitionDate && <Check style={{marginLeft: '0.1rem'}} color={'#0a0'}/>}
         </div>
         {!disabled && (

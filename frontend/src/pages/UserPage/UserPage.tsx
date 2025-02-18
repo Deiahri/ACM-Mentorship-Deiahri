@@ -771,6 +771,16 @@ function RequestMentorButton() {
         Not Accepting Mentees
       </MinimalisticButton>
     );
+  } else if (self.mentorID && self.mentorID != user.id) {
+    buttonElement = (
+      <MinimalisticButton
+        style={RequestMentorButtonStyle}
+        disabled={true}
+        // onClick={handleChatClick}
+      >
+        You have a mentor
+      </MinimalisticButton>
+    );
   } else if (UserIsOurMentor) {
     buttonElement = (
       <MinimalisticButton
@@ -957,7 +967,11 @@ function MenteeButton() {
         style={RequestMentorButtonStyle}
         onClick={handleRemoveMentee}
       >
-        Remove Mentee
+        Remove Mentee{" "}
+        <X
+          style={{ marginLeft: "0.5rem", marginRight: "-0.3rem" }}
+          size={"1.1rem"}
+        />
       </MinimalisticButton>
     );
   }

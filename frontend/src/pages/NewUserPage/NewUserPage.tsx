@@ -1,11 +1,14 @@
 import { FormEvent, useState } from "react";
 import MentorshipLogo from "../../components/MentorshipLogo/MentorshipLogo";
 import { MyClientSocket } from "../../features/ClientSocket/ClientSocket";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { closeDialog, setDialog } from "../../features/Dialog/DialogSlice";
 import { useAuth0 } from "@auth0/auth0-react";
+import MinimalisticButton from "../../components/MinimalisticButton/MinimalisticButton";
+import { ReduxRootState } from "../../store";
 
 export default function NewUserPage() {
+  const { user } = useSelector((store: ReduxRootState) => store.ClientSocket);
   const { logout } = useAuth0();
   const [fName, setFName] = useState("");
   const [mName, setMName] = useState("");
@@ -13,13 +16,19 @@ export default function NewUserPage() {
   const [username, setUsername] = useState("");
   const dispatch = useDispatch();
 
-  if (!MyClientSocket) {
-    return <p>Connecting...</p>;
-  }
+  // if (!MyClientSocket) {
+  //   return <p>Connecting...</p>;
+  // }
 
   function handleSubmit(e: FormEvent) {
+    if (user) {
+      
+    }
     e.preventDefault();
-    MyClientSocket?.createAccount({ fName, mName, lName, username }, () => {
+    MyClientSocket?.createAccount({ fName, mName, lName, username }, (v: boolean) => {
+      if (!v) {
+        return;
+      }
       dispatch(
         setDialog({
           title: "Welcome to ACM Mentorships!",
@@ -37,9 +46,7 @@ export default function NewUserPage() {
   }
 
   return (
-    <div
-    className={'pageBase'}
-    >
+    <div className={"pageBase"} style={{ alignItems: "center" }}>
       <MentorshipLogo />
       <p
         style={{
@@ -78,7 +85,7 @@ export default function NewUserPage() {
           <input
             value={fName}
             onChange={(e) => setFName(e.target.value)}
-            style={{ padding: 10, borderRadius: 5 }}
+            style={{ padding: 10, borderRadius: 5, color: 'black' }}
           />
         </div>
 
@@ -89,7 +96,7 @@ export default function NewUserPage() {
           <input
             value={mName}
             onChange={(e) => setMName(e.target.value)}
-            style={{ padding: 10, borderRadius: 5 }}
+            style={{ padding: 10, borderRadius: 5, color: 'black' }}
           />
         </div>
 
@@ -100,7 +107,7 @@ export default function NewUserPage() {
           <input
             value={lName}
             onChange={(e) => setLName(e.target.value)}
-            style={{ padding: 10, borderRadius: 5 }}
+            style={{ padding: 10, borderRadius: 5, color: 'black' }}
           />
         </div>
 
@@ -111,18 +118,23 @@ export default function NewUserPage() {
           <input
             value={username}
             onChange={(e) => setUsername(e.target.value)}
-            style={{ padding: 10, borderRadius: 5 }}
+            style={{ padding: 10, borderRadius: 5, color: 'black' }}
           />
         </div>
-        <button style={{ marginTop: 10, fontSize: "1rem" }}>Submit</button>
+        <div style={{ width: "100%", display: 'flex', alignItems: "end" }}>
+          <MinimalisticButton style={{ marginTop: 10, fontSize: "1rem" }}>
+            Submit
+          </MinimalisticButton>
+        </div>
       </form>
-      <button
+      <span
         onClick={() =>
           logout({ logoutParams: { returnTo: window.location.origin } })
         }
+        style={{marginTop: '1rem', borderBottom: '1px solid #fff6', cursor: 'pointer'}}
       >
         Logout
-      </button>
+      </span>
     </div>
   );
 }

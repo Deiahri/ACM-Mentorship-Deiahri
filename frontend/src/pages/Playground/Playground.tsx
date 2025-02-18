@@ -1,13 +1,13 @@
 
 import 'react-calendar/dist/Calendar.css';
 import Navbar from '../../components/Navbar/Navbar';
-import MenteeGuidelinesPage from '../GuidelinesPage/MenteeGuidelinesPage';
+import NewUserPage from '../NewUserPage/NewUserPage';
 
 export default function Playground() {
   return (
     <>
       <Navbar/>
-      <MenteeGuidelinesPage/>
+      <NewUserPage/>
     </>
     // <div
     // className={'pageBase'}
