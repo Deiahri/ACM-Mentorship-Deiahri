@@ -52,6 +52,7 @@ export default function NewUserPage() {
         style={{
           fontSize: "2rem",
           color: "white",
+          backgroundColor: '#333',
           textAlign: "center",
           margin: 0,
           marginBottom: 5,
@@ -85,7 +86,8 @@ export default function NewUserPage() {
           <input
             value={fName}
             onChange={(e) => setFName(e.target.value)}
-            style={{ padding: 10, borderRadius: 5, color: 'black' }}
+            style={{ padding: 10, borderRadius: 5, 
+              backgroundColor: '#333', color: 'white' }}
           />
         </div>
 
@@ -96,7 +98,8 @@ export default function NewUserPage() {
           <input
             value={mName}
             onChange={(e) => setMName(e.target.value)}
-            style={{ padding: 10, borderRadius: 5, color: 'black' }}
+            style={{ padding: 10, 
+              backgroundColor: '#333',borderRadius: 5, color: 'white' }}
           />
         </div>
 
@@ -107,7 +110,8 @@ export default function NewUserPage() {
           <input
             value={lName}
             onChange={(e) => setLName(e.target.value)}
-            style={{ padding: 10, borderRadius: 5, color: 'black' }}
+            style={{ padding: 10, 
+              backgroundColor: '#333',borderRadius: 5, color: 'white' }}
           />
         </div>
 
@@ -118,7 +122,8 @@ export default function NewUserPage() {
           <input
             value={username}
             onChange={(e) => setUsername(e.target.value)}
-            style={{ padding: 10, borderRadius: 5, color: 'black' }}
+            style={{ padding: 10, 
+              backgroundColor: '#333',borderRadius: 5, color: 'white' }}
           />
         </div>
         <div style={{ width: "100%", display: 'flex', alignItems: "end" }}>
