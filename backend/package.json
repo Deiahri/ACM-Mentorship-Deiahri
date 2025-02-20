@@ -6,7 +6,8 @@
     "test": "vitest",
     "dev": "concurrently \"tsc --watch\" \"nodemon ./dist\"",
     "build": "npm i && tsc -b",
-    "start": "node dist/index.js"
+    "start": "node dist/index.js",
+    "insertQuestions": "tsc --b && nodemon ./dist/scripts/CL/insertQuestion"
   },
   "keywords": [],
   "author": "",

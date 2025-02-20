@@ -34,6 +34,7 @@ import {
   Project,
 } from "../scripts/validation";
 import { SyncUserProfile } from "./entities/users";
+import { RemoveMentorshipRequest, RemoveMentorshipRequestFromUser } from "./entities/mentorshipRequests";
 
 export type AuthenticatedSocketAdditionalParameters = {
   deleteAccountAfterDisconnect?: boolean;
@@ -1267,9 +1268,10 @@ export default class AuthenticatedSocket {
       } else if (action == "accept") {
         // determine if mentorshipRequest exists, and if the current user is the mentor
         if (!mentorshipRequestID) {
-          ErrorCallback("No menorship request ID was passed");
+          ErrorCallback("No mentorship request ID was passed");
           return;
         }
+
         let mentorshipRequestObj: ObjectAny;
         try {
           mentorshipRequestObj = await DBGetWithID(
@@ -1299,7 +1301,7 @@ export default class AuthenticatedSocket {
             "There is something wrong with this request. You cannot accept it."
           );
           // try deleting the request
-          await AuthenticatedSocket.removeMentorshipRequest(
+          await RemoveMentorshipRequest(
             mentorshipRequestID,
             "declined"
           );
@@ -1313,7 +1315,7 @@ export default class AuthenticatedSocket {
         // delete request, send alert that it was accepted,
         // set mentee mentorID to this user's ID, and add mentee to this user's mentee list
         try {
-          await AuthenticatedSocket.removeMentorshipRequest(
+          await RemoveMentorshipRequest(
             mentorshipRequestID,
             "accepted"
           );
@@ -1378,7 +1380,7 @@ export default class AuthenticatedSocket {
 
         // delete request, send alert that it was declined
         try {
-          await AuthenticatedSocket.removeMentorshipRequest(
+          await RemoveMentorshipRequest(
             mentorshipRequestID,
             "declined"
           );
@@ -1442,7 +1444,7 @@ export default class AuthenticatedSocket {
 
         // delete request, send alert that it was cancelled
         try {
-          await AuthenticatedSocket.removeMentorshipRequest(
+          await RemoveMentorshipRequest(
             mentorshipRequestID,
             "cancelled"
           );
@@ -2063,7 +2065,7 @@ export default class AuthenticatedSocket {
     // let both users know
     AuthenticatedSocket.SendClientsMessageWithUserID([mentorID], 'Mentee Removed', `${menteeObj.fName} (@${menteeObj.username}) is no longer your mentee.`);
     AuthenticatedSocket.SendClientsMessageWithUserID([menteeID], 'Mentor Removed', `${mentorObj.fName} (@${mentorObj.username}) is no longer your mentor.`);
-    AuthenticatedSocket.SendClientsDataWithUserID([mentorID, menteeID], 'updateSelf', {});
+    SendClientsDataWithUserID([mentorID, menteeID], 'updateSelf', {});
   }
 
   private static async addMentorshipRequest(
@@ -2095,7 +2097,7 @@ export default class AuthenticatedSocket {
       menteeID
     );
 
-    AuthenticatedSocket.SendClientsDataWithUserID(
+    SendClientsDataWithUserID(
       [mentorID, menteeID],
       "mentorshipRequest",
       {
@@ -2132,89 +2134,6 @@ export default class AuthenticatedSocket {
     } catch (err) {
       console.error(
         "Tried to add mentorship request from user, but they did not have it. " +
-          err.message
-      );
-    }
-  }
-
-  private static async removeMentorshipRequest(
-    mentorshipRequestID: string,
-    alertStatus: string
-  ) {
-    if (!mentorshipRequestID) {
-      return;
-    }
-
-    const mentorshipRequestObj = await DBGetWithID(
-      "mentorshipRequest",
-      mentorshipRequestID
-    );
-    if (!mentorshipRequestObj || typeof mentorshipRequestObj != "object") {
-      return;
-    }
-
-    await DBDeleteWithID("mentorshipRequest", mentorshipRequestID);
-
-    const { mentorID, menteeID } = mentorshipRequestObj;
-    if (!mentorID || !menteeID) {
-      console.error(
-        "Something was wrong with the mentorship request",
-        JSON.stringify(mentorshipRequestObj)
-      );
-      return;
-    }
-
-    await AuthenticatedSocket.removeMentorshipRequestFromUser(
-      mentorshipRequestID,
-      mentorID
-    );
-    await AuthenticatedSocket.removeMentorshipRequestFromUser(
-      mentorshipRequestID,
-      menteeID
-    );
-
-    AuthenticatedSocket.SendClientsDataWithUserID(
-      [mentorID, menteeID],
-      "mentorshipRequest",
-      {
-        ...mentorshipRequestObj,
-        id: mentorshipRequestID,
-        status: alertStatus,
-      }
-    );
-  }
-
-  private static async removeMentorshipRequestFromUser(
-    mentorshipRequestID: string,
-    userID: string
-  ) {
-    if (!userID) {
-      return;
-    }
-
-    const userData = await DBGetWithID("user", userID);
-    if (!userData) {
-      return;
-    }
-
-    const { mentorshipRequests } = userData;
-    if (!mentorshipRequests) {
-      return;
-    }
-
-    if (!(mentorshipRequests instanceof Array)) {
-      console.error(`Mentorship request for ${userID} is invalid.`);
-      return;
-    }
-
-    try {
-      mentorshipRequests.splice(
-        mentorshipRequests.indexOf(mentorshipRequestID)
-      );
-      await DBSetWithID("user", userID, { mentorshipRequests }, true);
-    } catch (err) {
-      console.error(
-        "Tried to remove mentorship request from user, but they did not have it. " +
           err.message
       );
     }
@@ -2278,11 +2197,11 @@ export default class AuthenticatedSocket {
 
         if (!mentorshipRequestObj) {
           // deletes mentorship request from both users if mentorship request does not exist.
-          await AuthenticatedSocket.removeMentorshipRequestFromUser(
+          await RemoveMentorshipRequestFromUser(
             mentorshipRequestID,
             menteeID
           );
-          await AuthenticatedSocket.removeMentorshipRequestFromUser(
+          await RemoveMentorshipRequestFromUser(
             mentorshipRequestID,
             mentorID
           );
@@ -2293,7 +2212,7 @@ export default class AuthenticatedSocket {
           mentorshipRequestObj;
         if (!reqMenteeID || !reqMentorID) {
           // malformed request, delete
-          await AuthenticatedSocket.removeMentorshipRequest(
+          await RemoveMentorshipRequest(
             mentorshipRequestID,
             "declined"
           );
@@ -2319,30 +2238,6 @@ export default class AuthenticatedSocket {
    * @param type
    * @param data
    */
-  static SendClientsDataWithUserID(userIDs: string[], type: string, data: any) {
-    if (!(userIDs instanceof Array)) {
-      return;
-    }
-    // iterates through each userID
-    for (let userID of userIDs) {
-      if (typeof userID != "string") {
-        continue;
-      }
-
-      // gets all sockets with current userID
-      const sockets = AllSockets.get(userID);
-
-      // skips if sockets no sockets with userID
-      if (!sockets) {
-        continue;
-      }
-
-      // if there are sockets with userID, sends data to those sockets
-      for (let socket of sockets) {
-        socket.sendClientData(type, data);
-      }
-    }
-  }
 
   /**
    * Uses global socket map `AllSockets` to send data to sockets with given userIDs
@@ -3030,7 +2925,7 @@ export default class AuthenticatedSocket {
     const { users } = newChatObj as ObjectAny;
     console.log("sentChatMessage");
     // send updated chat to all involved users
-    AuthenticatedSocket.SendClientsDataWithUserID(
+    SendClientsDataWithUserID(
       Object.keys(users),
       "chat",
       newChatObj
@@ -3040,6 +2935,34 @@ export default class AuthenticatedSocket {
 
 // required to call once when socket server starts.
 AuthenticatedSocket.SyncAllAcceptingMentorIDs();
+
+
+
+export function SendClientsDataWithUserID(userIDs: string[], type: string, data: any) {
+  if (!(userIDs instanceof Array)) {
+    return;
+  }
+  // iterates through each userID
+  for (let userID of userIDs) {
+    if (typeof userID != "string") {
+      continue;
+    }
+
+    // gets all sockets with current userID
+    const sockets = AllSockets.get(userID);
+
+    // skips if sockets no sockets with userID
+    if (!sockets) {
+      continue;
+    }
+
+    // if there are sockets with userID, sends data to those sockets
+    for (let socket of sockets) {
+      socket.sendClientData(type, data);
+    }
+  }
+}
+
 
 /**
  * Removes all confidential information from a given user, letting it be viewable to the public.
@@ -3105,6 +3028,9 @@ async function GetUserData(targetUserID: string, requestingUserID?: string) {
     return userData;
   }
 
+  if (selfData.isMentor) {
+    return userData;
+  }
   // target user is not a mentee. Delete mentee data
   delete userData.assessments;
   delete userData.mentorID;
@@ -3154,23 +3080,27 @@ async function GetAssessmentData(
     throw new Error("The requesting user does not exist.");
   }
 
-  let modifiedAssessmentData: Object;
-  if (assessmentData.published) {
-    modifiedAssessmentData = assessmentData;
-  } else {
-    modifiedAssessmentData = { published: false, id: assessmentID };
-  }
+  // TODO: assessments viewable by anyone atm.
+  return assessmentData;
 
-  const { menteeIDs } = requestingUserData;
-  if (
-    menteeIDs &&
-    menteeIDs instanceof Array &&
-    menteeIDs.includes(assessmentUserID)
-  ) {
-    return modifiedAssessmentData;
-  }
 
-  throw new Error("You do not have permission to view this assessment");
+  // let modifiedAssessmentData: Object;
+  // if (assessmentData.published) {
+  //   modifiedAssessmentData = assessmentData;
+  // } else {
+  //   modifiedAssessmentData = { published: false, id: assessmentID };
+  // }
+
+  // const { menteeIDs } = requestingUserData;
+  // if (
+  //   menteeIDs &&
+  //   menteeIDs instanceof Array &&
+  //   menteeIDs.includes(assessmentUserID)
+  // ) {
+  //   return modifiedAssessmentData;
+  // }
+
+  // throw new Error("You do not have permission to view this assessment");
 }
 
 async function GetAvailableAssessmentQuestions() {
