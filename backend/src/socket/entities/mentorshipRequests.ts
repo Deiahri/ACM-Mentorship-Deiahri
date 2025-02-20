@@ -1,7 +1,7 @@
 import { DBDeleteWithID, DBGetWithID, DBSetWithID } from "../../db";
 import { SendClientsDataWithUserID } from "../AuthenticatedSocket";
 
-export async function RemoveOutgoingMentorshipRequests(userID: string) {
+export async function RemoveOutgoingMentorshipRequestsFromUser(userID: string) {
   const userData = await DBGetWithID("user", userID);
   const { mentorshipRequests } = userData;
 

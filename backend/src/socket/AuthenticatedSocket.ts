@@ -34,7 +34,7 @@ import {
   Project,
 } from "../scripts/validation";
 import { SyncUserProfile } from "./entities/users";
-import { RemoveMentorshipRequest, RemoveMentorshipRequestFromUser } from "./entities/mentorshipRequests";
+import { RemoveMentorshipRequest, RemoveMentorshipRequestFromUser, RemoveOutgoingMentorshipRequestsFromUser } from "./entities/mentorshipRequests";
 
 export type AuthenticatedSocketAdditionalParameters = {
   deleteAccountAfterDisconnect?: boolean;
@@ -1312,6 +1312,18 @@ export default class AuthenticatedSocket {
           return;
         }
 
+        // check if mentee already has mentor
+        try {
+          const menteeObj = await DBGetWithID('user', menteeID);
+          if (menteeObj.mentorID) {
+            await RemoveMentorshipRequest(mentorshipRequestID, 'cancelled');
+            ErrorCallback('This user already has a mentor');
+            return;
+          }
+        } catch (err) {
+          ErrorCallback('Something went wrong while accepting request');
+        }
+
         // delete request, send alert that it was accepted,
         // set mentee mentorID to this user's ID, and add mentee to this user's mentee list
         try {
@@ -1320,6 +1332,9 @@ export default class AuthenticatedSocket {
             "accepted"
           );
           await AuthenticatedSocket.addMentorship(mentorID, menteeID);
+          await RemoveOutgoingMentorshipRequestsFromUser(menteeID);
+          callback(true);
+          return;
         } catch (err) {
           if (err instanceof Error) {
             ErrorCallback(

@@ -565,7 +565,7 @@ function CurrentMentorInfo() {
     <div style={{ width: "100%" }}>
       <span style={{ fontSize: "1.5rem" }}>Mentees</span>
       {menteeIDs && (
-        <div style={{width: '100%', display: 'flex'}}>
+        <div style={{width: '100%', display: 'flex', flexWrap: 'wrap'}}>
           {menteeIDs.map((menteeID) => {
             return (
               <div
