@@ -18,8 +18,8 @@ export default function Alert() {
     <AlertDialog.Root open={active}>
       <AlertDialog.Portal>
         <AlertDialog.Overlay style={{display: 'flex', width: '100vw', height: '100vh', backgroundColor: '#0004', position: 'fixed', inset: 0, backdropFilter: 'blur(2px)', zIndex: 20 }} />
-        <AlertDialog.Content className="AlertDialogContent" style={{top: '50%', left: '50%', position: 'fixed', transform: 'translate(-50%, -50%)', backgroundColor: '#333', padding: 30, borderRadius: 10, minWidth: 300, border: '1px solid #0004', zIndex: 21}} >
-          <AlertDialog.Title className="AlertDialogTitle" style={{margin: 0}}>
+        <AlertDialog.Content className="AlertDialogContent" style={{top: '50%', left: '50%', position: 'fixed', transform: 'translate(-50%, -50%)', backgroundColor: '#333', padding: 30, borderRadius: 10, minWidth: 200, width: 400, maxWidth: '95vw', border: '1px solid #0004', zIndex: 21}} >
+          <AlertDialog.Title className="AlertDialogTitle" style={{margin: 0, fontSize: '1.5rem'}}>
             { title }
           </AlertDialog.Title>
           <AlertDialog.Description className="AlertDialogDescription" style={{margin: 0}}>

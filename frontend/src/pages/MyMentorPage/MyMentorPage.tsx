@@ -8,10 +8,12 @@ import {
 import { useNavigate } from "react-router-dom";
 import MinimalisticButton from "../../components/MinimalisticButton/MinimalisticButton";
 import FileTabContainer from "../../components/FileTabContainer/FileTabContainer";
-import { GoalCard } from "../GoalsPage/GoalsPage";
 import UseRecommendTodos from "../../hooks/UseRecommendTodos/UseRecommendTodos";
 import { IoChatbubbleOutline } from "react-icons/io5";
 import useChatWithUser from "../../hooks/UseChatWithUser/UseChatWithUser";
+import { PreviewAssessmentsPage, PreviewGoalsPage } from "../HomePage/HomePage";
+import { HelpCircle } from "lucide-react";
+import useTutorialWithDialog from "../../hooks/UseTutorialWithDialog/useTutorialWithDialog";
 
 export default function MymentorPage() {
   const { user, ready } = useSelector(
@@ -25,7 +27,6 @@ export default function MymentorPage() {
   return (
     <div className={"pageBase"}>
       <MyMentorPageHeader />
-      <div style={{}} />
       <MyMentorPageDashboard />
     </div>
   );
@@ -36,6 +37,8 @@ function MyMentorPageDashboard() {
   const hasMentor = user?.mentorID ? true : false;
   const isMentee = user?.isMentee || false;
   const { recommendTodoCard } = UseRecommendTodos();
+  const ShowTutorial = useTutorialWithDialog();
+
   return (
     <>
       <FileTabContainer
@@ -45,7 +48,25 @@ function MyMentorPageDashboard() {
             children: (
               <>
                 {hasMentor && <CurrentMentorInfo />}
-                {!hasMentor && (isMentee ? <MentorSearchTool />:recommendTodoCard('TakeFirstAssessment'))}
+                {!hasMentor &&
+                  (isMentee ? (
+                    <div style={{width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'start'}}>
+                      <span
+                        style={{
+                          marginLeft: "1rem",
+                          fontSize: "1.25rem",
+                          borderBottom: "1px #fff6 solid",
+                          cursor: "pointer",
+                        }}
+                        onClick={() => ShowTutorial('getAMentor')}
+                      >
+                        How does this work?
+                      </span>
+                      <MentorSearchTool />
+                    </div>
+                  ) : (
+                    recommendTodoCard("TakeFirstAssessment")
+                  ))}
               </>
             ),
           },
@@ -57,6 +78,10 @@ function MyMentorPageDashboard() {
               </>
             ),
           },
+          {
+            name: "Assessments",
+            children: <PreviewAssessmentsPage />,
+          },
         ]}
       />
       <div style={{ height: "5rem" }} />
@@ -64,29 +89,15 @@ function MyMentorPageDashboard() {
   );
 }
 
-function PreviewGoalsPage() {
-  const { user } = useSelector((store: ReduxRootState) => store.ClientSocket);
-  const { recommendTodoCard } = UseRecommendTodos();
-  const userGoals = Object.entries(user?.goals || {});
-  return (
-    <>
-      <div style={{ width: "100%", display: "flex" }}>
-        {userGoals.map(([goalID, goalPreviewObj]) => {
-          return <GoalCard id={goalID} name={goalPreviewObj.name} />;
-        })}
-      </div>
-      {userGoals.length == 0 && recommendTodoCard("CreateFirstGoal")}
-    </>
-  );
-}
-
 function MyMentorPageHeader() {
   const { user } = useSelector((store: ReduxRootState) => store.ClientSocket);
   const navigate = useNavigate();
+  function handleHelpClick() {
+    navigate("/app/help");
+  }
   // if (!user) {
   //   return <p>Waiting for user data...</p>;
   // }
-
 
   const { username } = user || {};
   return (
@@ -112,10 +123,20 @@ function MyMentorPageHeader() {
           </p>
         </div>
         <div>
-          <span style={{ fontSize: "1.75rem", fontWeight: 300 }}>My Mentor</span>
+          <span style={{ fontSize: "1.75rem", fontWeight: 300 }}>
+            My Mentor
+          </span>
         </div>
-        <div style={{marginTop: '0.5rem'}}>
-          <MinimalisticButton onClick={() => navigate('/app/mentee-guidelines')}>Mentee Guidelines</MinimalisticButton>
+        <div style={{ marginTop: "0.5rem", gap: "0.5rem", display: "flex" }}>
+          <MinimalisticButton
+            onClick={() => navigate("/app/mentee-guidelines")}
+          >
+            Mentee Guidelines
+          </MinimalisticButton>
+          <MinimalisticButton onClick={handleHelpClick}>
+            Help{" "}
+            <HelpCircle style={{ marginLeft: "0.25rem" }} size={"0.8rem"} />
+          </MinimalisticButton>
         </div>
       </div>
     </div>
@@ -266,7 +287,6 @@ function MentorSearchTool() {
           return;
         }
         setMentors(m);
-        console.log("got mentors", mentors);
       });
     }
   }, []);
@@ -283,7 +303,7 @@ function MentorSearchTool() {
       <div
         style={{
           borderRadius: 5,
-          padding: '0.2rem',
+          padding: "0.2rem",
           display: "flex",
           flexWrap: "wrap",
           justifyContent: "start",
@@ -299,7 +319,7 @@ function MentorSearchTool() {
             <div
               className="w-full xss:w-3/3 xs:w-2/3 sm:w-1/2 lg:w-1/3 xl:1/5"
               key={`user_${mentor.id}`}
-              style={{padding: '0.25rem'}}
+              style={{ padding: "0.25rem" }}
             >
               <MentorTile mentor={mentor} />
             </div>

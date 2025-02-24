@@ -33,9 +33,7 @@ export function checkViteEnvironmentVariables(): void {
     // 3. Log an error and potentially exit the process (more forceful):
     // console.error(errorMessage);
     // process.exit(1); // Exit with a non-zero code to indicate an error
-  } else {
-      console.log("All required environment variables are present.")
-  }
+  } 
 }
 checkViteEnvironmentVariables();
 

@@ -90,20 +90,20 @@ html {
 /* Decrease font size for tablets */
 @media (max-width: 1024px) {
   html {
-    font-size: 14px; /* 1rem = 14px */
+    font-size: 15px; /* 1rem = 14px */
   }
 }
 
 /* Further decrease for mobile devices */
 @media (max-width: 768px) {
   html {
-    font-size: 12px; /* 1rem = 12px */
+    font-size: 14px; /* 1rem = 12px */
   }
 }
 
 /* Even smaller font size for very small screens */
 @media (max-width: 480px) {
   html {
-    font-size: 10px; /* 1rem = 10px */
+    font-size: 12px; /* 1rem = 10px */
   }
 }

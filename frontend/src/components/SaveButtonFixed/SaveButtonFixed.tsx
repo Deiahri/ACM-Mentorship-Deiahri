@@ -4,10 +4,12 @@ export function SaveButtonFixed({
   show = false,
   saving,
   onSave,
+  onReset,
   disabled = true,
 }: {
   show?: boolean;
   onSave?: AnyFunction;
+  onReset?: AnyFunction;
   saving?: boolean;
   disabled?: boolean;
 }) {
@@ -27,7 +29,7 @@ export function SaveButtonFixed({
       <div
         style={{
           maxWidth: "90vw",
-          width: "20rem",
+          width: "27rem",
           backgroundColor: "#333",
           display: "flex",
           alignItems: "center",
@@ -50,6 +52,16 @@ export function SaveButtonFixed({
         >
           {!saving ? "Save" : "Saving..."}
         </button>
+        <button
+          onClick={onReset}
+          style={{
+            backgroundColor: "#df1616",
+            color: "#ddd",
+            fontSize: "1rem",
+            marginLeft: '0.4rem',
+            opacity: saving ? 0.5 : 1,
+          }}
+        >Reset</button>
         <span style={{ marginLeft: "0.5rem", fontSize: "1rem" }}>
           You have unsaved changes.
         </span>

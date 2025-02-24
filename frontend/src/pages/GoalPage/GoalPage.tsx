@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { AnyFunction, GoalObj, TaskObj } from "../../scripts/types";
 import MinimalisticInput from "../../components/MinimalisticInput/MinimalisticInput";
@@ -16,6 +16,8 @@ import { closeDialog, setDialog } from "../../features/Dialog/DialogSlice";
 import Calendar from "react-calendar";
 import { unixToDateString } from "../../scripts/tools";
 import MinimalisticTextArea from "../../components/MinimalisticTextArea/MinimalisticTextArea";
+import styles from './GoalPage.module.css';
+
 
 export default function GoalPage() {
   const dispatch = useDispatch();
@@ -24,6 +26,7 @@ export default function GoalPage() {
   const [changed, setChanged] = useState(false);
   const [params, _] = useSearchParams();
   const [goal, setGoal] = useState<GoalObj | boolean | undefined>(undefined);
+  const originalGoal = useRef<GoalObj | boolean | undefined>({});
   const [goalOwner, setGoalOwner] = useState<ClientSocketUser | boolean>();
   const id = params.get("id");
   const newParam = params.get("new");
@@ -31,6 +34,11 @@ export default function GoalPage() {
   const { user: self, ready } = useSelector(
     (store: ReduxRootState) => store.ClientSocket
   );
+
+  function handleOnReset() {
+    setGoal(originalGoal.current);
+    setChanged(false);
+  }
 
   const pageIsInvalid = (!id && !isNew) || (id && isNew);
   // fetches goal if id is present, and owner
@@ -51,6 +59,7 @@ export default function GoalPage() {
       // fetch for goal, then fetch for owner of goal.
       MyClientSocket.GetGoal(id, (v: boolean | GoalObj) => {
         setGoal(v);
+        originalGoal.current = v;
         if (typeof v == "boolean") {
           return;
         }
@@ -154,17 +163,20 @@ export default function GoalPage() {
                         })
                       );
                       setChanged(false);
+                      originalGoal.current = goal;
                     }
                     return;
                   }
-                  navigate(`/app/goal?id=${v}`);
+                  navigate(`/app/goal?id=${v}`, { replace: true });
                   dispatch(
                     setAlert({
                       title: "Success",
                       body: `Successfully created goal`,
                     })
                   );
+                  setSaving(false);
                   setChanged(false);
+                  originalGoal.current = goal;
                 }
               );
             },
@@ -187,6 +199,7 @@ export default function GoalPage() {
     >
       <SaveButtonFixed
         onSave={handleOnSaveClick}
+        onReset={handleOnReset}
         disabled={!selfIsOwner || isNew}
         show={changed}
         saving={saving}
@@ -248,6 +261,7 @@ function TasksSection({
   setTasks: Function;
   disabled: boolean;
 }) {
+  const dispatch = useDispatch();
   function handleAddTask() {
     const newTasks = [...(tasks || [])];
     const newTask: TaskObj = {
@@ -271,9 +285,34 @@ function TasksSection({
     if (!tasks) {
       return;
     }
-    const newTasks = [...tasks];
-    newTasks.splice(tIndex, 1);
-    setTasks(newTasks);
+
+    function delTask() {
+      if (!tasks) {
+        return;
+      }
+      const newTasks = [...tasks];
+      newTasks.splice(tIndex, 1);
+      setTasks(newTasks);
+    }
+
+    dispatch(setDialog({
+      title: 'Delete task \"'+tasks[tIndex].name+'\"',
+      subtitle: 'This will remove this task. After you save, this cannot be undone.',
+      buttonContainerStyle: { justifyContent: 'end' },
+      buttons: [
+        {
+          text: 'Delete',
+          onClick: () => {
+            delTask();
+            dispatch(closeDialog());
+          },
+          style: {
+            color: 'white',
+            backgroundColor: '#d22'
+          }
+        }
+      ]
+    }))
   }
 
   return (
@@ -417,7 +456,7 @@ function SelectDayOverlay({ onClickDay, onCancel }: { onClickDay?: (d?: Date) =>
           </span>
           <X size={"2rem"} style={{cursor: 'pointer'}} onClick={onCancel} />
         </div>
-        <Calendar calendarType="hebrew" onClickDay={(v) => onClickDay&&onClickDay(v)} />
+        <Calendar className={styles.CalendarAdjustment} calendarType="hebrew" onClickDay={(v) => onClickDay&&onClickDay(v)} />
         <button
         onClick={() => onClickDay && onClickDay(undefined)}
           style={{

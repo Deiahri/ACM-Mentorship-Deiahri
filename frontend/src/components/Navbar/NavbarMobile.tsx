@@ -13,6 +13,7 @@ import { useAuth0 } from "@auth0/auth0-react";
 
 const NavbarMobile: React.FC = () => {
   const { user } = useSelector((store: ReduxRootState) => store.ClientSocket);
+  const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const dispatch = useDispatch();
   const { logout } = useAuth0();
@@ -43,6 +44,7 @@ const NavbarMobile: React.FC = () => {
         { text: "Profile", href: `/app/user?id=${user?.id}` },
       ],
     },
+    { text: "Help", href: "/app/help" },
     {
       text: "Logout",
       onClick: () =>
@@ -62,8 +64,8 @@ const NavbarMobile: React.FC = () => {
           className="flex items-center fixed top-0 w-screen px-4 justify-between z-50 backdrop-blur-sm"
         >
           <div
-            className="flex flex-col space-y-1 cursor-pointer z-50"
-            style={{ width: 18 }}
+            className="flex flex-col space-y-2 cursor-pointer z-50"
+            style={{ width: '2rem' }}
             onClick={handleToggle}
             aria-expanded={isOpen}
           >
@@ -87,7 +89,7 @@ const NavbarMobile: React.FC = () => {
             <div
               className={`w-full h-0.5 transition-transform duration-300 ${
                 isOpen
-                  ? "transform -rotate-45 -translate-y-1.5 bg-white"
+                  ? "transform -rotate-45 -translate-y-3.5 bg-white"
                   : "bg-stone-50"
               }`}
             ></div>
@@ -100,7 +102,7 @@ const NavbarMobile: React.FC = () => {
               transform: "translate(-55%, 0%)",
             }}
           >
-            <MentorshipLogo scale={0.7} />
+            <MentorshipLogo scale={0.7} onClick={() => navigate('/app/home')} />
             {/* <img src={logo} alt="Logo" /> */}
           </div>
           <div className="w-20 h-20"></div>
@@ -113,7 +115,7 @@ const NavbarMobile: React.FC = () => {
         </div>
 
         <ul
-          className={`fixed nav-link w-full h-screen top-0 left-0 flex flex-col justify-evenly items-left z-10 text-4xl sm:text-6xl transition-transform duration-300 backdrop-blur-sm ${
+          className={`fixed nav-link w-full h-screen top-0 left-0 flex flex-col justify-evenly items-left z-10 text-4xl sm:text-6xl transition-transform duration-300 backdrop-blur-sm pt-10 ${
             isOpen ? "translate-y-0" : "-translate-y-full"
           }`}
         >
@@ -126,9 +128,7 @@ const NavbarMobile: React.FC = () => {
               dropdownItems={item.dropdownItems}
               onClick={() => {
                 item.onClick && item.onClick();
-                setTimeout(() => {
-                  setIsOpen(false);
-                }, 100);
+                setIsOpen(false);
               }}
             />
           ))}

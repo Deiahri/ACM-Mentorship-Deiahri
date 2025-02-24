@@ -64,7 +64,7 @@ export default function Assessments() {
           !assessments && <p style={{margin: 0, fontSize: '1.25rem'}}>No assessments</p>
         }
       </div>
-      <MinimalisticButton style={{marginTop: 10}} onClick={() => navigate('/app/assessment?type=new')}>Add Assessment +</MinimalisticButton>
+      <MinimalisticButton style={{marginTop: 10}} onClick={() => navigate('/app/assessment?type=new')}>New Assessment +</MinimalisticButton>
     </div>
   );
 }

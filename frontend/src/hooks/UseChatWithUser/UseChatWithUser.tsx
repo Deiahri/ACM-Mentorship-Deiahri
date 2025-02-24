@@ -94,7 +94,7 @@ export default function useChatWithUser() {
             },
           },
         ],
-        buttonContainerStyle: { width: "100%", justifyItems: "end" },
+        buttonContainerStyle: { width: "100%", display: 'flex', justifyContent: 'end' },
       })
     );
   }

@@ -42,11 +42,12 @@ let CreatingConnection = false;
  */
 export function CreateClientSocketConnection(
   userToken: string,
-  dispatch: Dispatch
+  dispatch: Dispatch,
+  reconnect?: boolean
 ) {
-  if (MyClientSocket || CreatingConnection) {
+  if ((MyClientSocket || CreatingConnection) && !reconnect) {
     // should not create new socket connection if one already exists, or in process of creating one.
-    console.log("already connecting or connected.");
+    console.log("already connecting or connected. Try setting reconnect to true to reconnect.");
     return;
   }
 
@@ -58,6 +59,8 @@ export function CreateClientSocketConnection(
     "\n",
     userToken
   );
+
+  dispatch(setClientState('connecting'));
   const socket = io(import.meta.env.VITE_SERVER_SOCKET_URL, {
     auth: {
       token: `Bearer ${userToken}`,
@@ -66,10 +69,12 @@ export function CreateClientSocketConnection(
 
   let failedConnects = 0;
   socket.on("connect_error", async () => {
+    dispatch(setClientState('connecting'));
     failedConnects++;
     if (failedConnects >= MAX_FAILED_CONNECTION_ATTEMPTS) {
       socket.disconnect();
       console.log("Failed to connect. Disconnecting");
+      dispatch(setClientState('disconnected'));
       return;
     }
     console.log("failed to connect, trying again.", failedConnects);
@@ -149,8 +154,9 @@ export const ClientSocketStates = [
   "connecting",
   "authed_nouser",
   "authed_user",
+  "disconnected"
 ];
-export type ClientSocketState = "connecting" | "authed_nouser" | "authed_user";
+export type ClientSocketState = "connecting" | "authed_nouser" | "authed_user" | "disconnected";
 class ClientSocket {
   dispatch: Dispatch;
   socket: Socket;
@@ -162,6 +168,11 @@ class ClientSocket {
   constructor(socket: Socket, dispatch: Dispatch) {
     this.socket = socket;
     this.dispatch = dispatch;
+
+    this.socket.on('disconnect', () => {
+      this.dispatch(setClientState('disconnected'));
+      this.state = 'disconnected';
+    });
     // clean listeners from socket
     this.InstallBaseListeners();
   }
@@ -242,12 +253,26 @@ class ClientSocket {
         }
       );
     } else if (action == "edit") {
-      console.log("editing");
       this.socket.emit(
         "submitAssessment",
         { action, questions, id },
         (v: boolean | string) => {
           callback(v);
+        }
+      );
+    } else if (action == 'delete') {
+      if (!id || typeof(id) != 'string') {
+        callback(false);
+        return;
+      }
+      this.socket.emit(
+        "submitAssessment",
+        { action, id },
+        (v: boolean | string) => {
+          callback(v);
+          if (v) {
+            this.requestUpdateSelf();
+          }
         }
       );
     }
@@ -332,7 +357,6 @@ class ClientSocket {
   private InstallBaseListeners() {
     this._cleanupSocketEvents();
     this._addStateSocketEvent("state", (state: string) => {
-      console.log("state", state);
       if (!isClientSocketState(state)) {
         console.error("Invalid State", state);
         return;

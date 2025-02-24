@@ -15,7 +15,8 @@ import {
   MentorshipRequestObj,
   MentorshipRequestResponseAction,
 } from "../../scripts/types";
-import { Check } from "lucide-react";
+import { Check, HelpCircle } from "lucide-react";
+import useTutorialWithDialog from "../../hooks/UseTutorialWithDialog/useTutorialWithDialog";
 
 export default function MyMenteesPage() {
   const { user, ready } = useSelector(
@@ -85,7 +86,9 @@ function MenteeRequests() {
           className="w-full xss:w-3/3 xs:w-2/3 sm:w-1/2 lg:w-1/3 xl:1/5"
           style={{ margin: "0.1rem" }}
           key={`mr_${mentorshipRequestID}`}
-        >{tile}</div>
+        >
+          {tile}
+        </div>
       );
     }
   );
@@ -312,6 +315,9 @@ function MyMentorPageHeader() {
   const navigate = useNavigate();
   const { user } = useSelector((store: ReduxRootState) => store.ClientSocket);
 
+  function handleHelpClick() {
+    navigate("/app/help");
+  }
   // if (!user) {
   //   return <p>Waiting for user data...</p>;
   // }
@@ -351,6 +357,14 @@ function MyMentorPageHeader() {
             onClick={() => navigate("/app/mentor-guidelines")}
           >
             Mentor Guidelines
+          </MinimalisticButton>
+
+          <MinimalisticButton
+            onClick={handleHelpClick}
+            style={{ marginLeft: "0.5rem" }}
+          >
+            Help{" "}
+            <HelpCircle style={{ marginLeft: "0.25rem" }} size={"0.8rem"} />
           </MinimalisticButton>
         </div>
       </div>
@@ -550,6 +564,7 @@ function CurrentMentorInfo() {
   const { user, ready } = useSelector(
     (store: ReduxRootState) => store.ClientSocket
   );
+  const ShowTutorial = useTutorialWithDialog();
 
   if (!user || !MyClientSocket || !ready) {
     return <p>Loading...</p>;
@@ -562,15 +577,26 @@ function CurrentMentorInfo() {
   const { menteeIDs } = user;
 
   return (
-    <div style={{ width: "100%" }}>
+    <div style={{ width: "100%", display: 'flex', flexDirection: 'column', alignItems: 'start' }}>
+      <span
+        style={{
+          marginLeft: "1rem",
+          fontSize: "1.25rem",
+          borderBottom: "1px #fff6 solid",
+          cursor: "pointer",
+        }}
+        onClick={() => ShowTutorial('mentoring')}
+      >
+        How does this work?
+      </span>
       <span style={{ fontSize: "1.5rem" }}>Mentees</span>
       {menteeIDs && (
-        <div style={{width: '100%', display: 'flex', flexWrap: 'wrap'}}>
+        <div style={{ width: "100%", display: "flex", flexWrap: "wrap" }}>
           {menteeIDs.map((menteeID) => {
             return (
               <div
                 className="w-full xss:w-3/3 xs:w-2/3 sm:w-1/2 lg:w-1/3 xl:1/5"
-                style={{ margin: "0.1rem", padding: '0.25rem' }}
+                style={{ margin: "0.1rem", padding: "0.25rem" }}
                 key={`mentee_${menteeID}`}
               >
                 <MenteeTile menteeID={menteeID} />
@@ -684,7 +710,11 @@ function MenteeTile({ menteeID }: { menteeID: string }) {
             }}
             onClick={() => (id ? chatWithUser(id) : undefined)}
           >
-            Chat <IoChatbubbleOutline size={'1rem'} style={{ marginLeft: "0.25rem" }} />
+            Chat{" "}
+            <IoChatbubbleOutline
+              size={"1rem"}
+              style={{ marginLeft: "0.25rem" }}
+            />
           </MinimalisticButton>
         </div>
       </div>

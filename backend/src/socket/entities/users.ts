@@ -68,7 +68,7 @@ export async function SyncUserProfile(
             displayPictureURL &&
               (chatUserPreviewObj.displayPictureURL = displayPictureURL);
             username && (chatUserPreviewObj.username = username);
-            mName && (chatUserPreviewObj.mName = mName);
+            chatUserPreviewObj.mName = mName || '';
             lName && (chatUserPreviewObj.lName = lName);
 
             DBSetWithID("chat", chatID, { users }, true).catch((err) =>

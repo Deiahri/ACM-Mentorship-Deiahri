@@ -19,6 +19,7 @@ import MymentorPage from "./pages/MyMentorPage/MyMentorPage";
 import MyMenteesPage from "./pages/MyMenteesPage/MyMenteesPage";
 import MentorGuidelinesPage from "./pages/GuidelinesPage/MentorGuidelinesPage";
 import MenteeGuidelinesPage from "./pages/GuidelinesPage/MenteeGuidelinesPage";
+import HelpPage from "./pages/HelpPage/HelpPage";
 
 const router = createBrowserRouter([
   {
@@ -78,6 +79,10 @@ const router = createBrowserRouter([
         element: <MenteeGuidelinesPage/>
       },
       {
+        path: 'help',
+        element: <HelpPage/>
+      },
+      {
         path: '*',
         element: <P404Page/>
       },
@@ -85,7 +90,7 @@ const router = createBrowserRouter([
   },
 ]);
 
-export default function ApRouting() {
+export default function AppRouting() {
   return <>
     <Provider store={store}>
       <Alert/>

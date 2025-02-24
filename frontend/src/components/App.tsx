@@ -8,6 +8,8 @@ import Chat from "../features/Chat/Chat";
 import DesktopChatWidget from "../features/Chat/DesktopChatWidget";
 import MobileChatWidget from "../features/Chat/MobileChatWidget";
 import Navbar from "./Navbar/Navbar";
+import MinimalisticButton from "./MinimalisticButton/MinimalisticButton";
+import ConnectingPage from "../pages/ConnectingPage/ConnectingPage";
 
 export default function App() {
   const { getAccessTokenSilently, isLoading, isAuthenticated } = useAuth0();
@@ -16,15 +18,16 @@ export default function App() {
   const { state } = useSelector((store: ReduxRootState) => store.ClientSocket);
   const navigate = useNavigate();
   const path = window.location.pathname;
-  
+
+  async function connectToServer(reconnect?: boolean) {
+    const userToken = await getAccessTokenSilently({ 'authorizationParams': { 'scope': 'email openid profile' } });
+    CreateClientSocketConnection(userToken, dispatch, reconnect);
+  }  
+
   useEffect(() => {
-    async function getToken() {
-      const userToken = await getAccessTokenSilently({ 'authorizationParams': { 'scope': 'email openid profile' } });
-      console.log('accessToken', userToken);
-      CreateClientSocketConnection(userToken, dispatch);
-    }
+    
     if (isAuthenticated) {
-      getToken();
+      connectToServer();
     }
   }, [isAuthenticated]);
 
@@ -49,9 +52,15 @@ export default function App() {
     return <p>Not authed</p>
   }
 
-  if (!state) {
+  if (!state || state == 'connecting') {
+    return <ConnectingPage/>
+  }
+
+  if (state == 'disconnected') {
     return <div className="pageBase" style={{justifyContent: 'center', alignItems: 'center'}} >
-      <span style={{fontSize: '1.5rem'}}>Connecting...</span>
+      <span style={{fontSize: '1.5rem'}}>You're not connected to server.</span>
+      <span style={{fontSize: '1.1rem'}}>Please try reconnecting.</span>
+      <MinimalisticButton style={{marginTop: '0.5rem'}} onClick={() => connectToServer(true)} >Reconnect</MinimalisticButton>
     </div>
   }
 

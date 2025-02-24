@@ -12,6 +12,7 @@ import Transition from "../Transition/Transition";
 import HideOnMobile from "../RenderOnMobile/HideOnMobile";
 import styles from "./NavbarDesktop.module.css";
 import { useAuth0 } from "@auth0/auth0-react";
+import { HelpCircle } from "lucide-react";
 
 export default function NavbarDesktop() {
   const [hover, setHover] = useState(false);
@@ -29,6 +30,10 @@ export default function NavbarDesktop() {
 
   function handleMyMenteeClick() {
     navigate("/app/my-mentees");
+  }
+
+  function handleHelpClick() {
+    navigate("/app/help");
   }
 
   function handleMouseLeaveNavbar() {
@@ -68,11 +73,22 @@ export default function NavbarDesktop() {
         </ButtonShadow>
         <ButtonShadow
           active={pagePath == "/app/my-mentees"}
-          style={{ transform: `scale(${hover ? 1 : 0.7})` }}
+          style={{
+            transform: `scale(${hover ? 1 : 0.7})`,
+            marginRight: "1rem",
+          }}
           onClick={handleMyMenteeClick}
           className={styles.animateScale}
         >
           My Mentees
+        </ButtonShadow>
+        <ButtonShadow
+          active={pagePath == "/app/help"}
+          style={{ transform: `scale(${hover ? 1 : 0.7})` }}
+          onClick={handleHelpClick}
+          className={styles.animateScale}
+        >
+          Help <HelpCircle style={{marginLeft: '0.25rem'}} size='1rem' />
         </ButtonShadow>
         <NavbarProfile
           className={styles.animateScale}
@@ -104,6 +120,11 @@ export function NavbarProfile({
 
   const MenuButtons: ButtonMenuButtonProperties[] = [
     {
+      text: "Profile",
+      style: defaultMenuButtonStyling,
+      onClick: () => navigate(`/app/user?id=${user?.id}`),
+    },
+    {
       text: "Assessments",
       style: defaultMenuButtonStyling,
       onClick: () => navigate(`/app/assessments?id=${user?.id}`),
@@ -112,11 +133,6 @@ export function NavbarProfile({
       text: "Goals",
       style: defaultMenuButtonStyling,
       onClick: () => navigate(`/app/goals?id=${user?.id}`),
-    },
-    {
-      text: "Profile",
-      style: defaultMenuButtonStyling,
-      onClick: () => navigate(`/app/user?id=${user?.id}`),
     },
     {
       text: "Logout",
@@ -144,14 +160,18 @@ export function NavbarProfile({
     <>
       <div
         style={{
-          ...style
+          ...style,
         }}
         className={className}
         onMouseEnter={() => handleMouseEnter()}
         onMouseLeave={() => handleMouseLeave()}
       >
-        <div style={{display: 'flex', alignItems: 'center'}}>
-          <span style={{ color: "white", fontSize: '1.25rem', marginRight: '1rem' }}>{user?.fName} {user?.lName}</span>
+        <div style={{ display: "flex", alignItems: "center" }}>
+          <span
+            style={{ color: "white", fontSize: "1.25rem", marginRight: "1rem" }}
+          >
+            {user?.fName} {user?.lName}
+          </span>
           <img
             draggable={false}
             style={{

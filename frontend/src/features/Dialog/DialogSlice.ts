@@ -1,5 +1,6 @@
 // written in JS because typing is such an issue with redux
 import { createSlice, Draft, PayloadAction } from "@reduxjs/toolkit";
+import { ReactNode } from "react";
 
 export type DialogInputType = 'number' | 'text' | 'email' | 'select' | 'toggle';
 export type DialogInput = {
@@ -37,7 +38,8 @@ export interface SetDialogObject {
   subTitleStyle?: React.CSSProperties,
   buttons?: DialogButton[],
   buttonContainerStyle?: React.CSSProperties,
-  inputs?: DialogInput[]
+  inputs?: DialogInput[],
+  showComponent?: ReactNode
 };
 
 interface DialogState extends SetDialogObject {

@@ -41,6 +41,7 @@ export default function Dialog() {
     active,
     containerStyle,
     overlayStyle,
+    showComponent
   } = useSelector((store: ReduxRootState) => store.Dialog);
   const [inputVals, setInputVals] = useState<ObjectAny>({});
   const [disabledButtons, setDisabledButtons] = useState(
@@ -140,7 +141,7 @@ export default function Dialog() {
           >
             {subtitle}
           </DialogRadix.Description>
-
+          {showComponent}
           {inputs?.map((DialogInput: DialogInput, index: number) => {
             const {
               inputStyle,

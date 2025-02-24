@@ -1,8 +1,9 @@
 import { useDispatch, useSelector } from "react-redux";
 import { ReduxRootState } from "../../store";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import React, { useContext, useEffect, useState } from "react";
+import React, { useContext, useEffect, useRef, useState } from "react";
 import {
+  ClientSocketUser,
   MyClientSocket,
 } from "../../features/ClientSocket/ClientSocket";
 import {
@@ -55,6 +56,7 @@ function UserPageWithContext() {
   const id = params.get("id");
 
   // TODO: add changedValues state to upload only changed values.
+  const originalUser = useRef<ClientSocketUser | undefined>();
   const { user, setUser, saving, setSaving, changed, setChanged } =
     useContext(UserPageContext);
   const { ready, user: self } = useSelector(
@@ -75,6 +77,7 @@ function UserPageWithContext() {
           return;
         }
         setUser(d);
+        originalUser.current = d;
       });
     }
     GetUser();
@@ -82,6 +85,11 @@ function UserPageWithContext() {
 
   const { id: selfUserID } = self || {};
   const CanMakeChanges = selfUserID == id;
+
+  function handleReset() {
+    setChanged(false);
+    setUser(originalUser.current);
+  }
 
   function HandleSave() {
     if (!changed || saving || !user) {
@@ -113,6 +121,7 @@ function UserPageWithContext() {
                       body: "Successfully saved changes",
                     })
                   );
+                  originalUser.current = user;
                 }
               );
             },
@@ -208,7 +217,6 @@ function UserPageWithContext() {
     bio,
   } = user;
 
-  console.log("currentUser", user);
   return (
     <div className={"pageBase"}>
       <MinimalisticButton
@@ -260,6 +268,7 @@ function UserPageWithContext() {
           saving={saving}
           show={changed}
           onSave={HandleSave}
+          onReset={handleReset}
         />
       )}
     </div>
@@ -268,49 +277,63 @@ function UserPageWithContext() {
 
 function UserStuff() {
   const navigate = useNavigate();
-  const { user } = useContext(UserPageContext);
+  const { user, existingIncomingMentorshipRequest } =
+    useContext(UserPageContext);
+  const { user: self } = useSelector(
+    (store: ReduxRootState) => store.ClientSocket
+  );
 
   if (!user) {
     return;
   }
-
+  const allowedToViewAssessments =
+    user.id == self?.id ||
+    user.mentorID == self?.id ||
+    (existingIncomingMentorshipRequest != "loading" &&
+      existingIncomingMentorshipRequest);
   const { fName } = user;
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "start",
-        // backgroundColor: "#292929",
-        // padding: "1rem",
-        marginTop: "0.5rem",
-        borderRadius: "0.5rem",
-      }}
-    >
-      <span style={{ fontSize: "1.25rem" }}>
-        {fName}
-        {fName?.charAt(fName.length - 1) == "s" ? "'" : "'s"} Stuff
-      </span>
-      <div style={{ display: "flex", marginLeft: 10, paddingTop: 5 }}>
-        <MinimalisticButton
-          style={{
-            fontSize: "0.8rem",
-          }}
-          onClick={() => navigate(`/app/assessments?id=${user.id}&origin=user`)}
-        >
-          Assessments {">"}
-        </MinimalisticButton>
-        <MinimalisticButton
-          style={{
-            marginLeft: 10,
-            fontSize: "0.8rem",
-          }}
-          onClick={() => navigate(`/app/goals?id=${user.id}&origin=user`)}
-        >
-          Goals {">"}
-        </MinimalisticButton>
+    allowedToViewAssessments && (
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "start",
+          // backgroundColor: "#292929",
+          // padding: "1rem",
+          marginTop: "0.5rem",
+          borderRadius: "0.5rem",
+        }}
+      >
+        <span style={{ fontSize: "1.25rem" }}>
+          {fName}
+          {fName?.charAt(fName.length - 1) == "s" ? "'" : "'s"} Stuff
+        </span>
+        <div style={{ display: "flex", marginLeft: 10, paddingTop: 5 }}>
+          {
+            <MinimalisticButton
+              style={{
+                fontSize: "0.8rem",
+              }}
+              onClick={() =>
+                navigate(`/app/assessments?id=${user.id}&origin=user`)
+              }
+            >
+              Assessments {">"}
+            </MinimalisticButton>
+          }
+          <MinimalisticButton
+            style={{
+              marginLeft: 10,
+              fontSize: "0.8rem",
+            }}
+            onClick={() => navigate(`/app/goals?id=${user.id}&origin=user`)}
+          >
+            Goals {">"}
+          </MinimalisticButton>
+        </div>
       </div>
-    </div>
+    )
   );
 }
 
@@ -539,7 +562,12 @@ function TopSection() {
     <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
       <img
         src={displayPictureURL || placeholderPreviewPicture}
-        style={{ borderRadius: "50%", width: "8rem", height: "8rem", border: '1px solid #fff3' }}
+        style={{
+          borderRadius: "50%",
+          width: "8rem",
+          height: "8rem",
+          border: "1px solid #fff3",
+        }}
       />
       <div>
         <NameSection
@@ -576,7 +604,7 @@ function ChatButton() {
   const { user: self } = useSelector(
     (store: ReduxRootState) => store.ClientSocket
   );
-  if (!user || !self || (user.id == self.id)) {
+  if (!user || !self || user.id == self.id) {
     return;
   }
   function handleChatClick() {
@@ -818,14 +846,14 @@ function RequestMentorButton() {
 }
 
 function MenteeButton() {
-  const { user } = useContext(UserPageContext);
+  const {
+    user,
+    existingIncomingMentorshipRequest,
+    setExistingIncomingMentorshipRequest,
+  } = useContext(UserPageContext);
   const { user: self } = useSelector(
     (store: ReduxRootState) => store.ClientSocket
   );
-  const [
-    existingIncomingMentorshipRequestObj,
-    setExistingIncomingMentorshipRequestObj,
-  ] = useState<MentorshipRequestObj | "loading">("loading");
   const dispatch = useDispatch();
 
   // fetches existing incoming mentorship request from user.
@@ -840,6 +868,7 @@ function MenteeButton() {
     ) {
       return;
     }
+    setExistingIncomingMentorshipRequest("loading");
     MyClientSocket.GetMentorshipRequestBetweenMentorMentee(
       self.id,
       user?.id,
@@ -847,7 +876,7 @@ function MenteeButton() {
         if (typeof v == "boolean") {
           return;
         }
-        setExistingIncomingMentorshipRequestObj(v);
+        setExistingIncomingMentorshipRequest(v);
       }
     );
   }, [self, user]);
@@ -856,7 +885,7 @@ function MenteeButton() {
     return;
   }
 
-  if (existingIncomingMentorshipRequestObj == "loading") {
+  if (existingIncomingMentorshipRequest == "loading") {
     return;
   }
 
@@ -891,7 +920,7 @@ function MenteeButton() {
   }
 
   function handleRespondToMentorshipRequest() {
-    if (!existingIncomingMentorshipRequestObj) {
+    if (!existingIncomingMentorshipRequest) {
       return;
     }
     dispatch(
@@ -930,9 +959,9 @@ function MenteeButton() {
     if (
       !isMentorshipRequestResponseAction(response) ||
       !MyClientSocket ||
-      !existingIncomingMentorshipRequestObj ||
-      existingIncomingMentorshipRequestObj == "loading" ||
-      !existingIncomingMentorshipRequestObj.id
+      !existingIncomingMentorshipRequest ||
+      existingIncomingMentorshipRequest == "loading" ||
+      !existingIncomingMentorshipRequest.id
     ) {
       callback && callback(false);
       setTimeout(() => {
@@ -944,7 +973,7 @@ function MenteeButton() {
     }
 
     MyClientSocket.DoMentorshipRequestAction(
-      existingIncomingMentorshipRequestObj.id,
+      existingIncomingMentorshipRequest.id,
       response
     );
   }
@@ -952,7 +981,7 @@ function MenteeButton() {
   const UserIsOurMentee = self.id == user.mentorID;
   let buttonElement: JSX.Element | undefined;
 
-  if (existingIncomingMentorshipRequestObj) {
+  if (existingIncomingMentorshipRequest) {
     buttonElement = (
       <MinimalisticButton
         style={RequestMentorButtonStyle}
@@ -1475,7 +1504,7 @@ function SocialSection({
         </p>
         {!disabled && <Pencil style={{ marginLeft: 5 }} size={"1rem"} />}
       </div>
-      <div style={{ marginLeft: 10 }}>
+      <div style={{ marginLeft: 10, display: 'flex' }}>
         {socials?.map((social, socialIndex) => {
           const { type, url } = social;
           return (
@@ -1516,7 +1545,7 @@ function BioSection({
 }) {
   return (
     <>
-      <div style={{ borderRadius: '0.5rem', marginTop: '0.5rem' }}>
+      <div style={{ borderRadius: "0.5rem", marginTop: "0.5rem" }}>
         <div style={{ display: "flex", alignItems: "center" }}>
           <p style={{ color: "white", fontSize: "1.25rem", margin: 0 }}>Bio</p>
           {!disabled && <Pencil style={{ marginLeft: 5 }} size={"1rem"} />}
@@ -1736,7 +1765,6 @@ function ExperienceLikeSection({
                   typeof endMonthIndex != "number" ||
                   typeof endYear != "number"
                 ) {
-                  console.log(endMonthIndex, endYear);
                   AlertRangeError("End year or month is invalid");
                   return;
                 }

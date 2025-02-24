@@ -13,6 +13,9 @@ export default function MinimalisticButton({ children, onClick, style, disabled 
         paddingTop: '0.5rem',
         paddingBottom: '0.5rem',
         fontSize: "1rem",
+        display: 'flex',
+        flexDirection: 'row',
+        alignItems: 'center',
         opacity: disabled ? 0.5 : 1,
         ...style
       }}

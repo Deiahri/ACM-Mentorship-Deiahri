@@ -1,5 +1,6 @@
-import React, { ReactNode, useState } from "react";
+import React, { ReactNode } from "react";
 import styles from "./FileTab.module.css";
+import { useSearchParams } from "react-router-dom";
 
 interface FileTabContainerProps extends React.HTMLProps<HTMLDivElement> {
   tabs: {
@@ -13,7 +14,18 @@ const FileTabContainer: React.FC<FileTabContainerProps> = ({
   tabs,
   ...rest
 }) => {
-  const [activeTab, setActiveTab] = useState(0);
+  const [params, setParams] = useSearchParams();
+  const tabRaw = params.get('tab');
+  const activeTab = isNaN(Number(tabRaw)) ? 0 : Number(tabRaw);
+  
+  if (activeTab < 0 || activeTab >= tabs.length) {
+    return null;
+  }
+
+  function setActiveTab(tab: number) {
+    setParams({ tab: `${tab}` }, { replace: true });
+  }
+
   return (
     <div
       style={{
