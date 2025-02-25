@@ -24,13 +24,23 @@ export type SocialType =
   | "twitter"
   | "youtube"
   | "linkedIn"
-  | "discord";
+  | "discord"
+  | "github"
+  | "stackOverflow"
+  | "hackerrank"
+  | "facebook"
+  | "portfolio";
 export const SocialTypes = [
   "instagram",
   "twitter",
   "youtube",
   "linkedIn",
   "discord",
+  "github",
+  "stackOverflow",
+  "hackerrank",
+  "facebook",
+  "portfolio"
 ];
 
 export type Month =

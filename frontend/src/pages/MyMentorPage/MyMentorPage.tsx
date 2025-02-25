@@ -175,7 +175,7 @@ function CurrentMentorInfo() {
 
   return (
     <div
-      className="w-full xss:w-3/3 xs:w-2/3 sm:w-1/2 lg:w-1/3 xl:1/5"
+      className="w-full xss:w-3/3 sm:w-1/2 lg:w-1/3 xl:1/5"
       style={{ margin: "0.1rem" }}
     >
       <MentorTile mentor={mentorObj} />
@@ -317,7 +317,7 @@ function MentorSearchTool() {
         {mentors.map((mentor) => {
           return (
             <div
-              className="w-full xss:w-3/3 xs:w-2/3 sm:w-1/2 lg:w-1/3 xl:1/5"
+              className="w-full xss:w-3/3 sm:w-1/2 lg:w-1/3 xl:1/5"
               key={`user_${mentor.id}`}
               style={{ padding: "0.25rem" }}
             >

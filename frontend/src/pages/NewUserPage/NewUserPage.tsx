@@ -1,20 +1,22 @@
 import { FormEvent, useState } from "react";
 import MentorshipLogo from "../../components/MentorshipLogo/MentorshipLogo";
 import { MyClientSocket } from "../../features/ClientSocket/ClientSocket";
-import { useDispatch, useSelector } from "react-redux";
-import { closeDialog, setDialog } from "../../features/Dialog/DialogSlice";
+import { useSelector } from "react-redux";
 import { useAuth0 } from "@auth0/auth0-react";
 import MinimalisticButton from "../../components/MinimalisticButton/MinimalisticButton";
 import { ReduxRootState } from "../../store";
+import { useNavigate } from "react-router-dom";
+import useTutorialWithDialog from "../../hooks/UseTutorialWithDialog/useTutorialWithDialog";
 
 export default function NewUserPage() {
+  const ShowTutorial = useTutorialWithDialog();
+  const navigate = useNavigate();
   const { user } = useSelector((store: ReduxRootState) => store.ClientSocket);
   const { logout } = useAuth0();
   const [fName, setFName] = useState("");
   const [mName, setMName] = useState("");
   const [lName, setLName] = useState("");
   const [username, setUsername] = useState("");
-  const dispatch = useDispatch();
 
   // if (!MyClientSocket) {
   //   return <p>Connecting...</p>;
@@ -22,26 +24,15 @@ export default function NewUserPage() {
 
   function handleSubmit(e: FormEvent) {
     if (user) {
-      
+      navigate('/app/home');
+      ShowTutorial('getStarted');
     }
     e.preventDefault();
     MyClientSocket?.createAccount({ fName, mName, lName, username }, (v: boolean) => {
       if (!v) {
         return;
       }
-      dispatch(
-        setDialog({
-          title: "Welcome to ACM Mentorships!",
-          subtitle: "We're excited to have you. Have a look around!",
-          buttons: [
-            {
-              text: "Okay",
-              style: { backgroundColor: "orange", color: "white" },
-              onClick: () => dispatch(closeDialog()),
-            },
-          ],
-        })
-      );
+      ShowTutorial('getStarted');
     });
   }
 

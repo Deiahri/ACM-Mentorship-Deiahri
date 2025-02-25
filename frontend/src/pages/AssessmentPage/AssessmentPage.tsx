@@ -15,6 +15,7 @@ import { isAssessment } from "../../scripts/validation";
 import MinimalisticButton from "../../components/MinimalisticButton/MinimalisticButton";
 import MinimalisticTextArea from "../../components/MinimalisticTextArea/MinimalisticTextArea";
 import { SaveButtonFixed } from "../../components/SaveButtonFixed/SaveButtonFixed";
+import useTutorialWithDialog from "../../hooks/UseTutorialWithDialog/useTutorialWithDialog";
 
 const FirstTimeRecommendedQuestionCount = 5;
 export default function AssessmentPage() {
@@ -30,6 +31,7 @@ export default function AssessmentPage() {
   const originalAssessment = useRef<AssessmentQuestion[]>([]);
   const [assessment, setAssessment] = useState<AssessmentQuestion[]>([]);
   const [assessmentUser, setAssessmentUser] = useState<ClientSocketUser>({});
+  const ShowTutorial = useTutorialWithDialog();
 
   const type = params.get("type");
   const assessmentID = params.get("id");
@@ -111,7 +113,7 @@ export default function AssessmentPage() {
 
     if (!user.assessments) {
       // this shouldn't happen.
-      navigate('/app/assessment?type=new&firstTime=true', { replace: true });
+      navigate("/app/assessment?type=new&firstTime=true", { replace: true });
       return;
     }
 
@@ -141,8 +143,13 @@ export default function AssessmentPage() {
       }
       setAssessment(questions);
       originalAssessment.current = questions;
-      dispatch(setAlert({ title: 'We got your latest answers', body: 'See how you\'ve improved since your latest assessment' }));
-    })
+      dispatch(
+        setAlert({
+          title: "We got your latest answers",
+          body: "See how you've improved since your latest assessment",
+        })
+      );
+    });
   }, [isNew, firstTime]);
 
   // if user is viewing one of their older assessments, this will warn them.
@@ -150,14 +157,16 @@ export default function AssessmentPage() {
     if (!user || !user.assessments || isNew || !assessmentID) {
       return;
     }
-    let currentAssessmentDate: number|undefined;
+    let currentAssessmentDate: number | undefined;
     let newestAssessmentDate: number = 0;
     let newestAssessmentID: string;
-    for (let [currentAssessmentID, assessmentPreviewObj] of Object.entries(user.assessments)) {
+    for (let [currentAssessmentID, assessmentPreviewObj] of Object.entries(
+      user.assessments
+    )) {
       if (assessmentID == currentAssessmentID) {
         currentAssessmentDate = assessmentPreviewObj.date;
       }
-      
+
       if (assessmentPreviewObj.date > newestAssessmentDate) {
         newestAssessmentDate = assessmentPreviewObj.date;
         newestAssessmentID = currentAssessmentID;
@@ -168,30 +177,34 @@ export default function AssessmentPage() {
     }
 
     if (newestAssessmentDate > currentAssessmentDate) {
-      dispatch(setDialog({
-        title: 'You have newer self-assessments',
-        subtitle: `You're viewing a past assessment. While you can edit it, consider updating your current assessment, or creating a new one to reflect your present progress.`,
-        buttons: [
-          {
-            text: 'Continue',
-            onClick: () => {
-              dispatch(closeDialog());
-            }
-          },
-          {
-            text: 'View latest assessment',
-            style: {
-              backgroundColor: "#e50",
-              color: "white"
+      dispatch(
+        setDialog({
+          title: "You have newer self-assessments",
+          subtitle: `You're viewing a past assessment. While you can edit it, consider updating your current assessment, or creating a new one to reflect your present progress.`,
+          buttons: [
+            {
+              text: "Continue",
+              onClick: () => {
+                dispatch(closeDialog());
+              },
             },
-            onClick: () => {
-              navigate('/app/assessment?id='+newestAssessmentID, { replace: true })
-              dispatch(closeDialog());
-            }
-          }
-        ],
-        buttonContainerStyle: { marginTop: '1rem' }
-      }));
+            {
+              text: "View latest assessment",
+              style: {
+                backgroundColor: "#e50",
+                color: "white",
+              },
+              onClick: () => {
+                navigate("/app/assessment?id=" + newestAssessmentID, {
+                  replace: true,
+                });
+                dispatch(closeDialog());
+              },
+            },
+          ],
+          buttonContainerStyle: { marginTop: "1rem" },
+        })
+      );
     }
   }, []);
 
@@ -208,7 +221,6 @@ export default function AssessmentPage() {
     const newAssessment = [...assessment, aQ];
     setAssessment(newAssessment);
   }
-
 
   function updateAssessment(a: AssessmentQuestion[]) {
     setChanged(true);
@@ -234,7 +246,6 @@ export default function AssessmentPage() {
     return true;
   }
 
-
   function handleAddQuestion() {
     const questionList: string[] = [];
 
@@ -254,7 +265,7 @@ export default function AssessmentPage() {
         text: "Select",
         style: {
           backgroundColor: "orange",
-          color: "white"
+          color: "white",
         },
         onClick: (params: ObjectAny) => {
           (() => {
@@ -278,7 +289,7 @@ export default function AssessmentPage() {
             }
           })();
           dispatch(closeDialog());
-        }
+        },
       });
     }
 
@@ -477,6 +488,18 @@ export default function AssessmentPage() {
                 : ""
             } Assessment`}
       </p>
+      {isCreatePage && (
+        <span
+          style={{
+            borderBottom: "1px solid #fff6",
+            marginBottom: "1rem",
+            cursor: "pointer",
+          }}
+          onClick={() => ShowTutorial("selfAssessments")}
+        >
+          How do assessments work?
+        </span>
+      )}
       {!isCreatePage && (
         <div style={{ display: "flex", alignItems: "center" }}>
           <div
@@ -497,9 +520,11 @@ export default function AssessmentPage() {
           </div>
         </div>
       )}
-      {
-        assessment.length == 0 && <span style={{marginBottom: '2rem', backgroundColor: '#c85'}}>Press <b>Add Question+</b> and choose one you can answer best!</span>
-      }
+      {assessment.length == 0 && (
+        <span style={{ marginBottom: "2rem", backgroundColor: "#c85" }}>
+          Press <b>Add Question+</b> and choose one you can answer best!
+        </span>
+      )}
       <AssessmentSection
         assessment={assessment}
         setAssessment={updateAssessment}
@@ -521,17 +546,19 @@ export default function AssessmentPage() {
       <div
         style={{
           maxWidth: "80vw",
-          height: '1rem',
-          borderTop: "1px solid #fff4"
+          height: "1rem",
+          borderTop: "1px solid #fff4",
         }}
       />
-      {
-        (isNew) && <MinimalisticButton onClick={() => handleOnSaveClick()}>Create Assessment</MinimalisticButton>
-      }
+      {isNew && (
+        <MinimalisticButton onClick={() => handleOnSaveClick()}>
+          Create Assessment
+        </MinimalisticButton>
+      )}
       <div
         style={{
           maxWidth: "80vw",
-          height: '10vh',
+          height: "10vh",
           borderTop: "1px solid #fff4",
           marginTop: 10,
           marginBottom: 10,
@@ -599,19 +626,25 @@ function AssessmentSection({
               display: "flex",
               flexDirection: "column",
               alignItems: "start",
-              marginBottom: '0.75rem'
+              marginBottom: "0.75rem",
             }}
           >
             <div style={{ display: "flex", alignItems: "center" }}>
               <MinimalisticInput
-                style={{ marginLeft: '0.5rem' }}
+                style={{ marginLeft: "0.5rem" }}
                 value={question}
                 onChange={(val: string) => {
                   updateAssessmentQuestion(index, val, answer);
                 }}
                 disabled={disabled}
               />
-              {!disabled && <Trash onClick={() => deleteAssessmentQuestion(index)} size={"1.2rem"} style={{ marginLeft: 10, cursor: 'pointer' }} />}
+              {!disabled && (
+                <Trash
+                  onClick={() => deleteAssessmentQuestion(index)}
+                  size={"1.2rem"}
+                  style={{ marginLeft: 10, cursor: "pointer" }}
+                />
+              )}
             </div>
             {warning && (
               <span style={{ margin: 0, color: "orange", marginLeft: 10 }}>

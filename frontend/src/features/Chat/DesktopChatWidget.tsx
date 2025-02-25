@@ -24,8 +24,8 @@ export default function DesktopChatWidget() {
         width: "20rem",
         boxSizing: "border-box",
         zIndex: 10,
-        borderLeft: "1px solid #fff2",
-        borderRight: "1px solid #fff2",
+        // borderLeft: "1px solid #fff2",
+        // borderRight: "1px solid #fff2",
       }}
     >
       {!open && <ChatWidgetHeader />}
@@ -73,12 +73,12 @@ function ChatWidgetOpened() {
     <>
       <ChatWidgetHeader />
       {!activeChatID && (
-        <div style={{ height: "25rem", backgroundColor: "#222" }}>
+        <div style={{ height: "25rem", backgroundColor: "#222", borderLeft: '1px solid #fff4', borderRight: '1px solid #fff4' }}>
           <ChatWidgetChats />
         </div>
       )}
       {activeChatID && (
-        <div style={{ height: "25rem", backgroundColor: "#222" }}>
+        <div style={{ height: "25rem", backgroundColor: "#222", borderLeft: '1px solid #fff4', borderRight: '1px solid #fff4' }}>
           <ChatWidgetActiveChat />
         </div>
       )}

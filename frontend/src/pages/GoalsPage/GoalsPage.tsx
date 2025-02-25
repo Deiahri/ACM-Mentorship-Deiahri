@@ -13,7 +13,7 @@ import useDeleteGoalWithDialog from "../../hooks/UseDeleteGoalWithDialog/useDele
 
 export default function GoalsPage() {
   const navigate = useNavigate();
-  const { ready } = useSelector((store: ReduxRootState) => store.ClientSocket);
+  const { ready, user: self } = useSelector((store: ReduxRootState) => store.ClientSocket);
   const [params, _] = useSearchParams();
   const [user, setUser] = useState<ClientSocketUser | undefined | false>();
   const deleteGoalWithDialog = useDeleteGoalWithDialog();
@@ -53,6 +53,7 @@ export default function GoalsPage() {
   }
 
   const { fName, lName, goals } = user;
+  const userOwnsGoals = id == self?.id;
 
   return (
     <div className={"pageBase"}>
@@ -82,12 +83,14 @@ export default function GoalsPage() {
           )}
         {!goals && <p style={{ margin: 0, fontSize: "1.25rem" }}>No goals</p>}
       </div>
-      <MinimalisticButton
-        onClick={() => navigate("/app/goal?new=true&origin=user")}
-        style={{ marginTop: 10 }}
-      >
-        New Goal +
-      </MinimalisticButton>
+      {
+        userOwnsGoals && <MinimalisticButton
+          onClick={() => navigate("/app/goal?new=true&origin=user")}
+          style={{ marginTop: 10 }}
+        >
+          New Goal +
+        </MinimalisticButton>
+      }
     </div>
   );
 }

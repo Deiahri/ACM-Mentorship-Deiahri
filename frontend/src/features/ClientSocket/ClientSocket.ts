@@ -47,18 +47,11 @@ export function CreateClientSocketConnection(
 ) {
   if ((MyClientSocket || CreatingConnection) && !reconnect) {
     // should not create new socket connection if one already exists, or in process of creating one.
-    console.log("already connecting or connected. Try setting reconnect to true to reconnect.");
     return;
   }
 
   // set creating = true, so subsequent calls while connecting are denied.
   CreatingConnection = true;
-  console.log(
-    "establishing socket connection with",
-    import.meta.env.VITE_SERVER_SOCKET_URL,
-    "\n",
-    userToken
-  );
 
   dispatch(setClientState('connecting'));
   const socket = io(import.meta.env.VITE_SERVER_SOCKET_URL, {
@@ -77,7 +70,6 @@ export function CreateClientSocketConnection(
       dispatch(setClientState('disconnected'));
       return;
     }
-    console.log("failed to connect, trying again.", failedConnects);
   });
 
   socket.once("connect", () => {
@@ -209,7 +201,6 @@ class ClientSocket {
   }
 
   updateProfile(params: ClientSocketUser, callback?: Function) {
-    console.log("updatingProfile", params);
     this.socket.emit("updateProfile", params, (v: boolean) => {
       callback && callback(v);
 
@@ -348,7 +339,6 @@ class ClientSocket {
         );
         break;
       default:
-        console.error("unhandled submit goal action:", action);
         callback(false);
         return;
     }
@@ -358,7 +348,6 @@ class ClientSocket {
     this._cleanupSocketEvents();
     this._addStateSocketEvent("state", (state: string) => {
       if (!isClientSocketState(state)) {
-        console.error("Invalid State", state);
         return;
       }
       this.state = state;
@@ -368,12 +357,7 @@ class ClientSocket {
     this._addStateSocketEvent(
       "message",
       (messagePayload: ClientMessagePayload) => {
-        console.log("received message", messagePayload);
         if (typeof messagePayload != "object") {
-          console.error(
-            "Received a message with invalid format.",
-            messagePayload
-          );
           return;
         }
         const { title, body } = messagePayload;
@@ -382,19 +366,15 @@ class ClientSocket {
     );
 
     this._addStateSocketEvent("data", (payload: ClientDataPayload) => {
-      console.log("received data", payload);
       if (typeof payload != "object") {
-        console.error("Received invalid payload");
         return;
       }
       const { type, data } = payload;
       if (!type || !data) {
-        console.error("Payload is missing parameters");
         return;
       }
 
       if (!isClientDataPayloadType(type)) {
-        console.error("Payload type is invalid.", type);
         return;
       }
 
@@ -406,11 +386,9 @@ class ClientSocket {
       } else if (type == "chat") {
         processFunc = this._handleChat.bind(this);
       } else if (type == "updateSelf") {
-        console.log('received update self');
         this.requestUpdateSelf();
         processFunc = NothingFunction;
       } else {
-        console.error("Unhandled data type:", type);
         return;
       }
       processFunc(data);
@@ -457,7 +435,6 @@ class ClientSocket {
     const callback = cb || NothingFunction;
 
     if (!goalID) {
-      console.error("Can't call getGoal without goal ID");
       callback(false);
       return;
     }
@@ -560,11 +537,6 @@ class ClientSocket {
     mentorshipRequestAction: MentorshipRequestResponseAction,
     callback?: Function
   ) {
-    console.log(
-      "DoMentorshipRequestAction",
-      requestID,
-      mentorshipRequestAction
-    );
     this.socket.emit(
       "mentorshipRequest",
       { action: mentorshipRequestAction, mentorshipRequestID: requestID },
@@ -669,12 +641,10 @@ class ClientSocket {
 
   private _handleInitialData(initialData: unknown) {
     if (!initialData || typeof initialData != "object") {
-      console.error("Expected initial data to be object", initialData);
       return;
     }
     const { user, availableAssessmentQuestions } = initialData as ObjectAny;
     if (!user) {
-      console.error("initialData is missing user payload", initialData);
       return;
     }
     this.dispatch(setClientUser(user));
@@ -685,10 +655,6 @@ class ClientSocket {
         setAvailableAssessmentQuestions(availableAssessmentQuestions)
       );
     } else {
-      console.error(
-        "Received unexpected format for available assessment questions",
-        availableAssessmentQuestions
-      );
     }
   }
 
@@ -696,19 +662,11 @@ class ClientSocket {
     mentorshipRequestObj: MentorshipRequestObj
   ) {
     if (!isMentorshipRequestObject(mentorshipRequestObj)) {
-      console.error(
-        "Received mentorship object that was invalid",
-        mentorshipRequestObj
-      );
       return;
     }
 
     const { id, mentorID, menteeID, status } = mentorshipRequestObj;
     if (!mentorID || !id || !menteeID) {
-      console.error(
-        "Received mentorship object that was missing a parameter",
-        mentorshipRequestObj
-      );
       return;
     }
     setTimeout(() => {
@@ -762,7 +720,6 @@ class ClientSocket {
 
   private _handleChat(chatObj: ChatObj) {
     this.dispatch(addChat({ chatID: chatObj.id, chat: chatObj }));
-    console.log(chatObj.lastMessage.sender, this.user.id, chatObj.lastMessage.sender == this.user.id);
     if (chatObj.lastMessage.sender == this.user.id) {
       playMessageSendNotificationSound();
     } else {

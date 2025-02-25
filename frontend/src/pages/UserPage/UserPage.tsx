@@ -12,16 +12,15 @@ import {
   MentorshipRequestResponseAction,
   Months,
   ObjectAny,
+  SocialType,
   SocialTypes,
 } from "../../scripts/types";
 import {
-  Instagram,
+  Globe,
   Pencil,
   Trash,
-  Twitter,
   X,
   XIcon,
-  Youtube,
 } from "lucide-react";
 import { IoChatbubbleOutline } from "react-icons/io5";
 import {
@@ -29,7 +28,7 @@ import {
   DialogInput,
   setDialog,
 } from "../../features/Dialog/DialogSlice";
-import { FaDiscord, FaLinkedin } from "react-icons/fa";
+import { FaDiscord, FaFacebook, FaGithub, FaHackerrank, FaInstagram, FaLinkedin, FaStackOverflow, FaTwitter, FaYoutube } from "react-icons/fa";
 import { getMonthName, getMonthNumber, sleep } from "../../scripts/tools";
 import MinimalisticInput from "../../components/MinimalisticInput/MinimalisticInput";
 import MinimalisticButton from "../../components/MinimalisticButton/MinimalisticButton";
@@ -1455,7 +1454,7 @@ function SocialSection({
       dispatch(
         setAlert({
           title: "Invalid Social",
-          body: "Your social is missing a url or icon.",
+          body: "Your social is missing a url or icon."
         })
       );
       return;
@@ -1896,7 +1895,7 @@ function SocialTile({
   canEdit?: boolean;
   onEdit?: AnyFunction;
 }) {
-  const { type, url } = social;
+  const { type, url }: { type?: SocialType, url?: string } = social;
   const dispatch = useDispatch();
   function HandleOpenSocial() {
     const btns: ObjectAny[] = [
@@ -1945,21 +1944,21 @@ function SocialTile({
   return (
     <>
       {type == "instagram" && (
-        <Instagram
+        <FaInstagram
           size={30}
           onClick={HandleOpenSocial}
           style={defaultIconStyle}
         />
       )}
       {type == "twitter" && (
-        <Twitter
+        <FaTwitter
           size={30}
           onClick={HandleOpenSocial}
           style={defaultIconStyle}
         />
       )}
       {type == "youtube" && (
-        <Youtube
+        <FaYoutube
           size={30}
           strokeWidth={1.5}
           onClick={HandleOpenSocial}
@@ -1975,6 +1974,41 @@ function SocialTile({
       )}
       {type == "discord" && (
         <FaDiscord
+          size={30}
+          onClick={HandleOpenSocial}
+          style={defaultIconStyle}
+        />
+      )}
+      {type == "github" && (
+        <FaGithub
+          size={30}
+          onClick={HandleOpenSocial}
+          style={defaultIconStyle}
+        />
+      )}
+      {type == "facebook" && (
+        <FaFacebook
+          size={30}
+          onClick={HandleOpenSocial}
+          style={defaultIconStyle}
+        />
+      )}
+      {type == "hackerrank" && (
+        <FaHackerrank
+          size={30}
+          onClick={HandleOpenSocial}
+          style={defaultIconStyle}
+        />
+      )}
+      {type == "portfolio" && (
+        <Globe
+          size={30}
+          onClick={HandleOpenSocial}
+          style={defaultIconStyle}
+        />
+      )}
+      {type == "stackOverflow" && (
+        <FaStackOverflow
           size={30}
           onClick={HandleOpenSocial}
           style={defaultIconStyle}

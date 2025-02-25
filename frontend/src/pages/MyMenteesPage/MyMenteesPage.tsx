@@ -83,7 +83,7 @@ function MenteeRequests() {
       }
       return (
         <div
-          className="w-full xss:w-3/3 xs:w-2/3 sm:w-1/2 lg:w-1/3 xl:1/5"
+          className="w-full xss:w-3/3 sm:w-1/2 lg:w-1/3 xl:1/5"
           style={{ margin: "0.1rem" }}
           key={`mr_${mentorshipRequestID}`}
         >
@@ -595,7 +595,7 @@ function CurrentMentorInfo() {
           {menteeIDs.map((menteeID) => {
             return (
               <div
-                className="w-full xss:w-3/3 xs:w-2/3 sm:w-1/2 lg:w-1/3 xl:1/5"
+                className="w-full xss:w-3/3 sm:w-1/2 lg:w-1/3 xl:1/5"
                 style={{ margin: "0.1rem", padding: "0.25rem" }}
                 key={`mentee_${menteeID}`}
               >

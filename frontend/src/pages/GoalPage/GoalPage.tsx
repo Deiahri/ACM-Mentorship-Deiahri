@@ -16,8 +16,8 @@ import { closeDialog, setDialog } from "../../features/Dialog/DialogSlice";
 import Calendar from "react-calendar";
 import { unixToDateString } from "../../scripts/tools";
 import MinimalisticTextArea from "../../components/MinimalisticTextArea/MinimalisticTextArea";
-import styles from './GoalPage.module.css';
-
+import styles from "./GoalPage.module.css";
+import useTutorialWithDialog from "../../hooks/UseTutorialWithDialog/useTutorialWithDialog";
 
 export default function GoalPage() {
   const dispatch = useDispatch();
@@ -34,6 +34,7 @@ export default function GoalPage() {
   const { user: self, ready } = useSelector(
     (store: ReduxRootState) => store.ClientSocket
   );
+  const ShowTutorial = useTutorialWithDialog();
 
   function handleOnReset() {
     setGoal(originalGoal.current);
@@ -194,9 +195,7 @@ export default function GoalPage() {
   };
 
   return (
-    <div
-    className={'pageBase'}
-    >
+    <div className={"pageBase"}>
       <SaveButtonFixed
         onSave={handleOnSaveClick}
         onReset={handleOnReset}
@@ -230,6 +229,16 @@ export default function GoalPage() {
             </span>
           </p>
         </div>
+        <span
+          style={{
+            borderBottom: "1px solid #fff6",
+            marginBottom: "1rem",
+            cursor: "pointer",
+          }}
+          onClick={() => ShowTutorial("goals")}
+        >
+          How do goals work?
+        </span>
 
         <p style={{ margin: 0, fontSize: "1.25rem" }}>Tasks</p>
         <div style={{ marginLeft: 10 }}>
@@ -240,7 +249,7 @@ export default function GoalPage() {
           />
         </div>
       </div>
-      {(selfIsOwner && isNew) && (
+      {selfIsOwner && isNew && (
         <MinimalisticButton
           onClick={handleOnSaveClick}
           style={{ marginTop: 10 }}
@@ -295,24 +304,27 @@ function TasksSection({
       setTasks(newTasks);
     }
 
-    dispatch(setDialog({
-      title: 'Delete task \"'+tasks[tIndex].name+'\"',
-      subtitle: 'This will remove this task. After you save, this cannot be undone.',
-      buttonContainerStyle: { justifyContent: 'end' },
-      buttons: [
-        {
-          text: 'Delete',
-          onClick: () => {
-            delTask();
-            dispatch(closeDialog());
+    dispatch(
+      setDialog({
+        title: 'Delete task "' + tasks[tIndex].name + '"',
+        subtitle:
+          "This will remove this task. After you save, this cannot be undone.",
+        buttonContainerStyle: { justifyContent: "end" },
+        buttons: [
+          {
+            text: "Delete",
+            onClick: () => {
+              delTask();
+              dispatch(closeDialog());
+            },
+            style: {
+              color: "white",
+              backgroundColor: "#d22",
+            },
           },
-          style: {
-            color: 'white',
-            backgroundColor: '#d22'
-          }
-        }
-      ]
-    }))
+        ],
+      })
+    );
   }
 
   return (
@@ -380,22 +392,38 @@ function Task({
 
   return (
     <div style={{ display: "flex", flexDirection: "column" }}>
-      <div style={{ display: "flex", alignItems: 'end' }}>
+      <div style={{ display: "flex", alignItems: "end" }}>
         <MinimalisticInput
           disabled={disabled}
           onChange={handleChangeName}
           value={name || "New Task"}
-          style={{ minWidth: '3rem', fontWeight: 'bold', fontSize: '1.25rem' }}
+          style={{ minWidth: "3rem", fontWeight: "bold", fontSize: "1.25rem" }}
         />
-        <div style={{display: 'flex', marginLeft: '0.5rem' }}>
-          <span onClick={() => !disabled&&setOpenCalendar(true)} style={{ borderBottom: '1px #fff4 solid', cursor: disabled ? 'initial':'pointer' }}>{ completitionDate ? unixToDateString(completitionDate) : 'Not Complete' }</span>
-          {completitionDate && <Check style={{marginLeft: '0.1rem'}} color={'#0a0'}/>}
+        <div style={{ display: "flex", marginLeft: "0.5rem" }}>
+          <span
+            onClick={() => !disabled && setOpenCalendar(true)}
+            style={{
+              borderBottom: "1px #fff4 solid",
+              cursor: disabled ? "initial" : "pointer",
+            }}
+          >
+            {completitionDate
+              ? unixToDateString(completitionDate)
+              : "Not Complete"}
+          </span>
+          {completitionDate && (
+            <Check style={{ marginLeft: "0.1rem" }} color={"#0a0"} />
+          )}
         </div>
         {!disabled && (
           <Trash
             onClick={onDelete}
             size={"1.25rem"}
-            style={{ marginLeft: "0.5rem", cursor: "pointer", marginBottom: '0.2rem' }}
+            style={{
+              marginLeft: "0.5rem",
+              cursor: "pointer",
+              marginBottom: "0.2rem",
+            }}
           />
         )}
       </div>
@@ -407,12 +435,23 @@ function Task({
           placeholder="Task Description"
         />
       </div>
-      {openCalendar && <SelectDayOverlay onClickDay={handleDaySelect} onCancel={() => setOpenCalendar(false)} />}
+      {openCalendar && (
+        <SelectDayOverlay
+          onClickDay={handleDaySelect}
+          onCancel={() => setOpenCalendar(false)}
+        />
+      )}
     </div>
   );
 }
 
-function SelectDayOverlay({ onClickDay, onCancel }: { onClickDay?: (d?: Date) => any, onCancel?: AnyFunction }) {
+function SelectDayOverlay({
+  onClickDay,
+  onCancel,
+}: {
+  onClickDay?: (d?: Date) => any;
+  onCancel?: AnyFunction;
+}) {
   return (
     <div
       style={{
@@ -454,11 +493,15 @@ function SelectDayOverlay({ onClickDay, onCancel }: { onClickDay?: (d?: Date) =>
           <span style={{ fontSize: "1.5rem", textAlign: "start" }}>
             Completition Date
           </span>
-          <X size={"2rem"} style={{cursor: 'pointer'}} onClick={onCancel} />
+          <X size={"2rem"} style={{ cursor: "pointer" }} onClick={onCancel} />
         </div>
-        <Calendar className={styles.CalendarAdjustment} calendarType="hebrew" onClickDay={(v) => onClickDay&&onClickDay(v)} />
+        <Calendar
+          className={styles.CalendarAdjustment}
+          calendarType="hebrew"
+          onClickDay={(v) => onClickDay && onClickDay(v)}
+        />
         <button
-        onClick={() => onClickDay && onClickDay(undefined)}
+          onClick={() => onClickDay && onClickDay(undefined)}
           style={{
             marginTop: 10,
             fontSize: "1.25rem",
@@ -466,7 +509,7 @@ function SelectDayOverlay({ onClickDay, onCancel }: { onClickDay?: (d?: Date) =>
             backgroundColor: "#777",
             color: "#ddd",
             borderTopLeftRadius: 0,
-            borderTopRightRadius: 0
+            borderTopRightRadius: 0,
           }}
         >
           Not Complete
