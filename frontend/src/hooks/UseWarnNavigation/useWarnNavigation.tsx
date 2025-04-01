@@ -1,5 +1,7 @@
-import { useEffect } from "react";
-import { useBlocker, useNavigate } from "react-router-dom";
+// import { useEffect } from "react";
+import { useBlocker, 
+  // useNavigate 
+} from "react-router-dom";
 // import { useBlocker } from "react-router-dom";
 
 const defaultWarning = "Are you sure you want to leave this page?";
@@ -10,8 +12,8 @@ export default function useWarnNavigation({
   enabled: boolean;
   warning?: string;
 }) {
-  const navigate = useNavigate();
-  const currentPage = window.location.pathname+window.location.search;
+  // const navigate = useNavigate();
+  // const currentPage = window.location.pathname+window.location.search;
   // React Router Blocker
   useBlocker(() => {
     if (enabled) {
