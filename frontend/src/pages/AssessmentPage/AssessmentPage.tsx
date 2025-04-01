@@ -16,6 +16,7 @@ import MinimalisticButton from "../../components/MinimalisticButton/Minimalistic
 import MinimalisticTextArea from "../../components/MinimalisticTextArea/MinimalisticTextArea";
 import { SaveButtonFixed } from "../../components/SaveButtonFixed/SaveButtonFixed";
 import useTutorialWithDialog from "../../hooks/UseTutorialWithDialog/useTutorialWithDialog";
+import useWarnNavigation from "../../hooks/UseWarnNavigation/useWarnNavigation";
 
 const FirstTimeRecommendedQuestionCount = 5;
 export default function AssessmentPage() {
@@ -207,6 +208,8 @@ export default function AssessmentPage() {
       );
     }
   }, []);
+
+  // useWarnNavigation({ enabled: changed });
 
   if (!user) {
     return <p>Waiting...</p>;
