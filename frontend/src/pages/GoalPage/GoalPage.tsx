@@ -2,7 +2,14 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { AnyFunction, GoalObj, TaskObj } from "../../scripts/types";
 import MinimalisticInput from "../../components/MinimalisticInput/MinimalisticInput";
-import { Check, Pencil, Trash, X } from "lucide-react";
+import {
+  ArrowBigDown,
+  ArrowBigUp,
+  Check,
+  Pencil,
+  Trash,
+  X,
+} from "lucide-react";
 import {
   ClientSocketUser,
   MyClientSocket,
@@ -18,6 +25,7 @@ import { unixToDateString } from "../../scripts/tools";
 import MinimalisticTextArea from "../../components/MinimalisticTextArea/MinimalisticTextArea";
 import styles from "./GoalPage.module.css";
 import useTutorialWithDialog from "../../hooks/UseTutorialWithDialog/useTutorialWithDialog";
+import { FaRegQuestionCircle } from "react-icons/fa";
 
 export default function GoalPage() {
   const dispatch = useDispatch();
@@ -209,7 +217,13 @@ export default function GoalPage() {
       >
         Back
       </MinimalisticButton>
-      <div style={{ display: "flex", flexDirection: "column" }}>
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "start",
+        }}
+      >
         <div style={{ display: "flex", alignItems: "center" }}>
           <MinimalisticInput
             value={name || "New Goal"}
@@ -229,16 +243,15 @@ export default function GoalPage() {
             </span>
           </p>
         </div>
-        <span
+        <MinimalisticButton
           style={{
-            borderBottom: "1px solid #fff6",
             marginBottom: "1rem",
             cursor: "pointer",
           }}
           onClick={() => ShowTutorial("goals")}
         >
-          How do goals work?
-        </span>
+          How do goals work? <FaRegQuestionCircle style={{marginLeft: '0.3rem'}}/>
+        </MinimalisticButton>
 
         <p style={{ margin: 0, fontSize: "1.25rem" }}>Tasks</p>
         <div style={{ marginLeft: 10 }}>
@@ -290,6 +303,22 @@ function TasksSection({
     setTasks(newTasks);
   }
 
+  function handleMoveTask(tIndex: number, up: boolean) {
+    if (!tasks) {
+      return;
+    }
+    if ((tIndex == tasks.length - 1 && !up) || (tIndex == 0 && up)) {
+      console.log("nah");
+      return;
+    }
+    let targetIndex = tIndex + (up ? -1 : 1);
+    const newTasks = [...tasks];
+    const temp = newTasks[targetIndex];
+    newTasks[targetIndex] = newTasks[tIndex];
+    newTasks[tIndex] = temp;
+    setTasks(newTasks);
+  }
+
   function handleDeleteTask(tIndex: number) {
     if (!tasks) {
       return;
@@ -334,12 +363,46 @@ function TasksSection({
       {tasks?.map((task, tIndex) => {
         return (
           <div key={`task_${tIndex}`} style={{ margin: 5 }}>
-            <Task
-              task={task}
-              setTask={(task: TaskObj) => handleEditTask(tIndex, task)}
-              onDelete={() => handleDeleteTask(tIndex)}
-              disabled={disabled}
-            />
+            <div style={{ display: "flex" }}>
+              <div style={{ display: "flex", flexDirection: "column", marginRight: '0.5rem' }}>
+                {tIndex != 0 && (
+                  <div
+                    onClick={() => handleMoveTask(tIndex, true)}
+                    style={{
+                      padding: "0.25rem",
+                      border: "1px solid #fff2",
+                      backgroundColor: "#333",
+                      borderTopLeftRadius: "0.5rem",
+                      borderTopRightRadius: "0.5rem",
+                      cursor: "pointer",
+                    }}
+                  >
+                    {<ArrowBigUp size={"1.5rem"} />}
+                  </div>
+                )}
+                {tIndex != tasks.length - 1 && (
+                  <div
+                    onClick={() => handleMoveTask(tIndex, false)}
+                    style={{
+                      padding: "0.25rem",
+                      border: "1px solid #fff2",
+                      backgroundColor: "#333",
+                      borderBottomLeftRadius: "0.5rem",
+                      borderBottomRightRadius: "0.5rem",
+                      cursor: "pointer",
+                    }}
+                  >
+                    {<ArrowBigDown size={"1.5rem"} />}
+                  </div>
+                )}
+              </div>
+              <Task
+                task={task}
+                setTask={(task: TaskObj) => handleEditTask(tIndex, task)}
+                onDelete={() => handleDeleteTask(tIndex)}
+                disabled={disabled}
+              />
+            </div>
           </div>
         );
       })}
@@ -351,6 +414,7 @@ function TasksSection({
           Add Task +
         </MinimalisticButton>
       )}
+      <div style={{height:'10vh'}}/>
     </div>
   );
 }

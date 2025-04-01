@@ -4,7 +4,7 @@ import { Assessment, AssessmentQuestion, ObjectAny } from "../../scripts/types";
 import { useDispatch, useSelector } from "react-redux";
 import { ReduxRootState } from "../../store";
 import { closeDialog, setDialog } from "../../features/Dialog/DialogSlice";
-import { Trash } from "lucide-react";
+import { ArrowBigDown, ArrowBigUp, Trash } from "lucide-react";
 import MinimalisticInput from "../../components/MinimalisticInput/MinimalisticInput";
 import { setAlert } from "../../features/Alert/AlertSlice";
 import {
@@ -358,7 +358,7 @@ export default function AssessmentPage() {
       dispatch(
         setAlert({
           title: "Get the best start!",
-          body: "Since this is your first assessment, we recommend having at least 3 questions.",
+          body: `Since this is your first assessment, we recommend having at least ${FirstTimeRecommendedQuestionCount} questions.`,
         })
       );
       return;
@@ -605,6 +605,18 @@ function AssessmentSection({
     setAssessment(newAssessment);
   }
 
+  function moveAssessmentQuestion(index: number, up: boolean) {
+    if ((index == assessment.length - 1 && !up) || (index == 0 && up)) {
+      return;
+    }
+    let targetIndex = index + (up ? -1 : 1);
+    const newAssessment = [...assessment];
+    const temp = newAssessment[targetIndex];
+    newAssessment[targetIndex] = newAssessment[index];
+    newAssessment[index] = temp;
+    setAssessment(newAssessment);
+  }
+
   function deleteAssessmentQuestion(index: number) {
     const newAssessment = [...assessment];
     newAssessment.splice(index, 1);
@@ -612,7 +624,7 @@ function AssessmentSection({
   }
 
   return (
-    <div>
+    <div style={{gap: '0.2rem'}}>
       {assessment.map((q, index) => {
         const { question, answer: answerRaw, warning } = q;
         const answer = answerRaw || "";
@@ -620,46 +632,93 @@ function AssessmentSection({
           return null;
         }
         return (
-          <div
-            key={`q_${index}`}
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "start",
-              marginBottom: "0.75rem",
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center" }}>
-              <MinimalisticInput
-                style={{ marginLeft: "0.5rem" }}
-                value={question}
-                onChange={(val: string) => {
-                  updateAssessmentQuestion(index, val, answer);
-                }}
-                disabled={disabled}
-              />
-              {!disabled && (
-                <Trash
-                  onClick={() => deleteAssessmentQuestion(index)}
-                  size={"1.2rem"}
-                  style={{ marginLeft: 10, cursor: "pointer" }}
-                />
+          <>
+          {index!=0&&<div style={{width: '10rem', borderTop: '1px solid #fff3', margin: '0.5rem'}} />}
+          <div key={`q_${index}`} style={{ display: "flex" }}>
+            {
+              !disabled && 
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                marginRight: "0.25rem",
+                gap: "0.2rem",
+              }}
+            >
+              {index != 0 && (
+                <div
+                  onClick={() => moveAssessmentQuestion(index, true)}
+                  style={{
+                    padding: "0.25rem",
+                    border: "1px solid #fff2",
+                    backgroundColor: "#333",
+                    borderTopLeftRadius: "0.5rem",
+                    borderTopRightRadius: "0.5rem",
+                    cursor: "pointer",
+                  }}
+                >
+                  {<ArrowBigUp size={"1.5rem"} />}
+                </div>
+              )}
+              {index != assessment.length - 1 && (
+                <div
+                  onClick={() => moveAssessmentQuestion(index, false)}
+                  style={{
+                    padding: "0.25rem",
+                    border: "1px solid #fff2",
+                    backgroundColor: "#333",
+                    borderBottomLeftRadius: "0.5rem",
+                    borderBottomRightRadius: "0.5rem",
+                    cursor: "pointer",
+                  }}
+                >
+                  {<ArrowBigDown size={"1.5rem"} />}
+                </div>
               )}
             </div>
-            {warning && (
-              <span style={{ margin: 0, color: "orange", marginLeft: 10 }}>
-                {warning}
-              </span>
-            )}
-            <MinimalisticTextArea
-              placeholder="Your answer"
-              value={answer}
-              onChange={(e) =>
-                !disabled && updateAssessmentQuestion(index, question || "", e)
-              }
-              disabled={disabled}
-            />
+      }
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "start",
+                marginBottom: "0.75rem",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center" }}>
+                <MinimalisticInput
+                  style={{ marginLeft: "0.5rem" }}
+                  value={question}
+                  onChange={(val: string) => {
+                    updateAssessmentQuestion(index, val, answer);
+                  }}
+                  disabled={disabled}
+                />
+                {!disabled && (
+                  <Trash
+                    onClick={() => deleteAssessmentQuestion(index)}
+                    size={"1.2rem"}
+                    style={{ marginLeft: 10, cursor: "pointer" }}
+                  />
+                )}
+              </div>
+              {warning && (
+                <span style={{ margin: 0, color: "orange", marginLeft: 10 }}>
+                  {warning}
+                </span>
+              )}
+              <MinimalisticTextArea
+                placeholder="Your answer"
+                value={answer}
+                onChange={(e) =>
+                  !disabled &&
+                  updateAssessmentQuestion(index, question || "", e)
+                }
+                disabled={disabled}
+              />
+            </div>
           </div>
+          </>
         );
       })}
     </div>

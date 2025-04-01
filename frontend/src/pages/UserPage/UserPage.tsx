@@ -16,6 +16,8 @@ import {
   SocialTypes,
 } from "../../scripts/types";
 import {
+  ArrowBigDown,
+  ArrowBigUp,
   Globe,
   Pencil,
   Trash,
@@ -1049,6 +1051,21 @@ function ExperienceSection({
     setExperience(newExp);
   }
 
+  function moveExperience(index: number, up: boolean) {
+    if (!experience || !setExperience) {
+      return;
+    }
+    if ((index == experience.length - 1 && !up) || (index == 0 && up)) {
+      return;
+    }
+    let targetIndex = index + (up ? -1 : 1);
+    const newAssessment = [...experience];
+    const temp = newAssessment[targetIndex];
+    newAssessment[targetIndex] = newAssessment[index];
+    newAssessment[index] = temp;
+    setExperience(newAssessment);
+  }
+
   return (
     <>
       <div style={{ display: "flex", alignItems: "center" }}>
@@ -1059,8 +1076,8 @@ function ExperienceSection({
         {!disabled && <Pencil style={{ marginLeft: 5 }} size={"1rem"} />}
       </div>
       <div style={{ marginLeft: 10 }}>
-        {experience?.map((experience, eIndex) => {
-          const { company, position, description, range } = experience;
+        {experience?.map((currentExperience, eIndex) => {
+          const { company, position, description, range } = currentExperience;
           return (
             <ExperienceLikeSection
               key={`exp_${eIndex}`}
@@ -1069,8 +1086,11 @@ function ExperienceSection({
               description={description}
               range={range}
               onChange={(dat: ObjectAny) => handleExperienceChange(eIndex, dat)}
+              onMove={moveExperience}
               disabled={disabled}
               onDelete={() => removeExperience(eIndex)}
+              index={eIndex}
+              sectionSize={experience.length}
             />
           );
         })}
@@ -1132,6 +1152,21 @@ function ProjectSection({
     setProjects(newProjects);
   }
 
+  function moveProject(index: number, up: boolean) {
+    if (!projects || !setProjects) {
+      return;
+    }
+    if ((index == projects.length - 1 && !up) || (index == 0 && up)) {
+      return;
+    }
+    let targetIndex = index + (up ? -1 : 1);
+    const newAssessment = [...projects];
+    const temp = newAssessment[targetIndex];
+    newAssessment[targetIndex] = newAssessment[index];
+    newAssessment[index] = temp;
+    setProjects(newAssessment);
+  }
+
   return (
     <>
       <div style={{ display: "flex", alignItems: "center" }}>
@@ -1149,7 +1184,10 @@ function ProjectSection({
               title={name}
               subtitle={position}
               description={description}
+              index={pIndex}
+              sectionSize={projects.length}
               range={range}
+              onMove={moveProject}
               onChange={(dat: ObjectAny) => handleProjectChange(pIndex, dat)}
               disabled={disabled}
               onDelete={() => deleteProject(pIndex)}
@@ -1215,6 +1253,21 @@ function CertificationSection({
     setCertifications(newCerts);
   }
 
+  function moveCertification(index: number, up: boolean) {
+    if (!certifications || !setCertifications) {
+      return;
+    }
+    if ((index == certifications.length - 1 && !up) || (index == 0 && up)) {
+      return;
+    }
+    let targetIndex = index + (up ? -1 : 1);
+    const newAssessment = [...certifications];
+    const temp = newAssessment[targetIndex];
+    newAssessment[targetIndex] = newAssessment[index];
+    newAssessment[index] = temp;
+    setCertifications(newAssessment);
+  }
+
   return (
     <>
       <div style={{ display: "flex", alignItems: "center" }}>
@@ -1234,6 +1287,9 @@ function CertificationSection({
               onChange={(dat: ObjectAny) =>
                 handleCertificationChange(cIndex, dat)
               }
+              index={cIndex}
+              sectionSize={certifications.length}
+              onMove={moveCertification}
               hideRange={true}
               hideDescription={true}
               disabled={disabled}
@@ -1308,6 +1364,21 @@ function EducationSection({
     setEducation(newEducation);
   }
 
+  function moveEducation(index: number, up: boolean) {
+    if (!education || !setEducation) {
+      return;
+    }
+    if ((index == education.length - 1 && !up) || (index == 0 && up)) {
+      return;
+    }
+    let targetIndex = index + (up ? -1 : 1);
+    const newEducation = [...education];
+    const temp = newEducation[targetIndex];
+    newEducation[targetIndex] = newEducation[index];
+    newEducation[index] = temp;
+    setEducation(newEducation);
+  }
+
   return (
     <>
       <div style={{ display: "flex", alignItems: "center" }}>
@@ -1326,6 +1397,9 @@ function EducationSection({
               subtitle={degree}
               description={fieldOfStudy}
               range={range}
+              index={eduIndex}
+              sectionSize={education.length}
+              onMove={moveEducation}
               onChange={(dat: ObjectAny) =>
                 handleEducationOnChange(eduIndex, dat)
               }
@@ -1552,9 +1626,6 @@ function BioSection({
         {bio || !disabled ? (
           <MinimalisticTextArea
             placeholder={disabled ? "No bio" : "Your bio"}
-            style={{
-              marginLeft: 10,
-            }}
             value={bio}
             onChange={(v) => setBio && setBio(v)}
             disabled={disabled}
@@ -1673,6 +1744,9 @@ function ExperienceLikeSection({
   onChange,
   disabled = true,
   onDelete,
+  onMove,
+  index,
+  sectionSize
 }: {
   title?: string;
   subtitle?: string;
@@ -1685,6 +1759,9 @@ function ExperienceLikeSection({
   hideDescription?: boolean;
   hideRange?: boolean;
   onDelete: AnyFunction;
+  onMove: (i: number, up: boolean) => void,
+  index: number,
+  sectionSize: number
 }) {
   const dispatch = useDispatch();
   const { start, end } = range || {};
@@ -1800,6 +1877,49 @@ function ExperienceLikeSection({
   }
 
   return (
+    <div style={{display: 'flex', justifyContent: 'start', alignItems: 'center', marginTop: '0.5rem'}}>
+      {
+              !disabled && 
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                marginRight: "0.25rem",
+                gap: "0.2rem",
+              }}
+            >
+              {index != 0 && (
+                <div
+                  onClick={() => onMove(index, true)}
+                  style={{
+                    padding: "0.25rem",
+                    border: "1px solid #fff2",
+                    backgroundColor: "#333",
+                    borderTopLeftRadius: "0.5rem",
+                    borderTopRightRadius: "0.5rem",
+                    cursor: "pointer",
+                  }}
+                >
+                  {<ArrowBigUp size={"1.5rem"} />}
+                </div>
+              )}
+              {index != sectionSize - 1 && (
+                <div
+                  onClick={() => onMove(index, false)}
+                  style={{
+                    padding: "0.25rem",
+                    border: "1px solid #fff2",
+                    backgroundColor: "#333",
+                    borderBottomLeftRadius: "0.5rem",
+                    borderBottomRightRadius: "0.5rem",
+                    cursor: "pointer",
+                  }}
+                >
+                  {<ArrowBigDown size={"1.5rem"} />}
+                </div>
+              )}
+            </div>
+      }
     <div>
       <div style={{ display: "flex", flexWrap: "wrap" }}>
         {!hideTitle && (
@@ -1873,6 +1993,7 @@ function ExperienceLikeSection({
           />
         </div>
       )}
+    </div>
     </div>
   );
 }

@@ -1,27 +1,39 @@
-import { useState } from "react";
 import { ObjectAny } from "../../scripts/types";
+import AutowidthInput from "react-autowidth-input";
 
-export default function MinimalisticInput({ value, onChange, style, disabled }: { value?: string, onChange?: (v: string) => any, style?: React.CSSProperties, disabled?: boolean }) {
-  const [initialValue, _] = useState(value);
-
+export default function MinimalisticInput({
+  value,
+  onChange,
+  style,
+  disabled,
+  placeholder
+}: {
+  value?: string;
+  onChange?: (v: string) => any;
+  style?: React.CSSProperties;
+  disabled?: boolean;
+  placeholder?: string
+}) {
   return (
-    <span
-      suppressContentEditableWarning={true}
-      onInput={(e: ObjectAny) =>
-        onChange && onChange(e.target.innerText)
-      }
+    <AutowidthInput
+      onChange={(e: ObjectAny) => onChange && onChange(e.target.value)}
       style={{
         fontSize: "1rem",
+        padding: '0.3rem',
+        borderRadius: '0.3rem',
         margin: 0,
-        borderBottom: disabled ? '0px' : "1px solid #fff4",
+        backgroundColor: disabled ? "transparent" : "#333",
         textWrap: "wrap",
-        minWidth: "10rem",
-        whiteSpace: 'pre-wrap',
-        ...style
+        cursor: 'text',
+        userSelect: 'all',
+        ...style,
       }}
-      contentEditable={!disabled}
-    >
-      {initialValue}
-    </span>
+      placeholder={placeholder}
+      disabled={disabled}
+      value={value}
+      extraWidth={4}
+      minWidth={'2rem'}
+      placeholderIsMinWidth={true}
+    />
   );
 }

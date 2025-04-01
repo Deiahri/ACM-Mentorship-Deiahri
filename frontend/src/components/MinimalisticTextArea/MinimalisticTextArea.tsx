@@ -1,6 +1,8 @@
-export default function MinimalisticTextArea({ style, onChange, value, disabled, placeholder }: { style?: React.CSSProperties, onChange?: (v: string) => any, value?: string, disabled?: boolean, placeholder?: string }) {
+import TextareaAutosize from 'react-textarea-autosize';
+
+export default function MinimalisticTextArea({ onChange, value, disabled, placeholder }: { onChange?: (v: string) => any, value?: string, disabled?: boolean, placeholder?: string }) {
   return (
-    <textarea
+    <TextareaAutosize
       placeholder={placeholder}
       style={{
         margin: 0,
@@ -9,16 +11,12 @@ export default function MinimalisticTextArea({ style, onChange, value, disabled,
         borderRadius: 10,
         borderStartStartRadius: 0,
         backgroundColor: "#292929",
-        minWidth: "10rem",
-        minHeight: "3rem",
-        maxWidth: "80%",
-        maxHeight: "40vh",
+        minWidth: "30rem",
+        // minHeight: "3rem",
+        // maxHeight: "40vh",
         marginTop: 5,
-        height: "4rem",
-        width: "28rem",
         color: 'white',
-        border: disabled? undefined : '#fff3',
-        ...style
+        border: disabled? undefined : '#fff3'
       }}
       value={value}
       onChange={(e) => onChange && onChange(e.target.value)}
