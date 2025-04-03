@@ -591,12 +591,12 @@ function CurrentMentorInfo() {
       </span>
       <span style={{ fontSize: "1.5rem" }}>Mentees</span>
       {menteeIDs && (
-        <div style={{ width: "100%", display: "flex", flexWrap: "wrap" }}>
+        <div style={{ width: "100%", display: "flex", flexWrap: "wrap", boxSizing: 'border-box' }}>
           {menteeIDs.map((menteeID) => {
             return (
               <div
                 className="w-full xss:w-3/3 sm:w-1/2 lg:w-1/3 xl:1/5"
-                style={{ margin: "0.1rem", padding: "0.25rem" }}
+                style={{ padding: "0.25rem", boxSizing: 'border-box' }}
                 key={`mentee_${menteeID}`}
               >
                 <MenteeTile menteeID={menteeID} />

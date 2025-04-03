@@ -5,8 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "concurrently \"npx tailwindcss -i ./src/tailwind.css -o ./src/tailwind_out.css --watch\" \"wait-on ./src/tailwind_out.css && vite\"",
-    "build": "tsc -b && npm run compileTailwind && vite build",
     "compileTailwind": "npx tailwindcss -i ./src/tailwind.css -o ./src/tailwind_out.css",
+    "build": "tsc -b && npm run compileTailwind && vite build",
     "lint": "eslint .",
     "preview": "vite preview"
   },

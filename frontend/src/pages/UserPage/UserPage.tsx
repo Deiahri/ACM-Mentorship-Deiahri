@@ -790,17 +790,7 @@ function RequestMentorButton() {
   const UserIsOurMentor = self.mentorID == user.id;
   let buttonElement: JSX.Element | undefined;
 
-  if (!user.acceptingMentees) {
-    buttonElement = (
-      <MinimalisticButton
-        style={RequestMentorButtonStyle}
-        disabled={true}
-        // onClick={handleChatClick}
-      >
-        Not Accepting Mentees
-      </MinimalisticButton>
-    );
-  } else if (self.mentorID && self.mentorID != user.id) {
+  if (self.mentorID && self.mentorID != user.id) {
     buttonElement = (
       <MinimalisticButton
         style={RequestMentorButtonStyle}
@@ -821,6 +811,16 @@ function RequestMentorButton() {
           style={{ marginLeft: "0.5rem", marginRight: "-0.3rem" }}
           size={"1.1rem"}
         />
+      </MinimalisticButton>
+    );
+  } else if (!user.acceptingMentees) {
+    buttonElement = (
+      <MinimalisticButton
+        style={RequestMentorButtonStyle}
+        disabled={true}
+        // onClick={handleChatClick}
+      >
+        Not Accepting Mentees
       </MinimalisticButton>
     );
   } else if (!existingMentorshipRequestObj) {
