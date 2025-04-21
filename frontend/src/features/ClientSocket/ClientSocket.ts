@@ -28,11 +28,13 @@ import {
   SubmitGoalAction,
 } from "../../scripts/types";
 import { setAlert } from "../Alert/AlertSlice";
-import { NothingFunction } from "../../scripts/tools";
+import { GetRandomAvatarURL, NothingFunction } from "../../scripts/tools";
 import { addChat } from "../Chat/ChatSlice";
 import { playMessageReceiveNotificationSound, playMessageSendNotificationSound } from "../../scripts/sounds";
+import { OBSCURE_MODE } from "../../scripts/shared";
 
 export let MyClientSocket: ClientSocket | undefined = undefined;
+
 
 const MAX_FAILED_CONNECTION_ATTEMPTS = 3;
 let CreatingConnection = false;
@@ -416,6 +418,14 @@ class ClientSocket {
         callback(false);
         return;
       }
+      if (OBSCURE_MODE) {
+        (v as ObjectAny).fName = 'Obscured';
+        (v as ObjectAny).mName = '';
+        (v as ObjectAny).lName = '';
+        (v as ObjectAny).username = 'obscured';
+        (v as ObjectAny).displayPictureURL = GetRandomAvatarURL();
+      }
+      
       callback(v);
     });
   }
@@ -426,6 +436,18 @@ class ClientSocket {
       if (typeof v == "boolean") {
         callback(false);
         return;
+      }
+
+      if (OBSCURE_MODE) {
+        if (v instanceof Array) {
+          for (let item of v) {
+            item.fName = 'Obscured';
+            item.mName = '';
+            item.lName = '';
+            item.username = 'obscured';
+            item.displayPictureURL = GetRandomAvatarURL();
+          }
+        }
       }
       callback(v);
     });
@@ -454,6 +476,9 @@ class ClientSocket {
       if (!v || !(v instanceof Array)) {
         callback(false);
         return;
+      }
+      if (v instanceof Array) {
+
       }
       callback(v);
     });

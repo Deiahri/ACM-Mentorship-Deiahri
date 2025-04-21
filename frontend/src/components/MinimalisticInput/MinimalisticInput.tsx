@@ -30,7 +30,7 @@ export default function MinimalisticInput({
       }}
       placeholder={placeholder}
       disabled={disabled}
-      value={value}
+      value={value||' '}
       extraWidth={4}
       minWidth={'2rem'}
       placeholderIsMinWidth={true}

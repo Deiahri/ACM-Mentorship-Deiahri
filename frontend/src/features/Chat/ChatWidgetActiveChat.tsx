@@ -7,6 +7,8 @@ import { setActiveChat } from "./ChatSlice";
 import { MyClientSocket } from "../ClientSocket/ClientSocket";
 import { IoIosArrowRoundBack } from "react-icons/io";
 import { placeholderPreviewPicture } from "./Chat";
+import { OBSCURE_MODE } from "../../scripts/shared";
+import { GetRandomAvatarURL } from "../../scripts/tools";
 
 export default function ChatWidgetActiveChat({
   fontScale = 1,
@@ -43,9 +45,6 @@ export default function ChatWidgetActiveChat({
       if (!chatSectionRef.current) {
         return;
       }
-      console.log('ham', chatSectionRef.current.scrollHeight -
-        chatSectionRef.current.clientHeight -
-        chatSectionRef.current.scrollTop);
       if (
         chatSectionRef.current.scrollHeight -
           chatSectionRef.current.clientHeight -
@@ -144,10 +143,10 @@ export default function ChatWidgetActiveChat({
               height: 1.5 * fontScale + "rem",
               borderRadius: "50%",
             }}
-            src={otherUserObj.displayPictureURL || placeholderPreviewPicture}
+            src={(OBSCURE_MODE ? GetRandomAvatarURL() : otherUserObj.displayPictureURL) || placeholderPreviewPicture}
           />
           <span style={{ marginLeft: 0.8 * fontScale + "rem" }}>
-            {otherUserObj.fName} {otherUserObj.lName}
+            {OBSCURE_MODE ? 'obscured' : `${otherUserObj.fName} ${otherUserObj.lName}`}
           </span>
         </div>
       </div>
@@ -198,7 +197,7 @@ export default function ChatWidgetActiveChat({
               >
                 {prevMessageObj?.sender !== messageObj.sender && (
                   <div style={{ marginTop: 0.1 * fontScale + "rem" }}>
-                    {users[messageObj.sender].fName}
+                    {OBSCURE_MODE ? 'obscured' : users[messageObj.sender].fName}
                   </div>
                 )}
                 <div

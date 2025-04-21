@@ -32,16 +32,20 @@ export default function App() {
   }, [isAuthenticated]);
 
   useEffect(() => {
-    if (state == 'authed_nouser') {
-      navigate('./new-user');
-    } else if (state == 'authed_user') {
-      if (path == '/app' || path == '/app/new-user') {
-        navigate('./home');
+    async function CheckAuthenticated() {
+      // await sleep(500);
+      if (state == 'authed_nouser') {
+        navigate('./new-user');
+      } else if (state == 'authed_user') {
+        if (path == '/app' || path == '/app/new-user') {
+          navigate('./home');
+        }
+      }
+      if (!isAuthenticated && !isLoading) {
+        navigate('/');
       }
     }
-    if (!isAuthenticated && !isLoading) {
-      navigate('/');
-    }
+    CheckAuthenticated();
   }, [state, isAuthenticated, isLoading]);
 
   if (isLoading) {

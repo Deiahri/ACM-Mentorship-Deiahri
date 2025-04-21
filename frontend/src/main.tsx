@@ -47,6 +47,8 @@ createRoot(document.getElementById("root")!).render(
         audience: "uhdacm",
         scope: "openid profile email"
       }}
+      cacheLocation='localstorage'
+      useRefreshTokens={true}
     >
       <AppRouting />
     </Auth0Provider>

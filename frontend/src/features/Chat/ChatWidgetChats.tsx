@@ -3,6 +3,9 @@ import { ReduxRootState } from "../../store";
 import { setActiveChat } from "./ChatSlice";
 import { ChatObj } from "../../scripts/types";
 import { placeholderPreviewPicture } from "./Chat";
+import { OBSCURE_MODE } from "../../scripts/shared";
+import { GetRandomAvatarURL } from "../../scripts/tools";
+
 
 function sortChatPreviews(chatArr: ChatObj[]) {
   function swapIndexes(i: number, j: number) {
@@ -99,7 +102,7 @@ function ChatWidgetChatPreview({
               borderRadius: "50%",
             }}
             src={
-              users[otherUserID].displayPictureURL || placeholderPreviewPicture
+              (OBSCURE_MODE ? GetRandomAvatarURL() : (users[otherUserID].displayPictureURL)) || placeholderPreviewPicture
             }
           />
         </div>
@@ -110,8 +113,7 @@ function ChatWidgetChatPreview({
               fontWeight: "600",
             }}
           >
-            {users[otherUserID].fName} {users[otherUserID].mName}{" "}
-            {users[otherUserID].lName}
+            {OBSCURE_MODE ? 'obscured' : `${users[otherUserID].fName} ${users[otherUserID].mName} ${users[otherUserID].lName}`}
           </span>
           <span
             style={{
@@ -122,7 +124,7 @@ function ChatWidgetChatPreview({
           >
             {lastMessage.sender === self.id
               ? "You"
-              : `${users[otherUserID].fName}`}
+              : `${OBSCURE_MODE ? 'obscured' : users[otherUserID].fName}`}
             : {lastMessage.contents.length > 50 ? lastMessage.contents.substring(0, 50)+'...' : lastMessage.contents}
           </span>
         </div>

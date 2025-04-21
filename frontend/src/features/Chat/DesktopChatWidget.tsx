@@ -7,6 +7,7 @@ import ChatWidgetChats from "./ChatWidgetChats";
 import ChatWidgetActiveChat from "./ChatWidgetActiveChat";
 import ChatsUnreadIndicator from "./ChatsUnreadIndicator";
 
+
 export default function DesktopChatWidget() {
   const { open, loaded } = useSelector((store: ReduxRootState) => store.Chat);
   const { ready } = useSelector((store: ReduxRootState) => store.ClientSocket);

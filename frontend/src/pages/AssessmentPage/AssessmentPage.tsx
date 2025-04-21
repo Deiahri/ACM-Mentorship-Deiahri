@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Assessment, AssessmentQuestion, ObjectAny } from "../../scripts/types";
 import { useDispatch, useSelector } from "react-redux";
@@ -627,7 +627,7 @@ function AssessmentSection({
   }
 
   return (
-    <div style={{gap: '0.2rem'}}>
+    <div style={{ gap: "0.2rem" }}>
       {assessment.map((q, index) => {
         const { question, answer: answerRaw, warning } = q;
         const answer = answerRaw || "";
@@ -635,93 +635,100 @@ function AssessmentSection({
           return null;
         }
         return (
-          <>
-          {index!=0&&<div style={{width: '10rem', borderTop: '1px solid #fff3', margin: '0.5rem'}} />}
-          <div key={`q_${index}`} style={{ display: "flex" }}>
-            {
-              !disabled && 
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                marginRight: "0.25rem",
-                gap: "0.2rem",
-              }}
-            >
-              {index != 0 && (
+          <Fragment key={`q_${index}`}>
+            {index != 0 && (
+              <div
+                style={{
+                  width: "10rem",
+                  borderTop: "1px solid #fff3",
+                  margin: "0.5rem",
+                }}
+              />
+            )}
+            <div style={{ display: "flex" }}>
+              {!disabled && (
                 <div
-                  onClick={() => moveAssessmentQuestion(index, true)}
                   style={{
-                    padding: "0.25rem",
-                    border: "1px solid #fff2",
-                    backgroundColor: "#333",
-                    borderTopLeftRadius: "0.5rem",
-                    borderTopRightRadius: "0.5rem",
-                    cursor: "pointer",
+                    display: "flex",
+                    flexDirection: "column",
+                    marginRight: "0.25rem",
+                    gap: "0.2rem",
                   }}
                 >
-                  {<ArrowBigUp size={"1.5rem"} />}
+                  {index != 0 && (
+                    <div
+                      onClick={() => moveAssessmentQuestion(index, true)}
+                      style={{
+                        padding: "0.25rem",
+                        border: "1px solid #fff2",
+                        backgroundColor: "#333",
+                        borderTopLeftRadius: "0.5rem",
+                        borderTopRightRadius: "0.5rem",
+                        cursor: "pointer",
+                      }}
+                    >
+                      {<ArrowBigUp size={"1.5rem"} />}
+                    </div>
+                  )}
+                  {index != assessment.length - 1 && (
+                    <div
+                      onClick={() => moveAssessmentQuestion(index, false)}
+                      style={{
+                        padding: "0.25rem",
+                        border: "1px solid #fff2",
+                        backgroundColor: "#333",
+                        borderBottomLeftRadius: "0.5rem",
+                        borderBottomRightRadius: "0.5rem",
+                        cursor: "pointer",
+                      }}
+                    >
+                      {<ArrowBigDown size={"1.5rem"} />}
+                    </div>
+                  )}
                 </div>
               )}
-              {index != assessment.length - 1 && (
-                <div
-                  onClick={() => moveAssessmentQuestion(index, false)}
-                  style={{
-                    padding: "0.25rem",
-                    border: "1px solid #fff2",
-                    backgroundColor: "#333",
-                    borderBottomLeftRadius: "0.5rem",
-                    borderBottomRightRadius: "0.5rem",
-                    cursor: "pointer",
-                  }}
-                >
-                  {<ArrowBigDown size={"1.5rem"} />}
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "start",
+                  marginBottom: "0.75rem",
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center" }}>
+                  <MinimalisticInput
+                    style={{ marginLeft: "0.5rem" }}
+                    value={question}
+                    onChange={(val: string) => {
+                      updateAssessmentQuestion(index, val, answer);
+                    }}
+                    disabled={disabled}
+                  />
+                  {!disabled && (
+                    <Trash
+                      onClick={() => deleteAssessmentQuestion(index)}
+                      size={"1.2rem"}
+                      style={{ marginLeft: 10, cursor: "pointer" }}
+                    />
+                  )}
                 </div>
-              )}
-            </div>
-      }
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "start",
-                marginBottom: "0.75rem",
-              }}
-            >
-              <div style={{ display: "flex", alignItems: "center" }}>
-                <MinimalisticInput
-                  style={{ marginLeft: "0.5rem" }}
-                  value={question}
-                  onChange={(val: string) => {
-                    updateAssessmentQuestion(index, val, answer);
-                  }}
+                {warning && (
+                  <span style={{ margin: 0, color: "orange", marginLeft: 10 }}>
+                    {warning}
+                  </span>
+                )}
+                <MinimalisticTextArea
+                  placeholder="Your answer"
+                  value={answer}
+                  onChange={(e) =>
+                    !disabled &&
+                    updateAssessmentQuestion(index, question || "", e)
+                  }
                   disabled={disabled}
                 />
-                {!disabled && (
-                  <Trash
-                    onClick={() => deleteAssessmentQuestion(index)}
-                    size={"1.2rem"}
-                    style={{ marginLeft: 10, cursor: "pointer" }}
-                  />
-                )}
               </div>
-              {warning && (
-                <span style={{ margin: 0, color: "orange", marginLeft: 10 }}>
-                  {warning}
-                </span>
-              )}
-              <MinimalisticTextArea
-                placeholder="Your answer"
-                value={answer}
-                onChange={(e) =>
-                  !disabled &&
-                  updateAssessmentQuestion(index, question || "", e)
-                }
-                disabled={disabled}
-              />
             </div>
-          </div>
-          </>
+          </Fragment>
         );
       })}
     </div>
