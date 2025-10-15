@@ -1,4 +1,4 @@
-import { isValidAssessmentQuestion, isValidChatObj, isValidMentorshipRequestObj, isValidMessageContent, isValidMessageObj } from "./general";
+import { isValidAssessmentQuestion, isValidChatObj, isValidMentorshipRequestObj } from "./general";
 import {
   ServerSocketPayloadDataMentorshipRequest,
   ServerSocketPayloadDataUpdateSelf,
