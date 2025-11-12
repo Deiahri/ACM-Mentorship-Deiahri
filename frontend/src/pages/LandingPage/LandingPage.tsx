@@ -2,10 +2,29 @@ import { useDispatch } from "react-redux";
 import MentorshipLogo from "../../components/MentorshipLogo/MentorshipLogo";
 import { addDialog } from "../../features/Dialog/DialogSlice";
 import useAuth from "../../hooks/UseAuth/useAuth";
+import { useEffect } from "react";
 
 export default function LandingPage() {
   const dispatch = useDispatch();
-  const { loginWithRedirect } = useAuth();
+  const { loginWithRedirect, getAccessTokenSilently } = useAuth();
+
+  useEffect(() => {
+    const fetchAI = async () => {
+      try {
+        const token = await getAccessTokenSilently();
+        if (!token) return;
+        const response = await fetch('http://localhost:3000/verifyJWT', {
+          method: 'POST',
+          headers: {
+            authorization: `Bearer ${token}`
+          }
+        });
+        const data = await response.json();
+        console.log('AI Service JWT verification response:', data);
+      } catch {}
+    };
+    fetchAI();
+  }, []);
 
   function handleLearnMore() {
     dispatch(addDialog({

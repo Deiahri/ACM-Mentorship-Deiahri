@@ -158,7 +158,7 @@ function _addInitialListenersToSocketIOServer() {
       const resRaw = (await fetch(`http://localhost:${process.env.SERVER_PORT}/verifyJWT`, {
           method: 'POST',
           headers: {
-              authorization: tokenWithBearer
+            authorization: tokenWithBearer
           }
       }));
       const res = await resRaw.json();

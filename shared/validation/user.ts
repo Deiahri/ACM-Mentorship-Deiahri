@@ -9,7 +9,7 @@ import {
   isValidSocial,
 } from "./general";
 
-export function isValidUserObj(obj: unknown): obj is UserObj {
+export function validateUserObj(obj: unknown): asserts obj is UserObj {
   if (typeof obj !== "object" || obj === null) {
     throw new Error("UserObj must be a non-null object.");
   }
@@ -149,6 +149,4 @@ export function isValidUserObj(obj: unknown): obj is UserObj {
   if (chats && !Array.isArray(chats)) {
     throw new Error("chats must be an array.");
   }
-
-  return true;
 }
