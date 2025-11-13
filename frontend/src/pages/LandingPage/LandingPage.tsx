@@ -13,11 +13,16 @@ export default function LandingPage() {
       try {
         const token = await getAccessTokenSilently();
         if (!token) return;
-        const response = await fetch('http://localhost:3000/verifyJWT', {
+        const response = await fetch('http://localhost:3000/useResumeGenerateUserObj', {
           method: 'POST',
           headers: {
+            'Content-Type': 'application/json',
             authorization: `Bearer ${token}`
-          }
+          },
+          body: JSON.stringify({
+            data: 'test',
+            userID: 'WUeairF0fPbKQbrTG6p6'
+          }),
         });
         const data = await response.json();
         console.log('AI Service JWT verification response:', data);

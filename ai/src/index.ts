@@ -1,41 +1,42 @@
 import express from "express";
-import { auth } from "express-oauth2-jwt-bearer";
 import env from "./env/env";
 import cors from "cors";
+import { ExtractUserDataInRequest } from "./auth0/tools";
+import { DBGetUserById } from "./db";
 
 const app = express();
 app.use(cors({
   origin: [env.CLIENT_ADDRESS],
 }));
+app.use(express.json());
 
-const jwtCheck = auth({  
-  audience: env.AUTH0_AUDIENCE,
-  issuerBaseURL: env.AUTH0_ISSUER_BASE_URL,
-  tokenSigningAlg: env.AUTH0_TOKEN_SIGNING_ALG,
-});
+app.post("/useResumeGenerateUserObj", async (req, res) => {
+  const text = req.body.data; // resume text
+  if (!text) {
+    return res.status(400).json({ error: "text is required" });
+  }
 
+  let userID: string | undefined = req.body.userID;
+  if (!userID) {
+    return res.status(400).json({ error: "userID is required" });
+  }
 
-app.use(jwtCheck);
+  const data = await ExtractUserDataInRequest(req, res);
 
-app.post("/verifyJWT", async (req, res) => {
-  await jwtCheck(req, res, async (err) => {
-    if (err) {
-      return res.status(401).json({ error: "Invalid token" });
-    }
+  if (!data) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
 
-    const url = `${env.AUTH0_ISSUER_BASE_URL}/userinfo`;
-    const token = req.auth?.token || '';
-    console.log(url, token);
-    const moreDetails = await (await fetch(url, {
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${token}`
-      }
-    })).json();
+  const userData = await DBGetUserById(userID);
+  if (!userData) {
+    return res.status(404).json({ error: "User not found" });
+  }
 
-    // At this point, req.auth is set
-    res.json({ ...req.auth, ...moreDetails });
-  });
+  if (userData.OAuthSubID !== data.payload.sub) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  res.json({ message: "Success", userData });
 });
 
 const PORT = env.SERVER_PORT;
