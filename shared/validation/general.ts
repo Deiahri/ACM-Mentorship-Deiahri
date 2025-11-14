@@ -111,7 +111,7 @@ export function isValidMonthYearRange(
   }
 
   // Validate the end date if provided
-  if (end) {
+  if (end != null) {
     if (!Array.isArray(end) || end.length !== 2) {
       throw new Error("End date format does not make sense.");
     }

@@ -6,20 +6,29 @@ const env = {
   CLIENT_ADDRESS: process.env.CLIENT_ADDRESS!,
   SERVER_PORT: process.env.SERVER_PORT!,
 
-  FB_API_KEY: process.env.FB_API_KEY!,
-  FB_AUTH_DOMAIN: process.env.FB_AUTH_DOMAIN!,
-  FB_PROJECT_ID: process.env.FB_PROJECT_ID!,
-  FB_STORAGE_BUCKET: process.env.FB_STORAGE_BUCKET!,
-  FB_MESSAGING_SENDER_ID: process.env.FB_MESSAGING_SENDER_ID!,
-  FB_APP_ID: process.env.FB_APP_ID!,
-
   FB_ADMIN_JSON: JSON.parse(process.env.FB_ADMIN_JSON!),
 
   AUTH0_AUDIENCE: process.env.AUTH0_AUDIENCE!,
   AUTH0_ISSUER_BASE_URL: process.env.AUTH0_ISSUER_BASE_URL!,
-  AUTH0_TOKEN_SIGNING_ALG: process.env.AUTH0_TOKEN_SIGNING_ALG!
+  AUTH0_TOKEN_SIGNING_ALG: process.env.AUTH0_TOKEN_SIGNING_ALG!,
 
+  AI_API_KEY: process.env.AI_API_KEY!,
+  AI_MODEL_NAME: process.env.AI_MODEL_NAME!,
+  AI_SYSTEM_PROMPT: process.env.AI_SYSTEM_PROMPT!,
+  AI_LIMITS: (() => {
+    const limits = process.env.AI_LIMITS ? JSON.parse(process.env.AI_LIMITS) : undefined
+    if (!limits) {
+      throw new Error("AI_LIMITS environment variable is not defined or invalid");
+    }
 
+    if (typeof limits.tokensUsedLastHour !== 'number' || typeof limits.requestsMadeLastHour !== 'number') {
+      throw new Error("AI_LIMITS environment variable is invalid");
+    }
+    return {
+      tokensUsedLastHour: Number(limits.tokensUsedLastHour),
+      requestsMadeLastHour: Number(limits.requestsMadeLastHour),
+    };
+  })(),
 }
 
 for (const [key, value] of Object.entries(env)) {

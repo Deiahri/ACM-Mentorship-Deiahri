@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { auth, AuthResult } from "express-oauth2-jwt-bearer";
-import env from "src/env/env";
+import env from "../env/env";
 
 const jwtCheck = auth({  
   audience: env.AUTH0_AUDIENCE,

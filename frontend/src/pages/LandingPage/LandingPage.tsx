@@ -8,34 +8,13 @@ export default function LandingPage() {
   const dispatch = useDispatch();
   const { loginWithRedirect, getAccessTokenSilently } = useAuth();
 
-  useEffect(() => {
-    const fetchAI = async () => {
-      try {
-        const token = await getAccessTokenSilently();
-        if (!token) return;
-        const response = await fetch('http://localhost:3000/useResumeGenerateUserObj', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            authorization: `Bearer ${token}`
-          },
-          body: JSON.stringify({
-            data: 'test',
-            userID: 'WUeairF0fPbKQbrTG6p6'
-          }),
-        });
-        const data = await response.json();
-        console.log('AI Service JWT verification response:', data);
-      } catch {}
-    };
-    fetchAI();
-  }, []);
-
   function handleLearnMore() {
-    dispatch(addDialog({
-      title: 'Nothing',
-      subtitle: 'Nothing else available yet'
-    }));
+    dispatch(
+      addDialog({
+        title: "Nothing",
+        subtitle: "Nothing else available yet",
+      })
+    );
   }
 
   function handleLogin() {
@@ -44,8 +23,8 @@ export default function LandingPage() {
 
   return (
     <div
-    className={'pageBase'}
-    style={{justifyContent: 'center', alignItems: 'center'}}
+      className={"pageBase"}
+      style={{ justifyContent: "center", alignItems: "center" }}
     >
       {/* Shift slightly left to please visually */}
       <div style={{ marginLeft: -10 }}>
@@ -57,7 +36,7 @@ export default function LandingPage() {
           color: "white",
           fontSize: "1.1rem",
           fontWeight: 300,
-          textAlign: 'center'
+          textAlign: "center",
         }}
       >
         Inspiring the next generation, one person at a time

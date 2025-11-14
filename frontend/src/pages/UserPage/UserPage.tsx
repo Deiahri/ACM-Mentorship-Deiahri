@@ -27,11 +27,12 @@ import {
   X,
   XIcon,
 } from "lucide-react";
-import { IoChatbubbleOutline } from "react-icons/io5";
+import { IoChatbubbleOutline, IoDocument } from "react-icons/io5";
 import {
   closeDialog,
   DialogInput,
   addDialog,
+  addDialogImmediate,
 } from "../../features/Dialog/DialogSlice";
 import {
   FaDiscord,
@@ -47,7 +48,6 @@ import {
 import { getMonthName, getMonthNumber, sleep } from "../../scripts/tools";
 import MinimalisticInput from "../../components/MinimalisticInput/MinimalisticInput";
 import MinimalisticButton from "../../components/MinimalisticButton/MinimalisticButton";
-import { setAlert } from "../../features/Alert/AlertSlice";
 import { useChangeUsernameWithDialog } from "../../hooks/UseChangeUsername";
 import { SaveButtonFixed } from "../../components/SaveButtonFixed/SaveButtonFixed";
 import MinimalisticTextArea from "../../components/MinimalisticTextArea/MinimalisticTextArea";
@@ -57,6 +57,8 @@ import { placeholderPreviewPicture } from "../../features/Chat/Chat";
 import { MentorshipRequestResponseAction } from "@shared/types/socket";
 import { isMentorshipRequestResponseAction } from "@shared/validation/socket";
 import { MAX_NUMBER_OF_MENTORS_PER_MENTEE } from "@shared/data/mentorshipRequest";
+import useAIResumeProfileButton from "../../features/AIResumeProfileButton/useAIResumeProfileButton";
+import { extractTextFromDocument } from "../../scripts/extractTextFromDocuments";
 
 export default function UserPage() {
   return (
@@ -133,9 +135,9 @@ function UserPageWithContext() {
                 }
                 setChanged(false);
                 dispatch(
-                  setAlert({
+                  addDialog({
                     title: "Saved",
-                    body: "Successfully saved changes",
+                    subtitle: "Successfully saved changes",
                   })
                 );
                 originalUser.current = user;
@@ -452,9 +454,9 @@ function SoftSkillSection({
     softSkill = softSkill.trim();
     if (softSkill.length < 3) {
       dispatch(
-        setAlert({
+        addDialog({
           title: "Invalid soft skill",
-          body: "Soft skill is too short",
+          subtitle: "Soft skill is too short",
         })
       );
       return;
@@ -591,45 +593,194 @@ function TopSection() {
 
   const { fName, mName, lName, displayPictureURL, username } = user;
   return (
-    <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
-      <img
-        src={displayPictureURL || placeholderPreviewPicture}
-        style={{
-          borderRadius: "50%",
-          width: "8rem",
-          height: "8rem",
-          border: "1px solid #fff3",
-        }}
-      />
-      <div>
-        <NameSection
-          fName={fName}
-          mName={mName}
-          lName={lName}
-          setName={setName}
-          disabled={!CanMakeChanges}
+    <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+      <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
+        <img
+          src={displayPictureURL || placeholderPreviewPicture}
+          style={{
+            borderRadius: "50%",
+            width: "8rem",
+            height: "8rem",
+            border: "1px solid #fff3",
+          }}
         />
-        <div style={{ display: "flex", alignItems: "center" }}>
-          <span
-            onClick={HandleChangeUsername}
-            style={{ marginLeft: "0.5rem", opacity: 0.5, cursor: "pointer" }}
-          >
-            @{username}
-          </span>
-          {CanMakeChanges && (
-            <Pencil
+        <div>
+          <NameSection
+            fName={fName!}
+            mName={mName || ""}
+            lName={lName!}
+            setName={setName}
+            disabled={!CanMakeChanges}
+          />
+          <div style={{ display: "flex", alignItems: "center" }}>
+            <span
               onClick={HandleChangeUsername}
-              style={{ marginLeft: "0.5rem", cursor: "pointer" }}
-              size={"1rem"}
-            />
-          )}
-        </div>
-        <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
-          <ChatButton />
-          <RequestMentorButton />
-          <MenteeButton />
+              style={{ marginLeft: "0.5rem", opacity: 0.5, cursor: "pointer" }}
+            >
+              @{username}
+            </span>
+            {CanMakeChanges && (
+              <Pencil
+                onClick={HandleChangeUsername}
+                style={{ marginLeft: "0.5rem", cursor: "pointer" }}
+                size={"1rem"}
+              />
+            )}
+          </div>
+          <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+            <ChatButton />
+            <RequestMentorButton />
+            <MenteeButton />
+          </div>
         </div>
       </div>
+      <UpdateWithResumeButton />
+    </div>
+  );
+}
+
+function UpdateWithResumeButton() {
+  const { user: self } = useSelector(
+    (store: ReduxRootState) => store.ClientSocket
+  );
+  const { isTimedOut, isGenerating, GetAIResumeProfileUpdate } =
+    useAIResumeProfileButton();
+  const { user, setChanged, setUser } = useContext(UserPageContext);
+  const dispatch = useDispatch();
+
+  if (!user || !self) return;
+
+  // only show if viewing own profile
+  const CanMakeChanges = user.id == self.id;
+  if (!CanMakeChanges) return;
+
+  function handleUpdateWithResume() {
+    if (!CanMakeChanges || !self || !user || isTimedOut || isGenerating) {
+      return;
+    }
+    dispatch(
+      addDialog({
+        title: "Update Profile With Resume",
+        subtitle:
+          "Share your resume and automatically update your profile information.",
+        inputs: [
+          {
+            type: "file",
+            label: "Upload Resume (PDF)",
+            name: "resumeFile",
+            accept: ".docx, .pdf",
+          },
+          {
+            type: "toggle",
+            label: "Combine with existing information",
+            name: "combineExisting",
+            initialValue: true,
+          },
+        ],
+        buttons: [
+          {
+            text: "Upload and Update",
+            onClick: async (inputs) => {
+              const resumeFile = (inputs as ObjectAny).resumeFile as File;
+              const combineExisting =
+                ((inputs as ObjectAny).combineExisting as boolean) || false;
+
+              if (!resumeFile) {
+                // No file selected, close dialog, show alert, and re-open dialog to select file.
+                dispatch(closeDialog());
+                dispatch(
+                  addDialogImmediate({
+                    title: "No File Selected",
+                    subtitle: "Please select a resume file to upload.",
+                    buttons: [
+                      {
+                        text: "OK",
+                        onClick: () => {
+                          dispatch(closeDialog());
+                          handleUpdateWithResume();
+                        },
+                      },
+                    ],
+                  })
+                );
+                return;
+              }
+
+              dispatch(closeDialog());
+              dispatch(
+                addDialog({
+                  title: "Processing Resume",
+                })
+              );
+              const text = await extractTextFromDocument(resumeFile);
+              let response;
+              try {
+                response = await GetAIResumeProfileUpdate(
+                  text,
+                  combineExisting
+                );
+              } catch (error) {
+                dispatch(closeDialog());
+                dispatch(
+                  addDialog({
+                    title: "Error",
+                    subtitle:
+                      error instanceof Error
+                        ? error.message
+                        : "Failed to generate profile update from resume. ",
+                  })
+                );
+                return;
+              }
+              dispatch(closeDialog());
+
+              if (!response) {
+                dispatch(
+                  addDialog({
+                    title: "Error",
+                    subtitle: "Failed to generate profile update from resume. ",
+                  })
+                );
+                return;
+              }
+
+              const newUser = {
+                ...user, ...response
+              };
+              setUser(newUser);
+              setChanged(true);
+              dispatch(addDialog({
+                title: "Updated Profile",
+                subtitle: 'Your profile was updated',
+                buttons: [
+                  {
+                    text: 'Done',
+                    onClick: () => dispatch(closeDialog())
+                  }
+                ]
+              }));
+            },
+          },
+        ],
+      })
+    );
+  }
+
+  return (
+    <div
+      style={{ display: "flex", flexDirection: "column", alignItems: "start" }}
+    >
+      <MinimalisticButton
+        style={{
+          gap: "0.5rem",
+        }}
+        onClick={handleUpdateWithResume}
+        disabled={isTimedOut || isGenerating}
+      >
+        Update Profile With Resume <IoDocument />
+      </MinimalisticButton>
+      {isTimedOut && <span>Too many requests, please wait.</span>}
+      {isGenerating && <span>Generating...</span>}
     </div>
   );
 }
@@ -809,9 +960,9 @@ function RequestMentorButton() {
                   if (v) {
                     setTimeout(() => {
                       dispatch(
-                        setAlert({
+                        addDialog({
                           title: "Request Sent!",
-                          body: `Your request has been set to ${user?.fName}`,
+                          subtitle: `Your request has been set to ${user?.fName}`,
                         })
                       );
                     }, 250);
@@ -828,7 +979,10 @@ function RequestMentorButton() {
   const UserIsOurMentor = self.mentorIDs?.includes(user.id!);
   let buttonElement: JSX.Element | undefined;
 
-  if (self.mentorIDs && self.mentorIDs.length >= MAX_NUMBER_OF_MENTORS_PER_MENTEE) {
+  if (
+    self.mentorIDs &&
+    self.mentorIDs.length >= MAX_NUMBER_OF_MENTORS_PER_MENTEE
+  ) {
     buttonElement = (
       <MinimalisticButton
         style={RequestMentorButtonStyle}
@@ -914,7 +1068,7 @@ function MenteeButton() {
       self.id,
       user?.id
     ).then((v) => {
-      console.log('fetched mentee request', v);
+      console.log("fetched mentee request", v);
       if (typeof v == "boolean") {
         setExistingIncomingMentorshipRequest(undefined);
         return;
@@ -1008,7 +1162,7 @@ function MenteeButton() {
       callback && callback(false);
       setTimeout(() => {
         dispatch(
-          setAlert({ title: "Action failed", body: "Couldn't do that." })
+          addDialog({ title: "Action failed", subtitle: "Couldn't do that." })
         );
       }, 250);
       return;
@@ -1022,7 +1176,6 @@ function MenteeButton() {
 
   const UserIsOurMentee = user.mentorIDs?.includes(self.id!);
   let buttonElement: JSX.Element | undefined;
-
 
   if (existingIncomingMentorshipRequest) {
     buttonElement = (
@@ -1568,9 +1721,9 @@ function SocialSection({
     const { url, icon } = payload;
     if (!url || !icon) {
       dispatch(
-        setAlert({
+        addDialog({
           title: "Invalid Social",
-          body: "Your social is missing a url or icon.",
+          subtitle: "Your social is missing a url or icon.",
         })
       );
       return;
@@ -1582,9 +1735,9 @@ function SocialSection({
   function handleEditSocialSubmit(payload: ObjectAny, index: number) {
     if (!socials || index < 0 || socials.length <= index) {
       dispatch(
-        setAlert({
+        addDialog({
           title: "Operation failed",
-          body: "That social does not exist.",
+          subtitle: "That social does not exist.",
         })
       );
       return;
@@ -1599,9 +1752,9 @@ function SocialSection({
   function handleRemoveSocial(index: number) {
     if (!socials || index < 0 || socials.length <= index) {
       dispatch(
-        setAlert({
+        addDialog({
           title: "Operation failed",
-          body: "That social does not exist.",
+          subtitle: "That social does not exist.",
         })
       );
       return;
@@ -1838,9 +1991,9 @@ function ExperienceLikeSection({
             onClick: (params: ObjectAny) => {
               function AlertRangeError(msg: string) {
                 dispatch(
-                  setAlert({
+                  addDialog({
                     title: "Invalid date range",
-                    body: msg,
+                    subtitle: msg,
                   })
                 );
               }

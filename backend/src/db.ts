@@ -1,5 +1,6 @@
 import { LRUCache } from "lru-cache"; // for caching
 
+import { collectionName } from '@shared/types/db';
 import { DBObj } from "@shared/types/general";
 import env from './env/env';
 
@@ -12,10 +13,6 @@ admin.initializeApp({
 });
 
 const db = getFirestore();
-
-// list of all collection names
-export const collectionNames = ["user", "assessment", "mentorshipRequest", 'assessmentQuestion', 'goal', 'metrics', 'chat', 'message', 'userPushSubscriptions', 'userSettings'] as const;
-export type collectionName = (typeof collectionNames)[number];
 
 type comparisonOperator =
   | "<"
@@ -155,6 +152,7 @@ export async function DBSetWithID(
   await db.collection(collectionName).doc(id).set(newObj);
   CacheSet(collectionName, id, { ...newObj, id });
 }
+
 /**
  * Create a new document with an auto-generated ID
  */
