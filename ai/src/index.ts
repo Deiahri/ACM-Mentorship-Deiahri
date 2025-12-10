@@ -16,16 +16,17 @@ app.post("/generateResumeProfile", async (req, res) => {
   try {
     const { combine, text, userID } = req.body;
     const data = await ExtractUserDataInRequest(req, res);
-    
-    const generatedUserObj = await generateUserObjHandler({
+
+    const response = await generateUserObjHandler({
       combine, text, userID, OAuthSubID: data?.payload.sub
     });
   
     res.json({
-      success: !!generatedUserObj,
-      data: generatedUserObj,
+      success: !!response,
+      data: response ? response.partialUserObj : undefined,
+      successNotes: response ? response.successNotes : undefined
     });
-    console.log('Generated AI resume profile for user:', generatedUserObj);
+    console.log('Generated AI resume profile for user:', response);
   } catch (error) {
     if (error instanceof GenerateUserObjError) {
       res.status(400).json({
@@ -34,7 +35,7 @@ app.post("/generateResumeProfile", async (req, res) => {
       });
     } else {
       res.status(500).json({
-        error: "Internal server error"
+        error: "Internal server error "+ (error as Error).message,
       });
     }
   }

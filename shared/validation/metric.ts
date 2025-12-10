@@ -1,6 +1,6 @@
 import { MetricCountTimestampObj, Metric } from "@shared/types/metric";
 
-export function isMetric(obj: any): obj is Metric {
+export function isMetric(obj: unknown): obj is Metric {
   if (obj === null || typeof obj !== 'object') {
     return false;
   }

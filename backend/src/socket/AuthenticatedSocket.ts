@@ -23,7 +23,6 @@ import {
   isValidMiddleName,
   isValidNames,
   isValidUsername,
-  MAX_BIO_LENGTH,
 } from "../scripts/validation";
 import { GetUserData, RemoveMentorship, SyncUserProfile } from "./entities/users";
 import {
@@ -71,6 +70,7 @@ import { AddUserPushSubscription } from "./entities/userPushSubscriptions";
 import { GetUserSettings, UpdateUserSettings } from "./entities/userSettings";
 import { isUserSettings } from "@shared/validation/userSettings";
 import { DocumentTestKey } from "@shared/data/db";
+import { MAX_BIO_LENGTH } from "@shared/data/user";
 
 export type AuthenticatedSocketAdditionalParameters = {
   deleteAccountAfterDisconnect?: boolean;

@@ -73,7 +73,8 @@ export async function DBGet(
   collectionName: collectionName,
   queries?: queryTuple[],
   queryStyle?: queryStyle,
-  order?: orderTuple
+  order?: orderTuple,
+  limit?: number
 ): Promise<DBObj[]> {
   let queryRef: FirebaseFirestore.Query = db.collection(collectionName);
 
@@ -92,6 +93,10 @@ export async function DBGet(
         queryRef = queryRef.where(field, op, val);
       }
     }
+  }
+
+  if (limit) {
+    queryRef.limit(limit);
   }
 
   // --- Apply ordering ---

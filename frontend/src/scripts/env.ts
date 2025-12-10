@@ -20,6 +20,8 @@ const env = {
   SKIP_TEST_DATA_DELETION: `${import.meta.env.VITE_SKIP_TEST_DATA_DELETION}` === 'true',
 };
 
+console.log(env.OBSCURE_MODE);
+
 const optionalEnvVars = [
   "OBSCURE_MODE",
 

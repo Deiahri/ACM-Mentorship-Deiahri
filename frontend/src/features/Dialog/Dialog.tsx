@@ -180,6 +180,7 @@ export default function Dialog() {
             const typeIsInput = !(typeIsSelect || typeIsToggle || typeIsFile);
             const OVRALL_Key = `DialogInput_${index}`;
             const DI_Key = name || label;
+            const DI_Accept = DialogInput.accept || undefined;
             const DI_Type = DialogInput.type;
             return (
               <div
@@ -222,6 +223,7 @@ export default function Dialog() {
                       }}
                       type={DI_Type}
                       placeholder={placeholder ? placeholder : DI_Key}
+                      accept={DI_Accept}
                       disabled={disabled}
                     />
                   )}

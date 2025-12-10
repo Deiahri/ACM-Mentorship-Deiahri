@@ -76,7 +76,7 @@ export default function useAIResumeProfileButton() {
       throw new Error("Network error, please try again later.");
     }
 
-    const { success, data, error, timeoutEnd } = res;
+    const { success, data, error, timeoutEnd, successNotes } = res;
     console.log("AI Resume Profile Response:", res);
     // handle errors
     if (error) {
@@ -102,8 +102,8 @@ export default function useAIResumeProfileButton() {
         "Received invalid user data from server. Please try again later."
       );
     }
-    return data;
+    return { data, successNotes };
   };
 
-  return { isTimedOut, isGenerating, GetAIResumeProfileUpdate };
+  return { isTimedOut, isGenerating, GetAIResumeProfileUpdate, timeoutEnd };
 }

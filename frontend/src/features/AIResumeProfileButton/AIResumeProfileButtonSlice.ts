@@ -1,4 +1,5 @@
 import { createSlice } from "@reduxjs/toolkit";
+import { LocalStorageKeys } from "@shared/data/localStorage";
 
 interface AIResumeProfileButtonState {
   isGenerating: boolean;
@@ -18,7 +19,9 @@ export const AIResumeProfileButtonSlice = createSlice({
       state.isGenerating = action.payload;
     },
     setAIResumeProfileButtonTimeoutEnd: (state, action) => {
-      state.timeoutEnd = action.payload;
+      const timeoutEnd = action.payload;
+      state.timeoutEnd = timeoutEnd;
+      localStorage.setItem(LocalStorageKeys.AIResumeTimeoutEnd, timeoutEnd ? timeoutEnd.toString() : "");
     },
   },
 });

@@ -1,5 +1,6 @@
+import { DBObj } from "./general";
 
-export interface Metric {
+export interface Metric extends DBObj {
   AIResume?: {
     tokensUsedLastHour: MetricCountTimestampObj,
     requestsMadeLastHour: MetricCountTimestampObj

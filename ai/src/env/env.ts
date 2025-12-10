@@ -21,12 +21,16 @@ const env = {
       throw new Error("AI_LIMITS environment variable is not defined or invalid");
     }
 
-    if (typeof limits.tokensUsedLastHour !== 'number' || typeof limits.requestsMadeLastHour !== 'number') {
+    if (typeof limits.tokensUsedLastHour !== 'number' || typeof limits.requestsMadeLastHour !== 'number' || typeof limits.maxTokensPerRequest !== 'number') {
       throw new Error("AI_LIMITS environment variable is invalid");
     }
+
+
+
     return {
       tokensUsedLastHour: Number(limits.tokensUsedLastHour),
       requestsMadeLastHour: Number(limits.requestsMadeLastHour),
+      maxTokensPerRequest: Number(limits.maxTokensPerRequest),
     };
   })(),
 }

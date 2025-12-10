@@ -33,20 +33,23 @@ import type {
 const readPdf = async (file: File) => {
   const pdf = await pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise;
   // const pdf = await pdfjsLib.getDocument(fileUrl).promise;
-  console.log(`Loaded ${pdf.numPages} pages`);
 
-  const page = await pdf.getPage(1);
-  const textContent = await page.getTextContent();
-
-  const text = textContent.items
-    .map((i: TextItem | TextMarkedContent) => {
-      if ("str" in i) {
-        return i.str;
-      }
-      return "";
-    })
-    .join(" ");
-  return text;
+  let fullText = "";
+  for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+    const page = await pdf.getPage(pageNum);
+    const textContent = await page.getTextContent();
+  
+    const text = textContent.items
+      .map((i: TextItem | TextMarkedContent) => {
+        if ("str" in i) {
+          return i.str;
+        }
+        return "";
+      })
+      .join(" ");
+    fullText += text + "\n";
+  }
+  return fullText;
 };
 
 

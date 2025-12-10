@@ -643,7 +643,7 @@ function UpdateWithResumeButton() {
   const { user: self } = useSelector(
     (store: ReduxRootState) => store.ClientSocket
   );
-  const { isTimedOut, isGenerating, GetAIResumeProfileUpdate } =
+  const { isTimedOut, isGenerating, GetAIResumeProfileUpdate, timeoutEnd } =
     useAIResumeProfileButton();
   const { user, setChanged, setUser } = useContext(UserPageContext);
   const dispatch = useDispatch();
@@ -672,9 +672,9 @@ function UpdateWithResumeButton() {
           },
           {
             type: "toggle",
-            label: "Combine with existing information",
-            name: "combineExisting",
-            initialValue: true,
+            label: "Overwrite Existing Profile Data",
+            name: "overwriteExisting",
+            initialValue: false,
           },
         ],
         buttons: [
@@ -682,8 +682,8 @@ function UpdateWithResumeButton() {
             text: "Upload and Update",
             onClick: async (inputs) => {
               const resumeFile = (inputs as ObjectAny).resumeFile as File;
-              const combineExisting =
-                ((inputs as ObjectAny).combineExisting as boolean) || false;
+              const overwriteExisting =
+                ((inputs as ObjectAny).overwriteExisting as boolean) || false;
 
               if (!resumeFile) {
                 // No file selected, close dialog, show alert, and re-open dialog to select file.
@@ -712,12 +712,27 @@ function UpdateWithResumeButton() {
                   title: "Processing Resume",
                 })
               );
-              const text = await extractTextFromDocument(resumeFile);
+              let text: string = "";
+              try {
+                text = await extractTextFromDocument(resumeFile);
+              } catch {}
+
+              if (!text) {
+                dispatch(closeDialog());
+                dispatch(
+                  addDialog({
+                    title: "Error",
+                    subtitle: "Failed to extract text from provided file.",
+                  })
+                );
+                return;
+              }
+
               let response;
               try {
                 response = await GetAIResumeProfileUpdate(
                   text,
-                  combineExisting
+                  !overwriteExisting
                 );
               } catch (error) {
                 dispatch(closeDialog());
@@ -744,21 +759,28 @@ function UpdateWithResumeButton() {
                 return;
               }
 
+              const {
+                data,
+                // successNotes
+              } = response;
               const newUser = {
-                ...user, ...response
+                ...user,
+                ...data,
               };
               setUser(newUser);
               setChanged(true);
-              dispatch(addDialog({
-                title: "Updated Profile",
-                subtitle: 'Your profile was updated',
-                buttons: [
-                  {
-                    text: 'Done',
-                    onClick: () => dispatch(closeDialog())
-                  }
-                ]
-              }));
+              dispatch(
+                addDialog({
+                  title: "Updated Profile",
+                  subtitle: "Your profile was updated",
+                  buttons: [
+                    {
+                      text: "Done",
+                      onClick: () => dispatch(closeDialog()),
+                    },
+                  ],
+                })
+              );
             },
           },
         ],
@@ -779,7 +801,12 @@ function UpdateWithResumeButton() {
       >
         Update Profile With Resume <IoDocument />
       </MinimalisticButton>
-      {isTimedOut && <span>Too many requests, please wait.</span>}
+      {isTimedOut && timeoutEnd && (
+        <span>
+          Too many requests, please wait until{" "}
+          {new Date(timeoutEnd).toLocaleTimeString()}.
+        </span>
+      )}
       {isGenerating && <span>Generating...</span>}
     </div>
   );
